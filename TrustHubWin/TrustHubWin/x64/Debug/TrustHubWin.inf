@@ -1,0 +1,93 @@
+;
+; TrustHubWin.inf
+;
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=Sample ; TODO: edit Class
+ClassGuid={78A1C341-4539-11d3-B88D-00C04FAD5171} ; TODO: edit ClassGuid
+Provider=%ManufacturerName%
+CatalogFile=TrustHubWin.cat
+DriverVer=10/31/2016,16.15.49.541
+
+[DestinationDirs]
+DefaultDestDir = 12
+
+; ================= Class section =====================
+
+[ClassInstall32]
+Addreg=SampleClassReg
+
+[SampleClassReg]
+HKR,,,0,%ClassName%
+HKR,,Icon,,-5
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+TrustHubWin.sys  = 1,,
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName%=Standard,NTamd64
+
+[Standard.NTamd64]
+%TrustHubWin.DeviceDesc%=TrustHubWin_Device, Root\TrustHubWin ; TODO: edit hw-id
+
+[TrustHubWin_Device.NT]
+CopyFiles=Drivers_Dir
+
+[Drivers_Dir]
+TrustHubWin.sys
+
+;-------------- Service installation
+[TrustHubWin_Device.NT.Services]
+AddService = TrustHubWin,%SPSVCINST_ASSOCSERVICE%, TrustHubWin_Service_Inst
+
+; -------------- TrustHubWin driver install sections
+[TrustHubWin_Service_Inst]
+DisplayName    = %TrustHubWin.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\TrustHubWin.sys
+
+;
+;--- TrustHubWin_Device Coinstaller installation ------
+;
+
+[DestinationDirs]
+TrustHubWin_Device_CoInstaller_CopyFiles = 11
+
+[TrustHubWin_Device.NT.CoInstallers]
+AddReg=TrustHubWin_Device_CoInstaller_AddReg
+CopyFiles=TrustHubWin_Device_CoInstaller_CopyFiles
+
+[TrustHubWin_Device_CoInstaller_AddReg]
+;
+
+
+[TrustHubWin_Device_CoInstaller_CopyFiles]
+;
+
+
+[SourceDisksFiles]
+;
+
+
+[TrustHubWin_Device.NT.Wdf]
+KmdfService =  TrustHubWin, TrustHubWin_wdfsect
+[TrustHubWin_wdfsect]
+KmdfLibraryVersion = 1.15
+
+[Strings]
+SPSVCINST_ASSOCSERVICE= 0x00000002
+ManufacturerName="<Your manufacturer name>" ;TODO: Replace with your manufacturer name
+ClassName="Samples" ; TODO: edit ClassName
+DiskName = "TrustHubWin Installation Disk"
+TrustHubWin.DeviceDesc = "TrustHubWin Device"
+TrustHubWin.SVCDESC = "TrustHubWin Service"
