@@ -18,4 +18,7 @@ DEFINE_GUID(
 	0x87, 0x21, 0x2e, 0x97, 0xd0, 0x77, 0x02, 0xee
 );
 
+#define TRUSTHUB_DEVICENAME L"\\Device\\TrustHub"
+#define TRUSTHUB_SYMNAME L"\\DosDevices\\Global\\TrustHub"
+
 UINT32 TrustHub_callout_id;

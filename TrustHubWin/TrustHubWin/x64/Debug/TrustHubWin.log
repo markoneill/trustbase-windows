@@ -1,9 +1,6 @@
 ﻿  Building 'TrustHubWin' with toolset 'WindowsKernelModeDriver10.0' and the 'Universal' target platform.
-  Stamping x64\Debug\TrustHubWin.inf [Version] section with DriverVer=11/04/2016,13.57.22.793
+  Stamping x64\Debug\TrustHubWin.inf [Version] section with DriverVer=11/07/2016,15.58.1.750
   Driver.c
-  Queue.c
-  TrustHubCallout.c
-  Generating Code...
   uuid.lib(fwpapi.obj) : MSIL .netmodule or module compiled with /GL found; restarting link with /LTCG; add /LTCG to the link command line to improve linker performance
   Generating code
   Finished generating code
@@ -13,7 +10,7 @@
   Successfully signed: C:\Users\ilab\Source\Repos\TrustKern\TrustHubWin\x64\Debug\TrustHubWin.sys
   
   Driver is a Universal Driver.
-  ........................
+  .........................
   Signability test complete.
   
   Errors:

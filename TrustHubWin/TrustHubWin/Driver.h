@@ -49,6 +49,8 @@ EXTERN_C_START
 
 DRIVER_INITIALIZE DriverEntry;
 EVT_WDF_OBJECT_CONTEXT_CLEANUP TrustHubWinEvtDriverContextCleanup;
+DRIVER_UNLOAD DriverUnload;
+EVT_WDF_DRIVER_UNLOAD empty_evt_unload;
 
 EXTERN_C_END
 
