@@ -1,90 +1,49 @@
-;
-; TrustHubWin.inf
-;
 
 [Version]
-Signature="$WINDOWS NT$"
-Class=Sample ; TODO: edit Class
-ClassGuid={78A1C341-4539-11d3-B88D-00C04FAD5171} ; TODO: edit ClassGuid
-Provider=%ManufacturerName%
-CatalogFile=TrustHubWin.cat
-DriverVer= ; TODO: set DriverVer in stampinf property pages
-
-[DestinationDirs]
-DefaultDestDir = 12
-
-; ================= Class section =====================
-
-[ClassInstall32]
-Addreg=SampleClassReg
-
-[SampleClassReg]
-HKR,,,0,%ClassName%
-HKR,,Icon,,-5
+    Signature   = "$Windows NT$"
+    Class       = WFPCALLOUTS
+    ClassGuid   = {57465043-616C-6C6F-7574-5F636C617373}
+    Provider    = %ProviderString%
+    CatalogFile = TrustHubWin.cat
+    DriverVer   = 11/2/2016
 
 [SourceDisksNames]
-1 = %DiskName%,,,""
+   1 = %TrustHubWinDisk%,,,""
 
 [SourceDisksFiles]
-TrustHubWin.sys  = 1,,
-
-;*****************************************
-; Install Section
-;*****************************************
-
-[Manufacturer]
-%ManufacturerName%=Standard,NT$ARCH$
-
-[Standard.NT$ARCH$]
-%TrustHubWin.DeviceDesc%=TrustHubWin_Device, Root\TrustHubWin ; TODO: edit hw-id
-
-[TrustHubWin_Device.NT]
-CopyFiles=Drivers_Dir
-
-[Drivers_Dir]
-TrustHubWin.sys
-
-;-------------- Service installation
-[TrustHubWin_Device.NT.Services]
-AddService = TrustHubWin,%SPSVCINST_ASSOCSERVICE%, TrustHubWin_Service_Inst
-
-; -------------- TrustHubWin driver install sections
-[TrustHubWin_Service_Inst]
-DisplayName    = %TrustHubWin.SVCDESC%
-ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
-StartType      = 3               ; SERVICE_DEMAND_START
-ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
-ServiceBinary  = %12%\TrustHubWin.sys
-
-;
-;--- TrustHubWin_Device Coinstaller installation ------
-;
+   TrustHubWin.sys = 1,,
 
 [DestinationDirs]
-TrustHubWin_Device_CoInstaller_CopyFiles = 11
+    DefaultDestDir      = 12                                               ; %WinDir%\System32\Drivers
+    Inspect.DriverFiles = 12                                               ; %WinDir%\System32\Drivers
 
-[TrustHubWin_Device.NT.CoInstallers]
-AddReg=TrustHubWin_Device_CoInstaller_AddReg
-CopyFiles=TrustHubWin_Device_CoInstaller_CopyFiles
+[DefaultInstall]
+    OptionDesc = %TrustHubWinServiceDesc%
+    CopyFiles  = TrustHubWin.DriverFiles
 
-[TrustHubWin_Device_CoInstaller_AddReg]
-HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
+[DefaultInstall.Services]
+    AddService = %TrustHubWinServiceName%,,TrustHubWin.Service
 
-[TrustHubWin_Device_CoInstaller_CopyFiles]
-WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
+[DefaultUninstall]
+    DelFiles = TrustHubWin.DriverFiles
 
-[SourceDisksFiles]
-WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
+[DefaultUninstall.Services]
+    DelService = %TrustHubWinServiceName%,0x200                                ; SPSVCINST_STOPSERVICE
+    DelReg     = TrustHubWin.DelRegistry
 
-[TrustHubWin_Device.NT.Wdf]
-KmdfService =  TrustHubWin, TrustHubWin_wdfsect
-[TrustHubWin_wdfsect]
-KmdfLibraryVersion = $KMDFVERSION$
+[TrustHubWin.DriverFiles]
+    TrustHubWin.sys,,,0x00000040                                               ; COPYFLG_OVERWRITE_OLDER_ONLY
+
+[TrustHubWin.Service]
+    DisplayName   = %TrustHubWinServiceName%
+    Description   = %TrustHubWinServiceDesc%
+    ServiceType   = 1                                                      ; SERVICE_KERNEL_DRIVER
+    StartType     = 3                                                      ; SERVICE_DEMAND_START
+    ErrorControl  = 1                                                      ; SERVICE_ERROR_NORMAL
+    ServiceBinary = %12%\TrustHubWin.sys                                       ; %WinDir%\System32\Drivers\TrustHubWin.sys
 
 [Strings]
-SPSVCINST_ASSOCSERVICE= 0x00000002
-ManufacturerName="<Your manufacturer name>" ;TODO: Replace with your manufacturer name
-ClassName="Samples" ; TODO: edit ClassName
-DiskName = "TrustHubWin Installation Disk"
-TrustHubWin.DeviceDesc = "TrustHubWin Device"
-TrustHubWin.SVCDESC = "TrustHubWin Service"
+    ProviderString     = "TODO-Set-Provider"
+	TrustHubWinDisk        = "TrustHubWin Installation Disk"
+    TrustHubWinServiceDesc = "TrustHubWin Callout Driver"
+    TrustHubWinServiceName = "TrustHubWin"

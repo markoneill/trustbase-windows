@@ -1,18 +1,1 @@
-﻿  Building 'TrustHubWin' with toolset 'WindowsKernelModeDriver10.0' and the 'Universal' target platform.
-  Stamping Debug\TrustHubWin.inf [Version] section with DriverVer=10/31/2016,16.41.34.432
-  Driver.c
-  Queue.c
-  TrustHubCallout.c
-  Generating Code...
-Driver.obj : error LNK2019: unresolved external symbol _FwpsCalloutRegister2@12 referenced in function _THRegisterCallouts@4
-Driver.obj : error LNK2019: unresolved external symbol _FwpsCalloutUnregisterById0@4 referenced in function _THRegisterCallouts@4
-Driver.obj : error LNK2019: unresolved external symbol _FwpmEngineOpen0@20 referenced in function _THAddCallouts@0
-Driver.obj : error LNK2019: unresolved external symbol _FwpmEngineClose0@4 referenced in function _THAddCallouts@0
-Driver.obj : error LNK2019: unresolved external symbol _FwpmTransactionBegin0@8 referenced in function _THAddCallouts@0
-Driver.obj : error LNK2019: unresolved external symbol _FwpmTransactionCommit0@4 referenced in function _THAddCallouts@0
-Driver.obj : error LNK2019: unresolved external symbol _FwpmTransactionAbort0@4 referenced in function _THAddCallouts@0
-Driver.obj : error LNK2019: unresolved external symbol _FwpmSubLayerAdd0@12 referenced in function _THAddCallouts@0
-Driver.obj : error LNK2019: unresolved external symbol _FwpmCalloutAdd0@16 referenced in function _THAddCallouts@0
-Driver.obj : error LNK2019: unresolved external symbol _FwpmFilterAdd0@16 referenced in function _THAddCallouts@0
-Driver.obj : error LNK2001: unresolved external symbol _SDDL_DEVOBJ_KERNEL_ONLY
-C:\Users\ilab\Source\Repos\TrustKern\TrustHubWin\Debug\TrustHubWin.sys : fatal error LNK1120: 11 unresolved externals
+﻿

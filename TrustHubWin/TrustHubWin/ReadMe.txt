@@ -28,9 +28,6 @@ Device.cpp & Device.h
 
 IoQueue.cpp & IoQueue.h	
     WDFQUEUE related functionality and callbacks.
-
-Trace.h
-    Definitions for WPP tracing.
 	
 /////////////////////////////////////////////////////////////////////////////
 

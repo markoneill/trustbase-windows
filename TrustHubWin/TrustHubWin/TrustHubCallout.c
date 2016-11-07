@@ -17,6 +17,7 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 	bytesToPermit = 1024;
 
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_TRACE_LEVEL, "Classify Called\n");
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_TRACE_LEVEL, "Process Id = %ud \n", inMetaValues->processId);
 
 	// Get a pointer to the stream callout I/O packet
 	ioPacket = (FWPS_STREAM_CALLOUT_IO_PACKET0 *)layerData;
@@ -57,7 +58,7 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 	// If some or all of the data should be permitted...
 	if (TRUE) {
 		// No stream-specific action is required
-		ioPacket->streamAction = FWPS_STREAM_ACTION_NONE;
+		ioPacket->streamAction = FWPS_STREAM_ACTION_ALLOW_CONNECTION;
 
 		// Let the filter engine know how many of the leading bytes
 		// in the stream should be permitted
