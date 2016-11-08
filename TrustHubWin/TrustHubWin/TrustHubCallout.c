@@ -93,7 +93,7 @@ NTSTATUS NTAPI trusthubCalloutNotify(FWPS_CALLOUT_NOTIFY_TYPE notifyType, const 
 	UNREFERENCED_PARAMETER(filterKey);
 	UNREFERENCED_PARAMETER(filter);
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Notify Called\n");
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Notify Type = %s\n", (notifyType == FWPS_CALLOUT_NOTIFY_ADD_FILTER)?"Filter Add":"Other");
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Notify Type = %s\n", (notifyType==FWPS_CALLOUT_NOTIFY_ADD_FILTER)?"Filter Add":(notifyType==FWPS_CALLOUT_NOTIFY_DELETE_FILTER)?"Filter Delete":"Other");
 	return STATUS_SUCCESS;
 }
 

@@ -18,13 +18,11 @@ Environment:
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (INIT, DriverEntry)
-#pragma alloc_text (PAGE, TrustHubWinEvtDriverContextCleanup)
 #endif
 
 // Initializes required WDFDriver and WDFDevice objects
 NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STRING * registry_path);
 NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device);
-NTSTATUS THAddCallouts();
 
 // Initializes required WDFDriver and WDFDevice objects
 NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STRING * registry_path) {
@@ -34,11 +32,11 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 	WDFDRIVER driver;
 	WDFDEVICE device;
 	PWDFDEVICE_INIT device_init = NULL;
-	DEVICE_OBJECT * wdm_device = NULL;
+	PDEVICE_OBJECT wdm_device = NULL;
 
 	WDF_DRIVER_CONFIG_INIT(&config, WDF_NO_EVENT_CALLBACK); //WDF_NO_EVENT_CALLBACK = NULL, this means there is no callback when WdfDriverCreate is called.
 	config.DriverInitFlags |= WdfDriverInitNonPnpDriver; //WdfDriverInitNonPnpDriver means this driver does not support plug and play. "If this value is set, the driver must not supply an EvtDriverDeviceAdd callback function" in other words use WDF_NO_EVENT_CALLBACK
-	config.EvtDriverUnload = TrustHubWinEvtDriverContextCleanup;
+	config.EvtDriverUnload = empty_evt_unload;
 
 	// Create a WDFDRIVER for this driver
 	status = WdfDriverCreate(driver_obj, registry_path, WDF_NO_OBJECT_ATTRIBUTES, &config, &driver); //WDF_NO_OBJECT_ATTRIBUTES means "extra, nonpageable, memory space"
@@ -88,6 +86,8 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 		return status;
 	}
 
+	WdfControlFinishInitializing(device);
+
 	// Register callouts
 	wdm_device = WdfDeviceWdmGetDeviceObject(device);
 	status = THRegisterCallouts(wdm_device);
@@ -105,12 +105,56 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 	NTSTATUS status = STATUS_SUCCESS;
 	FWPS_CALLOUT sCallout = { 0 };
+	FWPM_CALLOUT mCallout = { 0 };
+	FWPM_DISPLAY_DATA displayData = { 0 };
+	HANDLE engineHandle;
+	FWPM_SESSION session = { 0 };
+	FWPM_SUBLAYER monitorSubLayer;
+	FWPM_FILTER filter;
+	FWPM_FILTER_CONDITION filterConditions[2];
+
+	// Add Callouts and Add Filters
+	session.flags = FWPM_SESSION_FLAG_DYNAMIC;
+
+	// Open the engine
+	status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &engineHandle);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open engine\n");
+		return status;
+	}
+
+	// begin transaction
+	status = FwpmTransactionBegin(engineHandle, 0);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open Transaction\n");
+		FwpmEngineClose(engineHandle);
+		return status;
+	}
+
+	// Add Sublayer
+	RtlZeroMemory(&monitorSubLayer, sizeof(FWPM_SUBLAYER));
+	monitorSubLayer.subLayerKey = TRUSTHUB_SUBLAYER;
+	monitorSubLayer.displayData.name = L"TrustHub Sub layer";
+	monitorSubLayer.displayData.description = L"TrustHub Sample Sub layer";
+	monitorSubLayer.flags = 0;
+	monitorSubLayer.weight = 0;
+
+	status = FwpmSubLayerAdd(engineHandle, &monitorSubLayer, NULL);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\n");
+		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\n");
+		}
+		FwpmEngineClose(engineHandle);
+		return status;
+	}
 
 	// Register a new Callout with the Filter Engine using the provided callout functions
 	sCallout.calloutKey = TRUSTHUB_STREAM_CALLOUT_V4;
 	sCallout.classifyFn = trusthubCalloutClassify;
 	sCallout.notifyFn = trusthubCalloutNotify;
 	sCallout.flowDeleteFn = trusthubCalloutFlowDelete;
+	sCallout.flags |= FWP_CALLOUT_FLAG_ALLOW_MID_STREAM_INSPECTION;
 	status = FwpsCalloutRegister((void *)wdm_device, &sCallout, &TrustHub_callout_id);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not register callouts\n");
@@ -120,9 +164,59 @@ NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 		}
 		return status;
 	}
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Registed Callouts\n");
 
-	// Add Callouts and Add Filters
-	status = THAddCallouts();
+	// Add Callouts
+	displayData.name = L"Trusthub Callouts";
+	displayData.description = L"Intercepts stream data, looking for TLS, then reviews certificates";
+	mCallout.displayData = displayData;
+	mCallout.calloutKey = TRUSTHUB_STREAM_CALLOUT_V4;
+	mCallout.applicableLayer = FWPM_LAYER_STREAM_V4;
+	status = FwpmCalloutAdd(engineHandle, &mCallout, NULL, NULL);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add callouts\n");
+		if (engineHandle) {
+			FwpmEngineClose(engineHandle);
+			engineHandle = NULL;
+		}
+		return status;
+	}
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added Callouts\n");
+
+	// Add Filters
+	RtlZeroMemory(&filter, sizeof(FWPM_FILTER));
+
+	filter.layerKey = FWPM_LAYER_STREAM_V4;
+	filter.action.type = FWP_ACTION_CALLOUT_UNKNOWN;
+	filter.action.calloutKey = TRUSTHUB_STREAM_CALLOUT_V4;
+	filter.subLayerKey = monitorSubLayer.subLayerKey;
+	filter.weight.type = FWP_EMPTY; // auto-weight.
+
+	filter.numFilterConditions = 0; //if we were to add filters to the filterConditions array, we would want to include the amount here
+
+	RtlZeroMemory(filterConditions, sizeof(filterConditions));
+
+	filter.filterCondition = filterConditions;
+
+	filter.displayData.name = L"Stream Layer Filter";
+	filter.displayData.description = L"Monitors TCP traffic.";
+
+	status = FwpmFilterAdd(engineHandle, &filter, NULL, NULL);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\n");
+		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\n");
+		}
+		FwpmEngineClose(engineHandle);
+		return status;
+	}
+
+	// Commit the transaction
+	status = FwpmTransactionCommit(engineHandle);
+
+	// Close the engine
+	FwpmEngineClose(engineHandle);
+	engineHandle = NULL;
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add callouts or filters\n");
 		if (TrustHub_callout_id) {
@@ -141,7 +235,7 @@ NTSTATUS THAddCallouts() {
 	FWPM_SESSION session = { 0 };
 	FWPM_SUBLAYER monitorSubLayer;
 	FWPM_FILTER filter;
-	FWPM_FILTER_CONDITION filterConditions[2];
+	FWPM_FILTER_CONDITION filterConditions[3];
 	
 	session.flags = FWPM_SESSION_FLAG_DYNAMIC;
 
@@ -175,6 +269,7 @@ NTSTATUS THAddCallouts() {
 		}
 		return status;
 	}
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added Callouts\n");
 
 	// Add Sublayer
 	RtlZeroMemory(&monitorSubLayer, sizeof(FWPM_SUBLAYER));
@@ -221,14 +316,21 @@ NTSTATUS THAddCallouts() {
 		FwpmEngineClose(engineHandle);
 		return status;
 	}
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added Filter\n");
 
 	// Close the transaction
 	status = FwpmTransactionCommit(engineHandle);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not commit transaction\n");
+		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\n");
+		}
+		FwpmEngineClose(engineHandle);
+		return status;
+	}
 
 	// Close the engine
 	FwpmEngineClose(engineHandle);
-	engineHandle = NULL;
-
 	return status;
 }
 
@@ -281,12 +383,7 @@ NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT  DriverObject, _In_ PUNICODE_STRING Reg
 }
 
 // Clean up the Driver
-void TrustHubWinEvtDriverContextCleanup(_In_ WDFOBJECT DriverObject) {
-    UNREFERENCED_PARAMETER(DriverObject);
-}
-
-VOID DriverUnload(_In_ PDRIVER_OBJECT driver_obj)
-{
+void DriverUnload(_In_ PDRIVER_OBJECT driver_obj) {
 	NTSTATUS status = STATUS_SUCCESS;
 	UNICODE_STRING symlink = { 0 };
 	UNREFERENCED_PARAMETER(driver_obj);
@@ -299,12 +396,15 @@ VOID DriverUnload(_In_ PDRIVER_OBJECT driver_obj)
 	RtlInitUnicodeString(&symlink, TRUSTHUB_SYMNAME);
 	IoDeleteSymbolicLink(&symlink);
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- TrustHubInterceptor driver unloaded ---");
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- TrustHubWin driver unloaded ---");
 	return;
 }
 
-VOID empty_evt_unload(_In_ WDFDRIVER Driver)
-{
+void empty_evt_unload(_In_ WDFDRIVER Driver) {
 	UNREFERENCED_PARAMETER(Driver);
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- TrustHubWin unload event ---");
+	// Delete the framework device object
+	//TODO
+	//WdfObjectDelete(wdfDevice);
 	return;
 }
