@@ -131,24 +131,6 @@ NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 		return status;
 	}
 
-	// Add Sublayer
-	RtlZeroMemory(&monitorSubLayer, sizeof(FWPM_SUBLAYER));
-	monitorSubLayer.subLayerKey = TRUSTHUB_SUBLAYER;
-	monitorSubLayer.displayData.name = L"TrustHub Sub layer";
-	monitorSubLayer.displayData.description = L"TrustHub Sample Sub layer";
-	monitorSubLayer.flags = 0;
-	monitorSubLayer.weight = 0;
-
-	status = FwpmSubLayerAdd(engineHandle, &monitorSubLayer, NULL);
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\n");
-		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\n");
-		}
-		FwpmEngineClose(engineHandle);
-		return status;
-	}
-
 	// Register a new Callout with the Filter Engine using the provided callout functions
 	sCallout.calloutKey = TRUSTHUB_STREAM_CALLOUT_V4;
 	sCallout.classifyFn = trusthubCalloutClassify;
@@ -182,6 +164,24 @@ NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 		return status;
 	}
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added Callouts\n");
+
+	// Add Sublayer
+	RtlZeroMemory(&monitorSubLayer, sizeof(FWPM_SUBLAYER));
+	monitorSubLayer.subLayerKey = TRUSTHUB_SUBLAYER;
+	monitorSubLayer.displayData.name = L"TrustHub Sub layer";
+	monitorSubLayer.displayData.description = L"TrustHub Sample Sub layer";
+	monitorSubLayer.flags = 0;
+	monitorSubLayer.weight = 0;
+
+	status = FwpmSubLayerAdd(engineHandle, &monitorSubLayer, NULL);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\n");
+		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\n");
+		}
+		FwpmEngineClose(engineHandle);
+		return status;
+	}
 
 	// Add Filters
 	RtlZeroMemory(&filter, sizeof(FWPM_FILTER));
@@ -224,113 +224,6 @@ NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 			TrustHub_callout_id = 0;
 		}
 	}
-	return status;
-}
-
-NTSTATUS THAddCallouts() {
-	NTSTATUS status = STATUS_SUCCESS;
-	FWPM_CALLOUT mCallout = { 0 };
-	FWPM_DISPLAY_DATA displayData = { 0 };
-	HANDLE engineHandle;
-	FWPM_SESSION session = { 0 };
-	FWPM_SUBLAYER monitorSubLayer;
-	FWPM_FILTER filter;
-	FWPM_FILTER_CONDITION filterConditions[3];
-	
-	session.flags = FWPM_SESSION_FLAG_DYNAMIC;
-
-	// Open the engine
-	status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &engineHandle);
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open engine\n");
-		return status;
-	}
-
-	// begin transaction
-	status = FwpmTransactionBegin(engineHandle, 0);
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open Transaction\n");
-		FwpmEngineClose(engineHandle);
-		return status;
-	}
-
-	// Add Callouts
-	displayData.name = L"Trusthub Callouts";
-	displayData.description = L"Intercepts stream data, looking for TLS, then reviews certificates";
-	mCallout.displayData = displayData;
-	mCallout.calloutKey = TRUSTHUB_STREAM_CALLOUT_V4;
-	mCallout.applicableLayer = FWPM_LAYER_STREAM_V4;
-	status = FwpmCalloutAdd(engineHandle, &mCallout, NULL, NULL);
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add callouts\n");
-		if (engineHandle) {
-			FwpmEngineClose(engineHandle);
-			engineHandle = NULL;
-		}
-		return status;
-	}
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added Callouts\n");
-
-	// Add Sublayer
-	RtlZeroMemory(&monitorSubLayer, sizeof(FWPM_SUBLAYER));
-	monitorSubLayer.subLayerKey = TRUSTHUB_SUBLAYER;
-	monitorSubLayer.displayData.name = L"TrustHub Sub layer";
-	monitorSubLayer.displayData.description = L"TrustHub Sample Sub layer";
-	monitorSubLayer.flags = 0;
-	monitorSubLayer.weight = 0;
-
-	status = FwpmSubLayerAdd(engineHandle, &monitorSubLayer, NULL);
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\n");
-		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\n");
-		}
-		FwpmEngineClose(engineHandle);
-		return status;
-	}
-
-	// Add Filters
-	RtlZeroMemory(&filter, sizeof(FWPM_FILTER));
-
-	filter.layerKey = FWPM_LAYER_STREAM_V4;
-	filter.action.type = FWP_ACTION_CALLOUT_UNKNOWN;
-	filter.action.calloutKey = TRUSTHUB_STREAM_CALLOUT_V4;
-	filter.subLayerKey = monitorSubLayer.subLayerKey;
-	filter.weight.type = FWP_EMPTY; // auto-weight.
-
-	filter.numFilterConditions = 0; //if we were to add filters to the filterConditions array, we would want to include the amount here
-
-	RtlZeroMemory(filterConditions, sizeof(filterConditions));
-
-	filter.filterCondition = filterConditions;
-
-	filter.displayData.name = L"Stream Layer Filter";
-	filter.displayData.description = L"Monitors TCP traffic.";
-
-	status = FwpmFilterAdd(engineHandle, &filter, NULL, NULL);
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\n");
-		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\n");
-		}
-		FwpmEngineClose(engineHandle);
-		return status;
-	}
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added Filter\n");
-
-	// Close the transaction
-	status = FwpmTransactionCommit(engineHandle);
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not commit transaction\n");
-		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\n");
-		}
-		FwpmEngineClose(engineHandle);
-		return status;
-	}
-
-	// Close the engine
-	FwpmEngineClose(engineHandle);
 	return status;
 }
 

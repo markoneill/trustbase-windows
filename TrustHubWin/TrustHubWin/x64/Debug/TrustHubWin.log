@@ -1,5 +1,5 @@
 ﻿  Building 'TrustHubWin' with toolset 'WindowsKernelModeDriver10.0' and the 'Universal' target platform.
-  Stamping x64\Debug\TrustHubWin.inf [Version] section with DriverVer=11/08/2016,13.15.10.265
+  Stamping x64\Debug\TrustHubWin.inf [Version] section with DriverVer=11/10/2016,13.14.50.282
   Driver.c
   uuid.lib(fwpapi.obj) : MSIL .netmodule or module compiled with /GL found; restarting link with /LTCG; add /LTCG to the link command line to improve linker performance
   Generating code
