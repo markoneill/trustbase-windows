@@ -5,7 +5,7 @@
     ClassGuid   = {57465043-616C-6C6F-7574-5F636C617373}
     Provider    = %ProviderString%
     CatalogFile = TrustHubWin.cat
-    DriverVer=11/10/2016,13.14.50.282
+    DriverVer=11/15/2016,14.40.32.658
 
 [SourceDisksNames]
    1 = %TrustHubWinDisk%,,,""

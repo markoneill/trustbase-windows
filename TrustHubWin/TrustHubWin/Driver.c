@@ -41,11 +41,11 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 	// Create a WDFDRIVER for this driver
 	status = WdfDriverCreate(driver_obj, registry_path, WDF_NO_OBJECT_ATTRIBUTES, &config, &driver); //WDF_NO_OBJECT_ATTRIBUTES means "extra, nonpageable, memory space"
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create WDF Driver\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create WDF Driver");
 		return status;
 	}
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Created WDF Driver\n");
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Created WDF Driver");
 
 	// Allocate a device
 	device_init = WdfControlDeviceInitAllocate(driver, &SDDL_DEVOBJ_KERNEL_ONLY);
@@ -60,7 +60,7 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 
 	status = WdfDeviceInitAssignName(device_init, &ntDeviceName);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not assign driver name\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not assign driver name");
 		if (device_init) {
 			WdfDeviceInitFree(device_init);
 		}
@@ -70,7 +70,7 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 	// Create a WDFDEVICE for this driver
 	status = WdfDeviceCreate(&device_init, WDF_NO_OBJECT_ATTRIBUTES, &device);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create a device for the driver\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create a device for the driver");
 		if (device_init) {
 			WdfDeviceInitFree(device_init);
 		}
@@ -79,7 +79,7 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 
 	status = WdfDeviceCreateSymbolicLink(device, &symbolicName);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create a device for the driver\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create a device for the driver");
 		if (device_init) {
 			WdfDeviceInitFree(device_init);
 		}
@@ -92,7 +92,7 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 	wdm_device = WdfDeviceWdmGetDeviceObject(device);
 	status = THRegisterCallouts(wdm_device);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not set callouts\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not set callouts");
 		if (device_init) {
 			WdfDeviceInitFree(device_init);
 		}
@@ -119,14 +119,14 @@ NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 	// Open the engine
 	status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &engineHandle);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open engine\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open engine");
 		return status;
 	}
 
 	// begin transaction
 	status = FwpmTransactionBegin(engineHandle, 0);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open Transaction\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open Transaction");
 		FwpmEngineClose(engineHandle);
 		return status;
 	}
@@ -139,14 +139,14 @@ NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 	sCallout.flags |= FWP_CALLOUT_FLAG_ALLOW_MID_STREAM_INSPECTION;
 	status = FwpsCalloutRegister((void *)wdm_device, &sCallout, &TrustHub_callout_id);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not register callouts\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not register callouts");
 		if (TrustHub_callout_id) {
 			FwpsCalloutUnregisterById(TrustHub_callout_id);
 			TrustHub_callout_id = 0;
 		}
 		return status;
 	}
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Registed Callouts\n");
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Registed Callouts");
 
 	// Add Callouts
 	displayData.name = L"Trusthub Callouts";
@@ -156,14 +156,14 @@ NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 	mCallout.applicableLayer = FWPM_LAYER_STREAM_V4;
 	status = FwpmCalloutAdd(engineHandle, &mCallout, NULL, NULL);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add callouts\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add callouts");
 		if (engineHandle) {
 			FwpmEngineClose(engineHandle);
 			engineHandle = NULL;
 		}
 		return status;
 	}
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added Callouts\n");
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added Callouts");
 
 	// Add Sublayer
 	RtlZeroMemory(&monitorSubLayer, sizeof(FWPM_SUBLAYER));
@@ -175,9 +175,9 @@ NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 
 	status = FwpmSubLayerAdd(engineHandle, &monitorSubLayer, NULL);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer");
 		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\n");
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?");
 		}
 		FwpmEngineClose(engineHandle);
 		return status;
@@ -203,9 +203,9 @@ NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 
 	status = FwpmFilterAdd(engineHandle, &filter, NULL, NULL);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer");
 		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\n");
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?");
 		}
 		FwpmEngineClose(engineHandle);
 		return status;
@@ -214,16 +214,16 @@ NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 	// Commit the transaction
 	status = FwpmTransactionCommit(engineHandle);
 
-	// Close the engine
-	FwpmEngineClose(engineHandle);
+	// Closing the engine removes the filter, turns out
+	/*FwpmEngineClose(engineHandle);
 	engineHandle = NULL;
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add callouts or filters\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add callouts or filters");
 		if (TrustHub_callout_id) {
 			FwpsCalloutUnregisterById(TrustHub_callout_id);
 			TrustHub_callout_id = 0;
 		}
-	}
+	}*/
 	return status;
 }
 
@@ -258,7 +258,7 @@ NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT  DriverObject, _In_ PUNICODE_STRING Reg
 
     NTSTATUS status;
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "DriverEntry In\n");
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "DriverEntry In");
 
     // Register a cleanup callback so that we can call WPP_CLEANUP when
     // the framework driver object is deleted during driver unload.
@@ -266,11 +266,11 @@ NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT  DriverObject, _In_ PUNICODE_STRING Reg
 	//create the driver and device object
 	status = THInitDriverAndDevice(DriverObject, RegistryPath);
     if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not init Driver and Device\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not init Driver and Device");
         return status;
     }
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "DriverEntry Out\n");
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "DriverEntry Out");
 
     return status;
 }
