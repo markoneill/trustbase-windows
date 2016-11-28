@@ -34,7 +34,6 @@ ULongLongToULongPtr(
 #include <fwpsk.h>				// Functions and enumerated types used to implement callouts in kernel mode
 #pragma warning(pop)			// Re-enable "Nameless struct/union" compiler warning
 
-
 void NTAPI trusthubCalloutClassify(
 	const FWPS_INCOMING_VALUES * inFixedValues,
 	const FWPS_INCOMING_METADATA_VALUES * inMetaValues,
