@@ -1,0 +1,14 @@
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\bin\Debug\TrustBase Admin Console.exe.config
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\bin\Debug\TrustBase Admin Console.exe
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\bin\Debug\TrustBase Admin Console.pdb
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\obj\Debug\TrustBase Admin Console.csprojResolveAssemblyReference.cache
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\obj\Debug\MainWindow.g.cs
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\obj\Debug\App.g.cs
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\obj\Debug\TrustBase Admin Console_MarkupCompile.cache
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\obj\Debug\TrustBase Admin Console_MarkupCompile.lref
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\obj\Debug\MainWindow.baml
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\obj\Debug\TrustBase Admin Console.g.resources
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\obj\Debug\TrustBase_Admin_Console.Properties.Resources.resources
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\obj\Debug\TrustBase Admin Console.csproj.GenerateResource.Cache
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\obj\Debug\TrustBase Admin Console.exe
+c:\users\joshua reynolds\documents\visual studio 2015\Projects\TrustBase Admin Console\TrustBase Admin Console\obj\Debug\TrustBase Admin Console.pdb
