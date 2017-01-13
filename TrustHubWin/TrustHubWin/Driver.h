@@ -37,6 +37,7 @@ Environment:
 #include "queue.h"
 #include "TrustHubGuid.h"
 #include "TrustHubCallout.h" 
+#include "TrustHubCommunication.h"
 
 #define INITGUID
 #include <guiddef.h>

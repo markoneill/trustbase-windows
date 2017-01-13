@@ -38,15 +38,22 @@
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ConnectionContext.c" />
     <ClCompile Include="Driver.c" />
+    <ClCompile Include="HandshakeHandler.c" />
     <ClCompile Include="Queue.c" />
     <ClCompile Include="TrustHubCallout.c" />
+    <ClCompile Include="TrustHubCommunication.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ConnectionContext.h" />
     <ClInclude Include="Driver.h" />
+    <ClInclude Include="HandshakeHandler.h" />
+    <ClInclude Include="HandshakeTypes.h" />
     <ClInclude Include="Public.h" />
     <ClInclude Include="Queue.h" />
     <ClInclude Include="TrustHubCallout.h" />
+    <ClInclude Include="TrustHubCommunication.h" />
     <ClInclude Include="TrustHubGuid.h" />
   </ItemGroup>
   <ItemGroup>

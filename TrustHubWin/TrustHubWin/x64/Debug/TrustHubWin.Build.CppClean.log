@@ -1,7 +1,10 @@
 c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\vc140.pdb
-c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\queue.obj
-c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\driver.obj
 c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubcallout.obj
+c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\queue.obj
+c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\handshakehandler.obj
+c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\driver.obj
+c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\connectioncontext.obj
+c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubcommunication.obj
 c:\users\ilab\source\repos\trustkern\trusthubwin\x64\debug\trusthubwin\trusthubwin.cat
 c:\users\ilab\source\repos\trustkern\trusthubwin\x64\debug\trusthubwin.sys
 c:\users\ilab\source\repos\trustkern\trusthubwin\x64\debug\trusthubwin.pdb
@@ -11,8 +14,12 @@ c:\users\ilab\source\repos\trustkern\trusthubwin\x64\debug\trusthubwin.inf
 c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\cl.command.1.tlog
 c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\cl.read.1.tlog
 c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\cl.write.1.tlog
-c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\inf2cat-expand.7888.read.1.tlog
-c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\inf2cat-expand.7888.write.1.tlog
+c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\inf2cat-expand.12216.read.1.tlog
+c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\inf2cat-expand.12216.write.1.tlog
+c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\inf2cat-expand.14296.read.1.tlog
+c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\inf2cat-expand.14296.write.1.tlog
+c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\inf2cat-expand.7452.read.1.tlog
+c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\inf2cat-expand.7452.write.1.tlog
 c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\inf2cat-expand.read.1.tlog
 c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\inf2cat-expand.write.1.tlog
 c:\users\ilab\source\repos\trustkern\trusthubwin\trusthubwin\x64\debug\trusthubwin.tlog\inf2cat.command.1.tlog

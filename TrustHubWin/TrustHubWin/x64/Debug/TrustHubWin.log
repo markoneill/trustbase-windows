@@ -1,26 +1,19 @@
 ﻿  Building 'TrustHubWin' with toolset 'WindowsKernelModeDriver10.0' and the 'Universal' target platform.
-  Stamping x64\Debug\TrustHubWin.inf [Version] section with DriverVer=11/28/2016,14.49.58.735
-  TrustHubCallout.c
-  uuid.lib(fwpapi.obj) : MSIL .netmodule or module compiled with /GL found; restarting link with /LTCG; add /LTCG to the link command line to improve linker performance
-  Generating code
-  Finished generating code
-  TrustHubWin.vcxproj -> C:\Users\ilab\Source\Repos\TrustKern\TrustHubWin\x64\Debug\TrustHubWin.sys
-  TrustHubWin.vcxproj -> C:\Users\ilab\Source\Repos\TrustKern\TrustHubWin\x64\Debug\TrustHubWin.pdb (Full PDB)
-  Done Adding Additional Store
-  Successfully signed: C:\Users\ilab\Source\Repos\TrustKern\TrustHubWin\x64\Debug\TrustHubWin.sys
-  
-  Driver is a Universal Driver.
-  .........................
-  Signability test complete.
-  
-  Errors:
-  None
-  
-  Warnings:
-  None
-  
-  Catalog generation complete.
-  C:\Users\ilab\Source\Repos\TrustKern\TrustHubWin\x64\Debug\TrustHubWin\trusthubwin.cat
-  Done Adding Additional Store
-  Successfully signed: C:\Users\ilab\Source\Repos\TrustKern\TrustHubWin\x64\Debug\TrustHubWin\trusthubwin.cat
-  
+  Stamping x64\Debug\TrustHubWin.inf [Version] section with DriverVer=01/12/2017,16.19.28.578
+  Driver.c
+  Queue.c
+  TrustHubCommunication.c
+TrustHubCommunication.c(12): error C4013: 'ControlGetData' undefined; assuming extern returning int
+TrustHubCommunication.c(4): warning C4100: 'Request': unreferenced formal parameter
+TrustHubCommunication.c(24): warning C4100: 'Length': unreferenced formal parameter
+TrustHubCommunication.c(24): warning C4100: 'Request': unreferenced formal parameter
+TrustHubCommunication.c(24): warning C4100: 'Queue': unreferenced formal parameter
+TrustHubCommunication.c(31): warning C4100: 'Length': unreferenced formal parameter
+TrustHubCommunication.c(31): warning C4100: 'Request': unreferenced formal parameter
+TrustHubCommunication.c(31): warning C4100: 'Queue': unreferenced formal parameter
+TrustHubCommunication.c(38): warning C4100: 'IoControlCode': unreferenced formal parameter
+TrustHubCommunication.c(38): warning C4100: 'InputBufferLength': unreferenced formal parameter
+TrustHubCommunication.c(38): warning C4100: 'OutputBufferLength': unreferenced formal parameter
+TrustHubCommunication.c(38): warning C4100: 'Request': unreferenced formal parameter
+TrustHubCommunication.c(38): warning C4100: 'Queue': unreferenced formal parameter
+  Generating Code...
