@@ -14,7 +14,7 @@ public:
 	
 private:
 	static void WINAPI SvcCtrlHandler(DWORD dwControl);
-	static bool validate(byte* cert);
+	static bool validate(byte * cert);
 	static void logEventWrite(char* message);
 	SERVICE_STATUS_HANDLE statusHandle;
 	SERVICE_STATUS status;

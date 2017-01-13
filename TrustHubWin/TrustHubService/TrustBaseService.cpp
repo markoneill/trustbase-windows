@@ -87,9 +87,10 @@ void WINAPI TrustBaseService::run(TrustBaseService * service) {
 	SetServiceStatus(service->statusHandle, &(service->status));
 	printf("Running Trustbase...");
 
+	byte readBuffer[16500];
+	DWORD count;
+
 	while (1) {
-		byte readBuffer[16500];
-		DWORD count;
 		DeviceIoControl(
 			interceptorHandle,
 			IOCTL_DISK_REQUEST_DATA,
@@ -100,7 +101,7 @@ void WINAPI TrustBaseService::run(TrustBaseService * service) {
 			&count,
 			NULL
 		);
-		if (validate(readBuffer)) {
+		if (validate(&readBuffer[0])) {
 			DeviceIoControl(
 				interceptorHandle,
 				IOCTL_CHANGER_SET_ACCESS,
