@@ -34,6 +34,7 @@ ULongLongToULongPtr(
 #include <fwpsk.h>				// Functions and enumerated types used to implement callouts in kernel mode
 #pragma warning(pop)			// Re-enable "Nameless struct/union" compiler warning
 
+// STREAM Callouts
 void NTAPI trusthubCalloutClassify(
 	const FWPS_INCOMING_VALUES * inFixedValues,
 	const FWPS_INCOMING_METADATA_VALUES * inMetaValues,
@@ -49,6 +50,26 @@ NTSTATUS NTAPI trusthubCalloutNotify(
 	const FWPS_FILTER * filter);
 
 void NTAPI trusthubCalloutFlowDelete(
+	UINT16 layerId,
+	UINT32 calloutId,
+	UINT64 flowContext);
+
+// ALE Callouts
+void NTAPI trusthubALECalloutClassify(
+	const FWPS_INCOMING_VALUES * inFixedValues,
+	const FWPS_INCOMING_METADATA_VALUES * inMetaValues,
+	void * layerData,
+	const void * classifyContext,
+	const FWPS_FILTER * filter,
+	UINT64 flowContext,
+	FWPS_CLASSIFY_OUT * classifyOut);
+
+NTSTATUS NTAPI trusthubALECalloutNotify(
+	FWPS_CALLOUT_NOTIFY_TYPE notifyType,
+	const GUID * filterKey,
+	const FWPS_FILTER * filter);
+
+void NTAPI trusthubALECalloutFlowDelete(
 	UINT16 layerId,
 	UINT32 calloutId,
 	UINT64 flowContext);

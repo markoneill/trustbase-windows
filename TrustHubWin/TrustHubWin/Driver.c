@@ -22,7 +22,8 @@ Environment:
 
 // Initializes required WDFDriver and WDFDevice objects
 NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STRING * registry_path);
-NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device);
+NTSTATUS THRegisterCallout(_In_ DEVICE_OBJECT * wdm_device);
+NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device);
 NTSTATUS unregister_trusthub_callouts();
 void thdriver_evt_unload(_In_ WDFDRIVER Driver);
 
@@ -36,7 +37,6 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 	PWDFDEVICE_INIT device_init = NULL;
 	PDEVICE_OBJECT wdm_device = NULL;
 	WDF_OBJECT_ATTRIBUTES attributes;
-	WDF_FILEOBJECT_CONFIG fileConfig;
 	WDF_IO_QUEUE_CONFIG ioQueueConfig;
 	WDFQUEUE queue;
 
@@ -64,8 +64,8 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 	DECLARE_CONST_UNICODE_STRING(ntDeviceName, TRUSTHUB_DEVICENAME);
 	DECLARE_CONST_UNICODE_STRING(symbolicName, TRUSTHUB_SYMNAME);
 
-	//Configure the WDFDEVICE_INIT with a name to allow for access from user mode
-	//this section must be done before the WdfDeviceCreate is called.
+	// Configure the WDFDEVICE_INIT with a name to allow for access from user mode
+	// this section must be done before the WdfDeviceCreate is called.
 
 	WdfDeviceInitSetDeviceType(device_init, FILE_DEVICE_NETWORK);
 	WdfDeviceInitSetCharacteristics(device_init, FILE_DEVICE_SECURE_OPEN, FALSE);//"Most drivers specify only the FILE_DEVICE_SECURE_OPEN characteristic. This ensures that the same security settings are applied to any open request into the device's namespace"
@@ -84,11 +84,6 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 		}
 		return status;
 	}
-
-	// Make a config for this object, so we can handler create, close but no cleanup requests
-	WDF_FILEOBJECT_CONFIG_INIT(&fileConfig, ThIODeviceFileCreate, ThIOEvtFileClose, WDF_NO_EVENT_CALLBACK);
-
-	WdfDeviceInitSetFileObjectConfig(device_init, &fileConfig, WDF_NO_OBJECT_ATTRIBUTES);
 
 	// if we want a context, we need to specify the size with WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE in the atributes
 
@@ -134,7 +129,7 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 	wdm_device = WdfDeviceWdmGetDeviceObject(device);
 
 	// TCP stream layer callouts for data inspection
-	status = THRegisterCallouts(wdm_device);
+	status = THRegisterCallout(wdm_device);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not set callouts\r\n");
 		if (device_init) {
@@ -143,15 +138,136 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 		return status;
 	}
 	// Outbound transport layer for delaying response, and ip information
-	//TODO
 
 	// ALE FlOW_ESTABLISHED layer for tracking app pid and stuff
-	//TODO
+	status = THRegisterALECallout(wdm_device);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not set callouts\r\n");
+		if (device_init) {
+			WdfDeviceInitFree(device_init);
+		}
+		return status;
+	}
 
 	return status;
 }
 
-NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
+NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device) {
+	NTSTATUS status = STATUS_SUCCESS;
+	FWPS_CALLOUT sCallout = { 0 };
+	FWPM_CALLOUT mCallout = { 0 };
+	FWPM_DISPLAY_DATA displayData = { 0 };
+	HANDLE engineHandle;
+	FWPM_SESSION session = { 0 };
+	FWPM_SUBLAYER monitorSubLayer;
+	FWPM_FILTER filter;
+	FWPM_FILTER_CONDITION filterConditions[2];
+
+	// Add Callouts and Add Filters
+	session.flags = FWPM_SESSION_FLAG_DYNAMIC;
+
+	// Open the engine
+	status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &engineHandle);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open engine\r\n");
+		return status;
+	}
+
+	// begin transaction
+	status = FwpmTransactionBegin(engineHandle, 0);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open Transaction\r\n");
+		FwpmEngineClose(engineHandle);
+		return status;
+	}
+
+	// Register a new Callout with the Filter Engine using the provided callout functions
+	sCallout.calloutKey = TRUSTHUB_ALE_CALLOUT_V4;
+	sCallout.classifyFn = trusthubALECalloutClassify;
+	sCallout.notifyFn = trusthubALECalloutNotify;
+	sCallout.flowDeleteFn = trusthubALECalloutFlowDelete;
+	sCallout.flags |= FWP_CALLOUT_FLAG_CONDITIONAL_ON_FLOW | FWP_CALLOUT_FLAG_ALLOW_OFFLOAD | FWP_CALLOUT_FLAG_ALLOW_L2_BATCH_CLASSIFY;
+	status = FwpsCalloutRegister((void *)wdm_device, &sCallout, &TrustHub_callout_id);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not register ALE callouts\r\n");
+		if (TrustHub_callout_id) {
+			FwpsCalloutUnregisterById(TrustHub_callout_id);
+			TrustHub_callout_id = 0;
+		}
+		return status;
+	}
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Registed Callouts\r\n");
+
+	// Add Callouts
+	displayData.name = L"Trusthub ALE Callouts";
+	displayData.description = L"Gets metadata for our stream callouts";
+	mCallout.displayData = displayData;
+	mCallout.calloutKey = TRUSTHUB_ALE_CALLOUT_V4;
+	mCallout.applicableLayer = FWPM_LAYER_ALE_AUTH_CONNECT_V4;
+	status = FwpmCalloutAdd(engineHandle, &mCallout, NULL, NULL);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add ALE callouts\r\n\r\n");
+		if (engineHandle) {
+			FwpmEngineClose(engineHandle);
+			engineHandle = NULL;
+		}
+		return status;
+	}
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added Callouts\r\n");
+
+	// Add Sublayer
+	RtlZeroMemory(&monitorSubLayer, sizeof(FWPM_SUBLAYER));
+	monitorSubLayer.subLayerKey = TRUSTHUB_SUBLAYER;
+	monitorSubLayer.displayData.name = L"TrustHub Sub layer";
+	monitorSubLayer.displayData.description = L"TrustHub Sample Sub layer";
+	monitorSubLayer.flags = 0;
+	monitorSubLayer.weight = 0;
+
+	status = FwpmSubLayerAdd(engineHandle, &monitorSubLayer, NULL);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\r\n");
+		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\r\n");
+		}
+		FwpmEngineClose(engineHandle);
+		return status;
+	}
+
+	// Add Filters
+	RtlZeroMemory(&filter, sizeof(FWPM_FILTER));
+
+	filter.layerKey = FWPM_LAYER_STREAM_V4;
+	filter.action.type = FWP_ACTION_CALLOUT_UNKNOWN;
+	filter.action.calloutKey = TRUSTHUB_STREAM_CALLOUT_V4;
+	filter.subLayerKey = monitorSubLayer.subLayerKey;
+	filter.weight.type = FWP_EMPTY; // auto-weight.
+
+	filter.numFilterConditions = 0; //if we were to add filters to the filterConditions array, we would want to include the amount here
+
+	RtlZeroMemory(filterConditions, sizeof(filterConditions));
+
+	filter.filterCondition = filterConditions;
+
+	filter.displayData.name = L"Stream Layer Filter";
+	filter.displayData.description = L"Monitors TCP traffic.";
+
+	status = FwpmFilterAdd(engineHandle, &filter, NULL, NULL);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\r\n");
+		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\r\n");
+		}
+		FwpmEngineClose(engineHandle);
+		return status;
+	}
+
+	// Commit the transaction
+	status = FwpmTransactionCommit(engineHandle);
+
+	return status;
+}
+
+NTSTATUS THRegisterCallout(_In_ DEVICE_OBJECT * wdm_device) {
 	NTSTATUS status = STATUS_SUCCESS;
 	FWPS_CALLOUT sCallout = { 0 };
 	FWPM_CALLOUT mCallout = { 0 };
@@ -263,16 +379,6 @@ NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 	// Commit the transaction
 	status = FwpmTransactionCommit(engineHandle);
 
-	// Closing the engine removes the filter, turns out
-	/*FwpmEngineClose(engineHandle);
-	engineHandle = NULL;
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add callouts or filters\r\n");
-		if (TrustHub_callout_id) {
-			FwpsCalloutUnregisterById(TrustHub_callout_id);
-			TrustHub_callout_id = 0;
-		}
-	}*/
 	return status;
 }
 
