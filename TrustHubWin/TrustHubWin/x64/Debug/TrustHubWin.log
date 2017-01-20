@@ -1,19 +1,9 @@
 ﻿  Building 'TrustHubWin' with toolset 'WindowsKernelModeDriver10.0' and the 'Universal' target platform.
-  Stamping x64\Debug\TrustHubWin.inf [Version] section with DriverVer=01/12/2017,16.19.28.578
+  Stamping x64\Debug\TrustHubWin.inf [Version] section with DriverVer=01/20/2017,11.58.39.638
+  ConnectionContext.c
   Driver.c
   Queue.c
-  TrustHubCommunication.c
-TrustHubCommunication.c(12): error C4013: 'ControlGetData' undefined; assuming extern returning int
-TrustHubCommunication.c(4): warning C4100: 'Request': unreferenced formal parameter
-TrustHubCommunication.c(24): warning C4100: 'Length': unreferenced formal parameter
-TrustHubCommunication.c(24): warning C4100: 'Request': unreferenced formal parameter
-TrustHubCommunication.c(24): warning C4100: 'Queue': unreferenced formal parameter
-TrustHubCommunication.c(31): warning C4100: 'Length': unreferenced formal parameter
-TrustHubCommunication.c(31): warning C4100: 'Request': unreferenced formal parameter
-TrustHubCommunication.c(31): warning C4100: 'Queue': unreferenced formal parameter
-TrustHubCommunication.c(38): warning C4100: 'IoControlCode': unreferenced formal parameter
-TrustHubCommunication.c(38): warning C4100: 'InputBufferLength': unreferenced formal parameter
-TrustHubCommunication.c(38): warning C4100: 'OutputBufferLength': unreferenced formal parameter
-TrustHubCommunication.c(38): warning C4100: 'Request': unreferenced formal parameter
-TrustHubCommunication.c(38): warning C4100: 'Queue': unreferenced formal parameter
+  TrustHubCallout.c
   Generating Code...
+Driver.obj : error LNK2019: unresolved external symbol trusthubALECalloutClassify referenced in function THRegisterALECallout
+C:\Users\ilab\Source\Repos\TrustKern\TrustHubWin\x64\Debug\TrustHubWin.sys : fatal error LNK1120: 1 unresolved externals
