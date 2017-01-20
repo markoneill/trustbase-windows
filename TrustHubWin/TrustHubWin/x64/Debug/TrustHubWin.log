@@ -1,9 +1,0 @@
-﻿  Building 'TrustHubWin' with toolset 'WindowsKernelModeDriver10.0' and the 'Universal' target platform.
-  Stamping x64\Debug\TrustHubWin.inf [Version] section with DriverVer=01/20/2017,11.58.39.638
-  ConnectionContext.c
-  Driver.c
-  Queue.c
-  TrustHubCallout.c
-  Generating Code...
-Driver.obj : error LNK2019: unresolved external symbol trusthubALECalloutClassify referenced in function THRegisterALECallout
-C:\Users\ilab\Source\Repos\TrustKern\TrustHubWin\x64\Debug\TrustHubWin.sys : fatal error LNK1120: 1 unresolved externals

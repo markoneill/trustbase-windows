@@ -29,6 +29,8 @@
 *.log
 *.sql
 *.sqlite
+*.opendb
+*.db
 
 # OS generated files #
 ######################
@@ -50,8 +52,10 @@ Thumbs.db
 *.ilk
 *.lref
 *.cer
-*.manifest
 *.lastbuildstate
+*.cache
+*.Cache
+*Debug/*
 
 #This very file     #
 #####################
