@@ -206,7 +206,7 @@ NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE engin
 	FWPM_CALLOUT mCallout = { 0 };
 	FWPM_DISPLAY_DATA displayData = { 0 };
 	FWPM_FILTER filter;
-	FWPM_FILTER_CONDITION filterConditions[2];
+	FWPM_FILTER_CONDITION filterConditions[1]; // only need 1 for the ALE stuff
 
 	// Register a new Callout with the Filter Engine using the provided callout functions
 	sCallout.calloutKey = TRUSTHUB_ALE_CALLOUT_V4;
@@ -230,7 +230,7 @@ NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE engin
 	displayData.description = L"Gets metadata for our stream callouts";
 	mCallout.displayData = displayData;
 	mCallout.calloutKey = TRUSTHUB_ALE_CALLOUT_V4;
-	mCallout.applicableLayer = FWPM_LAYER_ALE_AUTH_CONNECT_V4;
+	mCallout.applicableLayer = FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4;
 	status = FwpmCalloutAdd(engineHandle, &mCallout, NULL, NULL);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add ALE callouts\r\n\r\n");
@@ -245,24 +245,25 @@ NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE engin
 	// Add Filters
 	RtlZeroMemory(&filter, sizeof(FWPM_FILTER));
 
-	filter.layerKey = FWPM_LAYER_STREAM_V4;
-	filter.action.type = FWP_ACTION_CALLOUT_UNKNOWN;
-	filter.action.calloutKey = TRUSTHUB_STREAM_CALLOUT_V4;
-	filter.subLayerKey = TRUSTHUB_SUBLAYER;
-	filter.weight.type = FWP_EMPTY; // auto-weight.
-
-	filter.numFilterConditions = 0; //if we were to add filters to the filterConditions array, we would want to include the amount here
-
-	RtlZeroMemory(filterConditions, sizeof(filterConditions));
-
-	filter.filterCondition = filterConditions;
-
 	filter.displayData.name = L"ALE Layer Filter";
 	filter.displayData.description = L"Monitors ALE traffic.";
+	filter.layerKey = FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4;
+	filter.action.type = FWP_ACTION_CALLOUT_INSPECTION; // only inspect at this layer
+	filter.action.calloutKey = TRUSTHUB_ALE_CALLOUT_V4;
+	filter.subLayerKey = TRUSTHUB_SUBLAYER;
+	filter.weight.type = FWP_EMPTY; // auto-weight.
+	filter.numFilterConditions = 1;
+	RtlZeroMemory(filterConditions, sizeof(filterConditions));
+	filter.filterCondition = filterConditions;
+	// only watch TCP traffic
+	filterConditions[0].fieldKey = FWPM_CONDITION_IP_PROTOCOL;
+	filterConditions[0].matchType = FWP_MATCH_EQUAL;
+	filterConditions[0].conditionValue.type = FWP_UINT8;
+	filterConditions[0].conditionValue.uint8 = IPPROTO_TCP;
 
 	status = FwpmFilterAdd(engineHandle, &filter, NULL, NULL);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create ALE sublayer\r\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add ALE filter\r\n");
 		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\r\n");
 		}
@@ -279,7 +280,7 @@ NTSTATUS THRegisterStreamCallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE en
 	FWPM_CALLOUT mCallout = { 0 };
 	FWPM_DISPLAY_DATA displayData = { 0 };
 	FWPM_FILTER filter;
-	FWPM_FILTER_CONDITION filterConditions[2];
+	FWPM_FILTER_CONDITION filterConditions[1];
 
 	// Register a new Callout with the Filter Engine using the provided callout functions
 	sCallout.calloutKey = TRUSTHUB_STREAM_CALLOUT_V4;
@@ -318,24 +319,20 @@ NTSTATUS THRegisterStreamCallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE en
 	// Add Filters
 	RtlZeroMemory(&filter, sizeof(FWPM_FILTER));
 
+	filter.displayData.name = L"Stream Layer Filter";
+	filter.displayData.description = L"Monitors TCP traffic.";
 	filter.layerKey = FWPM_LAYER_STREAM_V4;
-	filter.action.type = FWP_ACTION_CALLOUT_UNKNOWN;
+	filter.action.type = FWP_ACTION_CALLOUT_UNKNOWN; // we may block or permit stuff
 	filter.action.calloutKey = TRUSTHUB_STREAM_CALLOUT_V4;
 	filter.subLayerKey = TRUSTHUB_SUBLAYER;
 	filter.weight.type = FWP_EMPTY; // auto-weight.
-
 	filter.numFilterConditions = 0; //if we were to add filters to the filterConditions array, we would want to include the amount here
-
 	RtlZeroMemory(filterConditions, sizeof(filterConditions));
-
 	filter.filterCondition = filterConditions;
-
-	filter.displayData.name = L"Stream Layer Filter";
-	filter.displayData.description = L"Monitors TCP traffic.";
 
 	status = FwpmFilterAdd(engineHandle, &filter, NULL, NULL);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\r\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add Stream Filter\r\n");
 		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\r\n");
 		}
