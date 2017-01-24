@@ -22,8 +22,9 @@ Environment:
 
 // Initializes required WDFDriver and WDFDevice objects
 NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STRING * registry_path);
-NTSTATUS THRegisterCallout(_In_ DEVICE_OBJECT * wdm_device);
-NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device);
+NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device);
+NTSTATUS THRegisterStreamCallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE engineHandle);
+NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE engineHandle);
 NTSTATUS unregister_trusthub_callouts();
 void thdriver_evt_unload(_In_ WDFDRIVER Driver);
 
@@ -36,7 +37,6 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 	WDFDEVICE device;
 	PWDFDEVICE_INIT device_init = NULL;
 	PDEVICE_OBJECT wdm_device = NULL;
-	WDF_OBJECT_ATTRIBUTES attributes;
 	WDF_IO_QUEUE_CONFIG ioQueueConfig;
 	WDFQUEUE queue;
 
@@ -53,14 +53,14 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Created WDF Driver\r\n");
 
-	// Allocate a device
-	device_init = WdfControlDeviceInitAllocate(driver, &SDDL_DEVOBJ_KERNEL_ONLY);
+	device_init = WdfControlDeviceInitAllocate(driver, &SDDL_DEVOBJ_SYS_ALL_ADM_ALL); // SDDL_DEVOBJ_ALL_ADM_ALL allows kernel, system, and admin
 	if (device_init == NULL) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not init WDF Driver, insufficient resources\r\n");
 		status = STATUS_INSUFFICIENT_RESOURCES;
 		return status;
 	}
-	
+
+	// Allocate a device
 	DECLARE_CONST_UNICODE_STRING(ntDeviceName, TRUSTHUB_DEVICENAME);
 	DECLARE_CONST_UNICODE_STRING(symbolicName, TRUSTHUB_SYMNAME);
 
@@ -88,7 +88,7 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 	// if we want a context, we need to specify the size with WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE in the atributes
 
 	// Create a WDFDEVICE for this driver
-	status = WdfDeviceCreate(&device_init, &attributes, &device);
+	status = WdfDeviceCreate(&device_init, WDF_NO_OBJECT_ATTRIBUTES, &device);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create a device for the driver\r\n");
 		if (device_init) {
@@ -112,9 +112,7 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 	ioQueueConfig.EvtIoWrite = ThIoWrite;
 	ioQueueConfig.EvtIoDeviceControl = ThIoDeviceControl;
 
-	WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
-
-	status = WdfIoQueueCreate(device, &ioQueueConfig, &attributes, &queue);
+	status = WdfIoQueueCreate(device, &ioQueueConfig, WDF_NO_OBJECT_ATTRIBUTES, &queue);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create a queue for our IOCtl messages\r\n");
 		if (device_init) {
@@ -125,11 +123,10 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 
 	WdfControlFinishInitializing(device);
 
-	// Register callouts
 	wdm_device = WdfDeviceWdmGetDeviceObject(device);
 
-	// TCP stream layer callouts for data inspection
-	status = THRegisterCallout(wdm_device);
+	// Register callouts
+	status = THRegisterCallouts(wdm_device);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not set callouts\r\n");
 		if (device_init) {
@@ -137,49 +134,79 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 		}
 		return status;
 	}
-	// Outbound transport layer for delaying response, and ip information
-
-	// ALE FlOW_ESTABLISHED layer for tracking app pid and stuff
-	status = THRegisterALECallout(wdm_device);
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not set callouts\r\n");
-		if (device_init) {
-			WdfDeviceInitFree(device_init);
-		}
-		return status;
-	}
-
+	
 	return status;
 }
 
-NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device) {
+NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 	NTSTATUS status = STATUS_SUCCESS;
-	FWPS_CALLOUT sCallout = { 0 };
-	FWPM_CALLOUT mCallout = { 0 };
-	FWPM_DISPLAY_DATA displayData = { 0 };
-	HANDLE engineHandle;
 	FWPM_SESSION session = { 0 };
-	FWPM_SUBLAYER monitorSubLayer;
-	FWPM_FILTER filter;
-	FWPM_FILTER_CONDITION filterConditions[2];
+	HANDLE engineHandle;
+	FWPM_SUBLAYER thSubLayer;
 
-	// Add Callouts and Add Filters
+	// Open Engine
 	session.flags = FWPM_SESSION_FLAG_DYNAMIC;
 
-	// Open the engine
 	status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &engineHandle);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open engine\r\n");
 		return status;
 	}
 
-	// begin transaction
+	// Start Transaction
 	status = FwpmTransactionBegin(engineHandle, 0);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open Transaction\r\n");
 		FwpmEngineClose(engineHandle);
 		return status;
 	}
+
+	// Add SubLayer for our filters
+	RtlZeroMemory(&thSubLayer, sizeof(FWPM_SUBLAYER));
+	thSubLayer.subLayerKey = TRUSTHUB_SUBLAYER;
+	thSubLayer.displayData.name = L"TrustHub Sub layer";
+	thSubLayer.displayData.description = L"TrustHub Sample Sub layer";
+	thSubLayer.flags = 0;
+	thSubLayer.weight = 0;
+
+	status = FwpmSubLayerAdd(engineHandle, &thSubLayer, NULL);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\r\n");
+		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\r\n");
+		}
+		FwpmEngineClose(engineHandle);
+		return status;
+	}
+
+	// ALE FlOW_ESTABLISHED layer for tracking app pid and stuff
+	status = THRegisterALECallout(wdm_device, engineHandle);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not set ALE callouts\r\n");
+		return status;
+	}
+
+	// TCP stream layer callouts for data inspection
+	status = THRegisterStreamCallout(wdm_device, engineHandle);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not set Stream callouts\r\n");
+		return status;
+	}
+	// Outbound transport layer for delaying response, and ip information
+
+	// Commit our transaction
+	status = FwpmTransactionCommit(engineHandle);
+
+	return status;
+}
+
+NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE engineHandle) {
+	NTSTATUS status = STATUS_SUCCESS;
+	FWPS_CALLOUT sCallout = { 0 };
+	FWPM_CALLOUT mCallout = { 0 };
+	FWPM_DISPLAY_DATA displayData = { 0 };
+	FWPM_FILTER filter;
+	FWPM_FILTER_CONDITION filterConditions[2];
 
 	// Register a new Callout with the Filter Engine using the provided callout functions
 	sCallout.calloutKey = TRUSTHUB_ALE_CALLOUT_V4;
@@ -196,7 +223,7 @@ NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device) {
 		}
 		return status;
 	}
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Registed Callouts\r\n");
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Registed ALE Callouts\r\n");
 
 	// Add Callouts
 	displayData.name = L"Trusthub ALE Callouts";
@@ -213,25 +240,7 @@ NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device) {
 		}
 		return status;
 	}
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added Callouts\r\n");
-
-	// Add Sublayer
-	RtlZeroMemory(&monitorSubLayer, sizeof(FWPM_SUBLAYER));
-	monitorSubLayer.subLayerKey = TRUSTHUB_SUBLAYER;
-	monitorSubLayer.displayData.name = L"TrustHub Sub layer";
-	monitorSubLayer.displayData.description = L"TrustHub Sample Sub layer";
-	monitorSubLayer.flags = 0;
-	monitorSubLayer.weight = 0;
-
-	status = FwpmSubLayerAdd(engineHandle, &monitorSubLayer, NULL);
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\r\n");
-		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\r\n");
-		}
-		FwpmEngineClose(engineHandle);
-		return status;
-	}
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added ALE Callouts\r\n");
 
 	// Add Filters
 	RtlZeroMemory(&filter, sizeof(FWPM_FILTER));
@@ -239,7 +248,7 @@ NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device) {
 	filter.layerKey = FWPM_LAYER_STREAM_V4;
 	filter.action.type = FWP_ACTION_CALLOUT_UNKNOWN;
 	filter.action.calloutKey = TRUSTHUB_STREAM_CALLOUT_V4;
-	filter.subLayerKey = monitorSubLayer.subLayerKey;
+	filter.subLayerKey = TRUSTHUB_SUBLAYER;
 	filter.weight.type = FWP_EMPTY; // auto-weight.
 
 	filter.numFilterConditions = 0; //if we were to add filters to the filterConditions array, we would want to include the amount here
@@ -248,12 +257,12 @@ NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device) {
 
 	filter.filterCondition = filterConditions;
 
-	filter.displayData.name = L"Stream Layer Filter";
-	filter.displayData.description = L"Monitors TCP traffic.";
+	filter.displayData.name = L"ALE Layer Filter";
+	filter.displayData.description = L"Monitors ALE traffic.";
 
 	status = FwpmFilterAdd(engineHandle, &filter, NULL, NULL);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\r\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create ALE sublayer\r\n");
 		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\r\n");
 		}
@@ -261,40 +270,16 @@ NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device) {
 		return status;
 	}
 
-	// Commit the transaction
-	status = FwpmTransactionCommit(engineHandle);
-
 	return status;
 }
 
-NTSTATUS THRegisterCallout(_In_ DEVICE_OBJECT * wdm_device) {
+NTSTATUS THRegisterStreamCallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE engineHandle) {
 	NTSTATUS status = STATUS_SUCCESS;
 	FWPS_CALLOUT sCallout = { 0 };
 	FWPM_CALLOUT mCallout = { 0 };
 	FWPM_DISPLAY_DATA displayData = { 0 };
-	HANDLE engineHandle;
-	FWPM_SESSION session = { 0 };
-	FWPM_SUBLAYER monitorSubLayer;
 	FWPM_FILTER filter;
 	FWPM_FILTER_CONDITION filterConditions[2];
-
-	// Add Callouts and Add Filters
-	session.flags = FWPM_SESSION_FLAG_DYNAMIC;
-
-	// Open the engine
-	status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &engineHandle);
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open engine\r\n");
-		return status;
-	}
-
-	// begin transaction
-	status = FwpmTransactionBegin(engineHandle, 0);
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open Transaction\r\n");
-		FwpmEngineClose(engineHandle);
-		return status;
-	}
 
 	// Register a new Callout with the Filter Engine using the provided callout functions
 	sCallout.calloutKey = TRUSTHUB_STREAM_CALLOUT_V4;
@@ -330,31 +315,13 @@ NTSTATUS THRegisterCallout(_In_ DEVICE_OBJECT * wdm_device) {
 	}
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added Callouts\r\n");
 
-	// Add Sublayer
-	RtlZeroMemory(&monitorSubLayer, sizeof(FWPM_SUBLAYER));
-	monitorSubLayer.subLayerKey = TRUSTHUB_SUBLAYER;
-	monitorSubLayer.displayData.name = L"TrustHub Sub layer";
-	monitorSubLayer.displayData.description = L"TrustHub Sample Sub layer";
-	monitorSubLayer.flags = 0;
-	monitorSubLayer.weight = 0;
-
-	status = FwpmSubLayerAdd(engineHandle, &monitorSubLayer, NULL);
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create sublayer\r\n");
-		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not abort Transaction?\r\n");
-		}
-		FwpmEngineClose(engineHandle);
-		return status;
-	}
-
 	// Add Filters
 	RtlZeroMemory(&filter, sizeof(FWPM_FILTER));
 
 	filter.layerKey = FWPM_LAYER_STREAM_V4;
 	filter.action.type = FWP_ACTION_CALLOUT_UNKNOWN;
 	filter.action.calloutKey = TRUSTHUB_STREAM_CALLOUT_V4;
-	filter.subLayerKey = monitorSubLayer.subLayerKey;
+	filter.subLayerKey = TRUSTHUB_SUBLAYER;
 	filter.weight.type = FWP_EMPTY; // auto-weight.
 
 	filter.numFilterConditions = 0; //if we were to add filters to the filterConditions array, we would want to include the amount here
@@ -375,9 +342,6 @@ NTSTATUS THRegisterCallout(_In_ DEVICE_OBJECT * wdm_device) {
 		FwpmEngineClose(engineHandle);
 		return status;
 	}
-
-	// Commit the transaction
-	status = FwpmTransactionCommit(engineHandle);
 
 	return status;
 }

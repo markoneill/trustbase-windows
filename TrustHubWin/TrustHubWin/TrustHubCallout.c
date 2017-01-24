@@ -5,7 +5,7 @@
 #include "TrustHubCallout.h"
 
 // static helper functions
-static void NTAPI debugReadFlags(FWPS_STREAM_DATA *dataStream, FWPS_CLASSIFY_OUT *classifyOut);
+static void NTAPI debugReadStreamFlags(FWPS_STREAM_DATA *dataStream, FWPS_CLASSIFY_OUT *classifyOut);
 
 void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, const FWPS_INCOMING_METADATA_VALUES * inMetaValues, void * layerData, const void * classifyContext, const FWPS_FILTER * filter, UINT64 flowContext, FWPS_CLASSIFY_OUT * classifyOut) {
 	FWPS_STREAM_CALLOUT_IO_PACKET *ioPacket;
@@ -42,7 +42,7 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 	}
 
 	// read the data flags
-	debugReadFlags(dataStream, classifyOut);
+	debugReadStreamFlags(dataStream, classifyOut);
 
 	// Get any filter context data from filter->context
 
@@ -140,6 +140,36 @@ void NTAPI trusthubCalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64 fl
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "FlowDelete Called\r\n");
 }
 
+
+// ALE Callouts
+
+void NTAPI trusthubALECalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, const FWPS_INCOMING_METADATA_VALUES * inMetaValues, void * layerData, const void * classifyContext, const FWPS_FILTER * filter, UINT64 flowContext, FWPS_CLASSIFY_OUT * classifyOut) {
+	UNREFERENCED_PARAMETER(classifyContext);
+	UNREFERENCED_PARAMETER(filter);
+	UNREFERENCED_PARAMETER(flowContext);
+	UNREFERENCED_PARAMETER(layerData);
+	UNREFERENCED_PARAMETER(inFixedValues);
+
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "______ALE Classify Called______\r\n");
+
+	// Find what metadata we have access to
+	// What does currentL2MetadataValues do?
+	// Inorder to get the pid, we need to intercept at the ALE level
+	if ((inMetaValues->currentMetadataValues & FWPS_METADATA_FIELD_FLOW_HANDLE) == FWPS_METADATA_FIELD_FLOW_HANDLE) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow handle = %x\r\n", inMetaValues->flowHandle);
+	} else {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "No flow handler in metadata\r\n");
+	}
+
+	// Get the data fields from inFixedValues
+
+	// Get any metadata fields from inMetaValues
+	
+	// Set the action to continue with the next filter
+	classifyOut->actionType = FWP_ACTION_CONTINUE;
+	return;
+}
+
 NTSTATUS NTAPI trusthubALECalloutNotify(FWPS_CALLOUT_NOTIFY_TYPE notifyType, const GUID * filterKey, const FWPS_FILTER * filter) {
 	UNREFERENCED_PARAMETER(filterKey);
 	UNREFERENCED_PARAMETER(filter);
@@ -154,7 +184,7 @@ void NTAPI trusthubALECalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "ALE FlowDelete Called\r\n");
 }
 
-void NTAPI debugReadFlags(FWPS_STREAM_DATA *dataStream, FWPS_CLASSIFY_OUT *classifyOut) {
+void NTAPI debugReadStreamFlags(FWPS_STREAM_DATA *dataStream, FWPS_CLASSIFY_OUT *classifyOut) {
 	if (classifyOut->flags & FWPS_CLASSIFY_OUT_FLAG_BUFFER_LIMIT_REACHED) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "BADBADNOTGOOD! REACHED BUFFER LIMIT\r\n");
 	}

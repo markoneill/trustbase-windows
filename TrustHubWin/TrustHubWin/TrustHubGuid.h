@@ -18,7 +18,7 @@ DEFINE_GUID(
 	0xb4, 0x0c, 0x8a, 0x8f, 0xe8, 0x43, 0xb0, 0x0b
 );
 
-// b3241f1d-7cd2-4e7a-8721-2e97d07702e5
+// b3241f1d-7cd2-4e7a-8721-2e97d07702ee
 DEFINE_GUID(
 	TRUSTHUB_SUBLAYER,
 	0xb3241f1d,

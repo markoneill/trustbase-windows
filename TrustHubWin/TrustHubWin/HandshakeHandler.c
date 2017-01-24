@@ -40,6 +40,9 @@ REQUESTED_ACTION NTAPI updateState(_In_ FWPS_STREAM_DATA *dataStream, _In_ Conne
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Handshake Layer\r\n");
 			ra = handleStateHandshakeLayer(dataStream, context);
 			break;
+		case PS_CERTIFICATE:
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Found the Certificate\r\n");
+			return ra;
 		default:
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Bad connection state\r\n");
 			return ra;
