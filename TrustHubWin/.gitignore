@@ -55,7 +55,8 @@ Thumbs.db
 *.lastbuildstate
 *.cache
 *.Cache
-*Debug/*
+*Debug/
+*obj/
 
 #This very file     #
 #####################
