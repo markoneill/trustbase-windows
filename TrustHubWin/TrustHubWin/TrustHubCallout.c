@@ -12,19 +12,30 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 	FWPS_STREAM_DATA *dataStream;
 	REQUESTED_ACTION requestedAction;
 	ConnectionFlowContext *context;
+	UNREFERENCED_PARAMETER(inFixedValues);
 	UNREFERENCED_PARAMETER(classifyContext);
 	UNREFERENCED_PARAMETER(filter);
 
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "______Classify Called______\r\n");
 
+	// Get any filter context data from filter->context
+
+	// Get any flow context data from flowContext
+	if (flowContext == 0) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error! No context for this flow!\r\n");
+		// Set the action to permit
+		classifyOut->actionType = FWP_ACTION_PERMIT;
+		return;
+	}
+	// We shouldnt have to check if there is a context or not, because we have the FWP_CALLOUT_FLAG_CONDITIONAL_ON_FLOW;
+	context = (ConnectionFlowContext*)flowContext;
+	if (context->processPath.size > 0) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Connection with %S\r\n", context->processPath.data);
+	}
+
 	// Find what metadata we have access to
 	// What does currentL2MetadataValues do?
 	// Inorder to get the pid, we need to intercept at the ALE level
-	if ((inMetaValues->currentMetadataValues & FWPS_METADATA_FIELD_FLOW_HANDLE) == FWPS_METADATA_FIELD_FLOW_HANDLE) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow handle = %x\r\n", inMetaValues->flowHandle);
-	} else {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "No flow handler in metadata\r\n");
-	}
 
 	// Get a pointer to the stream callout I/O packet
 	ioPacket = (FWPS_STREAM_CALLOUT_IO_PACKET0 *)layerData;
@@ -43,16 +54,6 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 
 	// read the data flags
 	debugReadStreamFlags(dataStream, classifyOut);
-
-	// Get any filter context data from filter->context
-
-	// Get any flow context data from flowContext
-	if (flowContext == 0) {
-		//create the flow context
-		context = createConnectionFlowContext(inFixedValues, inMetaValues);
-	} else {
-		context = (ConnectionFlowContext*)flowContext;
-	}
 
 	// Inspect the various data sources to determine
 	// the action to be taken on the data
@@ -146,24 +147,39 @@ void NTAPI trusthubCalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64 fl
 void NTAPI trusthubALECalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, const FWPS_INCOMING_METADATA_VALUES * inMetaValues, void * layerData, const void * classifyContext, const FWPS_FILTER * filter, UINT64 flowContext, FWPS_CLASSIFY_OUT * classifyOut) {
 	UNREFERENCED_PARAMETER(classifyContext);
 	UNREFERENCED_PARAMETER(filter);
-	UNREFERENCED_PARAMETER(flowContext);
 	UNREFERENCED_PARAMETER(layerData);
-	UNREFERENCED_PARAMETER(inFixedValues);
+	ConnectionFlowContext *context;
 
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "______ALE Classify Called______\r\n");
 
 	// Find what metadata we have access to
 	// What does currentL2MetadataValues do?
-	// Inorder to get the pid, we need to intercept at the ALE level
-	if ((inMetaValues->currentMetadataValues & FWPS_METADATA_FIELD_FLOW_HANDLE) == FWPS_METADATA_FIELD_FLOW_HANDLE) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow handle = %x\r\n", inMetaValues->flowHandle);
+	// Get any metadata fields from inMetaValues
+	// Process Path
+	if (inMetaValues->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_PATH) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Process Path = %S\r\n", inMetaValues->processPath->data);
 	} else {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "No flow handler in metadata\r\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "No Process Path in metadata\r\n");
+	}
+	// Process Id
+	if (inMetaValues->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Process ID = %x\r\n", inMetaValues->processId);
+	} else {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "No Process ID in metadata\r\n");
 	}
 
 	// Get the data fields from inFixedValues
 
-	// Get any metadata fields from inMetaValues
+	// Get any filter context data from filter->context
+
+	// Get any flow context data from flowContext
+	if (flowContext == 0) {
+		//create the flow context
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Creating a Connection Context from ALE Callout\r\n");
+		context = createConnectionFlowContext(inFixedValues, inMetaValues);
+	} else {
+		context = (ConnectionFlowContext*)flowContext;
+	}
 	
 	// Set the action to continue with the next filter
 	classifyOut->actionType = FWP_ACTION_CONTINUE;

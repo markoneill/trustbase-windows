@@ -24,20 +24,20 @@ REQUESTED_ACTION NTAPI handleClientHelloSent(_In_ FWPS_STREAM_DATA *dataStream, 
 REQUESTED_ACTION NTAPI updateState(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context ) {
 	REQUESTED_ACTION ra;
 	ra = RA_ERROR;
-	printData(dataStream);
+	//printData(dataStream);
 
 	while (stateCanTransition(dataStream, context)) {
 		switch (context->currentState) {
 		case PS_UNKNOWN:
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Unknown connection state\r\n");
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Unknown connection state\r\n");
 			ra = handleStateUnknown(dataStream, context);
 			break;
 		case PS_RECORD_LAYER:
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Record Layer\r\n");
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Record Layer\r\n");
 			ra = handleStateRecordLayer(dataStream, context);
 			break;
 		case PS_HANDSHAKE_LAYER:
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Handshake Layer\r\n");
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Handshake Layer\r\n");
 			ra = handleStateHandshakeLayer(dataStream, context);
 			break;
 		case PS_CERTIFICATE:
@@ -53,7 +53,6 @@ REQUESTED_ACTION NTAPI updateState(_In_ FWPS_STREAM_DATA *dataStream, _In_ Conne
 
 REQUESTED_ACTION NTAPI handleStateUnknown(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context) {
 	byte nbyte = peekByte(dataStream, context);
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "From unknown: see first byte as %x\r\n",nbyte);
 	if (nbyte == TH_TLS_HANDSHAKE_IDENTIFIER) {
 		context->currentState = PS_RECORD_LAYER;
 		context->bytesToRead = TH_TLS_RECORD_HEADER_SIZE;
@@ -113,7 +112,6 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(_In_ FWPS_STREAM_DATA *dataStre
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Received a Server Hello\r\n");
 			ffBytes(context, handshake_message_length); // fastforward past the server hello
 			// if we have read all of this record, lets hop out
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "read: %x, recordLength: %x\r\n", context->bytesRead, context->recordLength);
 			if (context->bytesRead <= (unsigned)(context->recordLength + TH_TLS_RECORD_HEADER_SIZE)) {
 				context->bytesToRead = TH_TLS_RECORD_HEADER_SIZE;
 				context->currentState = PS_RECORD_LAYER;
@@ -122,7 +120,6 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(_In_ FWPS_STREAM_DATA *dataStre
 		} else if (nbyte == TYPE_CERTIFICATE) {
 			// get the certificates size
 			handshake_message_length = nextUint24(dataStream, context);
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Received a Certificate field of length %x\r\n", handshake_message_length);
 			context->bytesToRead = handshake_message_length;
 			context->currentState = PS_CERTIFICATE;
 			return RA_WAIT;
@@ -143,7 +140,7 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(_In_ FWPS_STREAM_DATA *dataStre
 }
 
 BOOL stateCanTransition(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context) {
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Can transition? State %x, b2r %x, br %x, dl %x\r\n", context->currentState, context->bytesToRead, context->bytesRead, dataStream->dataLength);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Can transition? State %x, b2r %x, br %x, dl %x\r\n", context->currentState, context->bytesToRead, context->bytesRead, dataStream->dataLength);
 	return ((context->bytesToRead > 0) && (context->bytesRead < dataStream->dataLength) && (context->bytesToRead <= dataStream->dataLength - context->bytesRead));
 }
 

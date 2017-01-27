@@ -13,6 +13,8 @@
 #define FLOW_CONTEXT_POOL_TAG 'buht'
 
 typedef struct ConnectionFlowContext {
+	UINT64 processId;
+	FWP_BYTE_BLOB processPath;
 	enum PROCESSING_STATE currentState;
 	unsigned bytesRead;
 	unsigned bytesToRead;

@@ -10,9 +10,7 @@ NTSTATUS allocateConnectionFlowContext (_Out_ ConnectionFlowContext** flowContex
 
 	*flowContextOut = NULL;
 
-	flowContext = (ConnectionFlowContext*)ExAllocatePoolWithTag(NonPagedPool,
-		sizeof(ConnectionFlowContext),
-		FLOW_CONTEXT_POOL_TAG);
+	flowContext = (ConnectionFlowContext*)ExAllocatePoolWithTag(NonPagedPool, sizeof(ConnectionFlowContext), FLOW_CONTEXT_POOL_TAG);
 
 	if (!flowContext) {
 		status = STATUS_NO_MEMORY;
@@ -47,6 +45,23 @@ ConnectionFlowContext* createConnectionFlowContext (
 		flowContext->bytesRead = 0;
 		flowContext->bytesToRead = 1;
 		flowContext->recordLength = 0;
+		// Process Path
+		if (inMetaValues->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_PATH) {
+			inMetaValues->processPath->data;
+			flowContext->processPath.size = inMetaValues->processPath->size;
+			// Allocate the data
+			flowContext->processPath.data = (UINT8*)ExAllocatePoolWithTag(NonPagedPool, inMetaValues->processPath->size, FLOW_CONTEXT_POOL_TAG);
+			// copy the data
+			RtlCopyMemory(flowContext->processPath.data, inMetaValues->processPath->data, inMetaValues->processPath->size);
+		} else {
+			flowContext->processPath.size = 0;
+		}
+		// Process Id
+		if (inMetaValues->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID) {
+			flowContext->processId = inMetaValues->processId;
+		} else {
+			flowContext->processId = 0;
+		}
 	} else {
 		flowContext = NULL;
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Couldn't allocate a context for flow %x\r\n", inMetaValues->flowHandle);

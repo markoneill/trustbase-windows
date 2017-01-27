@@ -213,7 +213,7 @@ NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE engin
 	sCallout.classifyFn = trusthubALECalloutClassify;
 	sCallout.notifyFn = trusthubALECalloutNotify;
 	sCallout.flowDeleteFn = trusthubALECalloutFlowDelete;
-	sCallout.flags |= FWP_CALLOUT_FLAG_CONDITIONAL_ON_FLOW | FWP_CALLOUT_FLAG_ALLOW_OFFLOAD | FWP_CALLOUT_FLAG_ALLOW_L2_BATCH_CLASSIFY;
+	sCallout.flags |=  FWP_CALLOUT_FLAG_ALLOW_OFFLOAD;
 	status = FwpsCalloutRegister((void *)wdm_device, &sCallout, &TrustHub_callout_id);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not register ALE callouts\r\n");
@@ -288,6 +288,7 @@ NTSTATUS THRegisterStreamCallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE en
 	sCallout.notifyFn = trusthubCalloutNotify;
 	sCallout.flowDeleteFn = trusthubCalloutFlowDelete;
 	sCallout.flags |= FWP_CALLOUT_FLAG_ALLOW_MID_STREAM_INSPECTION;
+	sCallout.flags |= FWP_CALLOUT_FLAG_CONDITIONAL_ON_FLOW; // only get called if our ALE callout has set a context already
 	status = FwpsCalloutRegister((void *)wdm_device, &sCallout, &TrustHub_callout_id);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not register callouts\r\n");
