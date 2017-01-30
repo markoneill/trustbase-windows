@@ -31,6 +31,8 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 	context = (ConnectionFlowContext*)flowContext;
 	if (context->processPath.size > 0) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Connection with %S\r\n", context->processPath.data);
+	} else {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Connection with flow %x\r\n", inMetaValues->flowHandle);
 	}
 
 	// Find what metadata we have access to
