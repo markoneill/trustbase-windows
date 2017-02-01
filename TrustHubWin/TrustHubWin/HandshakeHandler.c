@@ -18,7 +18,6 @@ UINT32 nextUint32(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext 
 REQUESTED_ACTION NTAPI handleStateUnknown(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context);
 REQUESTED_ACTION NTAPI handleStateRecordLayer(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context);
 REQUESTED_ACTION NTAPI handleStateHandshakeLayer(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context);
-REQUESTED_ACTION NTAPI handleClientHelloSent(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context);
 
 // calls the appropriate function to parse the data, and updates the state
 REQUESTED_ACTION NTAPI updateState(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context ) {
