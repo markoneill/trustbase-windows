@@ -20,9 +20,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="TrustBaseInstaller.cpp" />
+    <ClCompile Include="TrustBaseLogger.cpp" />
     <ClCompile Include="TrustBaseService.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="TrustBaseInstaller.h" />
+    <ClInclude Include="TrustBaseLogger.h" />
     <ClInclude Include="TrustBaseService.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
