@@ -3,6 +3,7 @@
 #include "HandshakeHandler.h"
 #include "ConnectionContext.h"
 #include "TrustHubCallout.h"
+#include "TrustHubCommunication.h"
 
 // static helper functions
 static void NTAPI debugReadStreamFlags(FWPS_STREAM_DATA *dataStream, FWPS_CLASSIFY_OUT *classifyOut);
@@ -55,7 +56,7 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 	}
 
 	// read the data flags
-	debugReadStreamFlags(dataStream, classifyOut);
+	//debugReadStreamFlags(dataStream, classifyOut);
 
 	// Inspect the various data sources to determine
 	// the action to be taken on the data
@@ -63,6 +64,11 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 	requestedAction = updateState(dataStream, context);
 
 	// see if we can grab certificate
+	if (requestedAction == RA_WAIT) {
+		// copy to certificate to our outgoing message queue
+		// Use our workitem to open our read queue
+		WdfWorkItemEnqueue(THReadyReadItem);
+	}
 
 	// if we are done with this data, and just care about what is coming
 	if (requestedAction == RA_CONTINUE) {
@@ -141,6 +147,7 @@ void NTAPI trusthubCalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64 fl
 	UNREFERENCED_PARAMETER(calloutId);
 	UNREFERENCED_PARAMETER(flowContext);
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "FlowDelete Called\r\n");
+	cleanupConnectionFlowContext((ConnectionFlowContext*)flowContext);
 }
 
 

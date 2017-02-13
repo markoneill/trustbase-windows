@@ -68,7 +68,7 @@ REQUESTED_ACTION NTAPI handleStateRecordLayer(_In_ FWPS_STREAM_DATA *dataStream,
 	UINT16 record_length;
 
 	nbyte = nextByte(dataStream, context);
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "From record: see first byte as %x\r\n", nbyte);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "From record: see first byte as %x\r\n", nbyte);
 	if (nbyte != TH_TLS_HANDSHAKE_IDENTIFIER) {
 		context->currentState = PS_IRRELEVANT;
 		context->bytesToRead = 0;
@@ -77,13 +77,13 @@ REQUESTED_ACTION NTAPI handleStateRecordLayer(_In_ FWPS_STREAM_DATA *dataStream,
 
 	// TLS version #
 	nbyte = nextByte(dataStream, context);
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "TLS major %x\r\n", nbyte);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "TLS major %x\r\n", nbyte);
 	nbyte = nextByte(dataStream, context);
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "TLS minor %x\r\n", nbyte);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "TLS minor %x\r\n", nbyte);
 
 	// version
 	record_length = nextUint16(dataStream, context);
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Record Length %x\r\n", record_length);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Record Length %x\r\n", record_length);
 	context->bytesToRead = record_length;
 	context->recordLength = record_length;
 	context->currentState = PS_HANDSHAKE_LAYER;
@@ -97,7 +97,7 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(_In_ FWPS_STREAM_DATA *dataStre
 	while (context->bytesToRead > 0) { // read all the records we can
 		nbyte = nextByte(dataStream, context);
 		handshake_message_length = nextUint24(dataStream, context);
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got handshake message type %x, length %x\r\n", nbyte, handshake_message_length);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got handshake message type %x, length %x\r\n", nbyte, handshake_message_length);
 
 		// handle different handshake message types
 		if (nbyte == TYPE_CLIENT_HELLO) {

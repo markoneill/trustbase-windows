@@ -3,6 +3,13 @@
 
 static NTSTATUS allocateConnectionFlowContext(_Out_ ConnectionFlowContext** flowContextOut);
 
+VOID cleanupConnectionFlowContext(_In_ ConnectionFlowContext* context) {
+	if (context->processPath.data) {
+		ExFreePoolWithTag(context->processPath.data, FLOW_CONTEXT_POOL_TAG);
+	}
+	ExFreePoolWithTag(context, FLOW_CONTEXT_POOL_TAG);
+}
+
 NTSTATUS allocateConnectionFlowContext (_Out_ ConnectionFlowContext** flowContextOut)
 {
 	NTSTATUS status = STATUS_SUCCESS;

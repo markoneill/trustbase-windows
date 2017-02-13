@@ -34,7 +34,6 @@ Environment:
 #include <guiddef.h>			// Used to define GUID's
 #include <initguid.h>			// Used to define GUID's
 
-#include "queue.h"
 #include "TrustHubGuid.h"
 #include "TrustHubCallout.h" 
 #include "TrustHubCommunication.h"

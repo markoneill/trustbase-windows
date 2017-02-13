@@ -37,8 +37,6 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 	WDFDEVICE device;
 	PWDFDEVICE_INIT device_init = NULL;
 	PDEVICE_OBJECT wdm_device = NULL;
-	WDF_IO_QUEUE_CONFIG ioQueueConfig;
-	WDFQUEUE queue;
 
 	WDF_DRIVER_CONFIG_INIT(&config, WDF_NO_EVENT_CALLBACK); //WDF_NO_EVENT_CALLBACK = NULL, this means there is no callback when WdfDriverCreate is called.
 	config.DriverInitFlags |= WdfDriverInitNonPnpDriver; //WdfDriverInitNonPnpDriver means this driver does not support plug and play. "If this value is set, the driver must not supply an EvtDriverDeviceAdd callback function" in other words use WDF_NO_EVENT_CALLBACK
@@ -105,16 +103,21 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 		}
 		return status;
 	}
-
-	// configure the default queue
-	WDF_IO_QUEUE_CONFIG_INIT_DEFAULT_QUEUE(&ioQueueConfig, WdfIoQueueDispatchSequential);
-	ioQueueConfig.EvtIoRead = ThIoRead;
-	ioQueueConfig.EvtIoWrite = ThIoWrite;
-	ioQueueConfig.EvtIoDeviceControl = ThIoDeviceControl;
-
-	status = WdfIoQueueCreate(device, &ioQueueConfig, WDF_NO_OBJECT_ATTRIBUTES, &queue);
+	
+	// Set up our IO queues
+	status = ThInitQueues(device);
 	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create a queue for our IOCtl messages\r\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create the queues for our IOCtl messages\r\n");
+		if (device_init) {
+			WdfDeviceInitFree(device_init);
+		}
+		return status;
+	}
+
+	// Set up any work items
+	status = ThInitWorkItems(device);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create the work items\r\n");
 		if (device_init) {
 			WdfDeviceInitFree(device_init);
 		}

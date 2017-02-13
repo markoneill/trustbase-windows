@@ -28,11 +28,12 @@ ULongLongToULongPtr(
 #define ULongLongToULongPtr ULongLongToULong
 #endif
 
-#include <wdf.h>
+#include <Wdf.h>
 #pragma warning(push)
 #pragma warning(disable: 4201)	// Disable "Nameless struct/union" compiler warning for fwpsk.h only
 #include <fwpsk.h>				// Functions and enumerated types used to implement callouts in kernel mode
 #pragma warning(pop)			// Re-enable "Nameless struct/union" compiler warning
+
 
 // STREAM Callouts
 void NTAPI trusthubCalloutClassify(

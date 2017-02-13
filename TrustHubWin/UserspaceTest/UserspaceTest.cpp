@@ -11,7 +11,7 @@ int main(int argc, char* argv[]) {
 	char buf[BUFSIZE];
 	file = CreateFileW(L"\\\\.\\TrustHub", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 	if (ReadFile(file, buf, BUFSIZE - 1, NULL, NULL)) {
-		printf("Output: %s\n", buf);
+		printf("Output: %x @ %x, %s\n", *((UINT64*)buf), buf, buf);
 	}
 	return 0;
 }

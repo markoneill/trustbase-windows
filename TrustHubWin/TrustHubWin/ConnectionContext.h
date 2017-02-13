@@ -21,6 +21,8 @@ typedef struct ConnectionFlowContext {
 	UINT16 recordLength;
 } ConnectionFlowContext;
 
+VOID cleanupConnectionFlowContext(_In_ ConnectionFlowContext* context);
+
 ConnectionFlowContext* createConnectionFlowContext(
 	_In_ const FWPS_INCOMING_VALUES* inFixedValues,
 	_In_ const FWPS_INCOMING_METADATA_VALUES* inMetaValues);
