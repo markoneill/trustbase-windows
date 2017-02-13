@@ -21,9 +21,21 @@
     <ClCompile Include="TrustBaseService.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TrustBaseInstaller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TrustBaseLogger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TrustBaseService.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TrustBaseInstaller.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TrustBaseLogger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

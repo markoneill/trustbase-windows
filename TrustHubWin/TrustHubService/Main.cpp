@@ -1,58 +1,49 @@
 #include <windows.h>
 #include "tchar.h""
 #include "TrustBaseService.h"
+#include "TrustBaseInstaller.h"
 #include <cstdio>
 
-void startService() {
-	TrustBaseService service;
-	service.run(&service);
-}
 
 /**
 * The main entry point for the service.
 * Accepts parameters "install" "uninstall" and "help"
 *
-*
 **/
 void __cdecl _tmain(int argc, TCHAR* argv[]) {
 	
+	
 	if(argc > 1 && lstrcmpi(argv[1], TEXT("help")) == 0) {
 		printf("TrustBase Service\r\nAccepts: 'install' 'uninstall' 'help'\r\n");
+		return;
 	}
 	else if (argc > 1 && lstrcmpi(argv[1], TEXT("install")) == 0) {
-		TrustBaseService service;
-		service.install();
+		printf("TrustBase Service installer started\n");
+
+		TrustBaseInstaller installer;
+		installer.install();
 		return;
 	} else if (argc > 1 && lstrcmpi(argv[1], TEXT("uninstall")) == 0) {
-		TrustBaseService service;
-		service.uninstall();
+		printf("TrustBase Service uninstaller started\n");
+
+		TrustBaseInstaller installer;
+		installer.uninstall();
 		return;
 	}
-	
 
-	SERVICE_TABLE_ENTRY serviceTableEntry[2];
-	serviceTableEntry[0].lpServiceName = "TrustBase";
-	serviceTableEntry[0].lpServiceProc = (LPSERVICE_MAIN_FUNCTION) startService;
+	//note: the code below cannot be run in from the command line
+	//The code below can only be run and will be run when the service starts
 
-	serviceTableEntry[1].lpServiceName = NULL;
-	serviceTableEntry[1].lpServiceProc = NULL;
+	printf("TrustBase Service started\n");
 
-	if (!StartServiceCtrlDispatcher(serviceTableEntry)) {
-		HANDLE eventLog = OpenEventLog(NULL, TEXT("TrustBaseLog"));
-		char * message = "TrustBase Failed";
-		char * * messages = & message; 
-		ReportEvent(
-			eventLog,
-			EVENTLOG_ERROR_TYPE,
-			NULL,
-			NULL,
-			NULL,
-			1,
-			0,
-			(LPCSTR *) messages,
-			NULL
-			);
-		CloseEventLog(eventLog);
+	TrustBaseService service;
+
+	if (!TrustBaseService::startService(service))
+	{
+		printf("TrustBase Failed2\n");
+		DWORD error = GetLastError();
+		printf("%lu", error);
+		TrustBaseLogger::logEventWrite("TrustBase Failed");
 	}
 
 	return;

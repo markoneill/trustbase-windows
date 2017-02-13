@@ -1,18 +1,30 @@
 #include "TrustBaseService.h"
+#include <stdio.h>
+#include <windows.h>
 #include <cstdio>
 #include <random>
 
-void TrustBaseService::install() {
-	printf("Installing Trustbase. Please Wait. Do not close this terminal. Do not pass GO. Do not collect $200.");
-}
+TrustBaseService *TrustBaseService::serviceInstance = NULL;
 
-void TrustBaseService::uninstall(){
-	printf("Installing Trustbase. Please Wait...");
+BOOL TrustBaseService::startService(TrustBaseService &service) {
+	SERVICE_TABLE_ENTRY serviceTable[] =
+	{
+		{ SERVICE_NAME, run },
+		{ NULL, NULL }
+	};
+
+	serviceInstance = &service;
+	return StartServiceCtrlDispatcher(serviceTable);
 }
 
 VOID WINAPI TrustBaseService::SvcCtrlHandler(DWORD controlCode) {
 	switch (controlCode) {
 		case SERVICE_CONTROL_CONTINUE:
+			serviceInstance->status.dwCurrentState = SERVICE_CONTINUE_PENDING;
+			SetServiceStatus(serviceInstance->statusHandle, &(serviceInstance->status));
+
+			serviceInstance->status.dwCurrentState = SERVICE_RUNNING;
+			SetServiceStatus(serviceInstance->statusHandle, &(serviceInstance->status));
 			break;
 		case SERVICE_CONTROL_INTERROGATE:
 			break;
@@ -25,10 +37,22 @@ VOID WINAPI TrustBaseService::SvcCtrlHandler(DWORD controlCode) {
 		case  SERVICE_CONTROL_PARAMCHANGE:
 			break;
 		case  SERVICE_CONTROL_PAUSE:
+			serviceInstance->status.dwCurrentState = SERVICE_PAUSE_PENDING;
+			SetServiceStatus(serviceInstance->statusHandle, &(serviceInstance->status));
+
+			serviceInstance->status.dwCurrentState = SERVICE_PAUSED;
+			SetServiceStatus(serviceInstance->statusHandle, &(serviceInstance->status));
 			break;
 		case  SERVICE_CONTROL_SHUTDOWN:
+			serviceInstance->status.dwCurrentState = SERVICE_STOPPED;
+			SetServiceStatus(serviceInstance->statusHandle, &(serviceInstance->status));
 			break;
 		case  SERVICE_CONTROL_STOP:
+			serviceInstance->status.dwCurrentState = SERVICE_STOP_PENDING;
+			SetServiceStatus(serviceInstance->statusHandle, &(serviceInstance->status));
+
+			serviceInstance->status.dwCurrentState = SERVICE_STOPPED;
+			SetServiceStatus(serviceInstance->statusHandle, &(serviceInstance->status));
 			break;
 		default:
 			break;
@@ -41,41 +65,33 @@ bool TrustBaseService::validate(byte * cert)
 	return true;
 }
 
-void TrustBaseService::logEventWrite(char* message)
-{
-	HANDLE eventLog = OpenEventLog(NULL, TEXT("TrustBaseLog"));
-	char * * messages = &(message);
-	ReportEvent(
-		eventLog,
-		EVENTLOG_ERROR_TYPE,
-		NULL,
-		NULL,
-		NULL,
-		1,
-		0,
-		(LPCSTR *)messages,
-		NULL
-	);
-	CloseEventLog(eventLog);
-}
 
-void WINAPI TrustBaseService::run(TrustBaseService * service) {
-	
 
-	service->statusHandle = ::RegisterServiceCtrlHandler(
+void WINAPI TrustBaseService::run(DWORD dwArgc, LPSTR *pszArgv) {
+	serviceInstance->statusHandle = ::RegisterServiceCtrlHandler(
 		"TrustBase",
 		SvcCtrlHandler
 	);
+	serviceInstance->status.dwCurrentState = SERVICE_START_PENDING;
 
-	service->status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
-	service->status.dwCurrentState = SERVICE_RUNNING;
-	service->status.dwControlsAccepted = NULL;
-	service->status.dwWin32ExitCode = NO_ERROR;
-	service->status.dwServiceSpecificExitCode = NULL;
-	service->status.dwWaitHint = 1000;
+	serviceInstance->status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+	serviceInstance->status.dwControlsAccepted = SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN | SERVICE_ACCEPT_PAUSE_CONTINUE;
+	serviceInstance->status.dwWin32ExitCode = NO_ERROR;
+	serviceInstance->status.dwServiceSpecificExitCode = NULL;
+	serviceInstance->status.dwWaitHint = 1000;
 
+	SetServiceStatus(serviceInstance->statusHandle, &(serviceInstance->status));
+	
+	serviceInstance->status.dwCurrentState = SERVICE_RUNNING;
+	SetServiceStatus(serviceInstance->statusHandle, &(serviceInstance->status));
+
+	printf("Running Trustbase...");
+
+	//todo: uncomment lines below (they are untested I think) and comm with the driver
+	
+	/*
 	HANDLE interceptorHandle = CreateFile(
-			"TrustBaseInterceptor",
+			L"TrustBaseInterceptor",
 			(GENERIC_READ | GENERIC_WRITE),
 			(FILE_SHARE_READ | FILE_SHARE_WRITE),
 			NULL,
@@ -83,9 +99,6 @@ void WINAPI TrustBaseService::run(TrustBaseService * service) {
 			FILE_ATTRIBUTE_NORMAL,
 			NULL
 		);
-
-	SetServiceStatus(service->statusHandle, &(service->status));
-	printf("Running Trustbase...");
 
 	byte readBuffer[16500];
 	DWORD count;
@@ -124,10 +137,10 @@ void WINAPI TrustBaseService::run(TrustBaseService * service) {
 				&count,
 				NULL
 			);
-			logEventWrite("TRUSTBASE has blocked something");
+			TrustBaseLogger::logEventWrite("TRUSTBASE has blocked something");
 		}
 
-	}
+	}*/
 }
 
 
