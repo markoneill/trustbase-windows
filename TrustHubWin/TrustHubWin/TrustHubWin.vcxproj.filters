@@ -33,9 +33,6 @@
     <ClInclude Include="Public.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Queue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="TrustHubGuid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -54,12 +51,12 @@
     <ClInclude Include="TrustHubCommunication.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TrustHubMessage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Driver.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Queue.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TrustHubCallout.c">
@@ -72,6 +69,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TrustHubCommunication.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TrustHubMessage.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

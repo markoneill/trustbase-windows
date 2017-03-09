@@ -4,9 +4,11 @@
 #include "ConnectionContext.h"
 #include "TrustHubCallout.h"
 #include "TrustHubCommunication.h"
+#include "TrustHubMessage.h"
 
 // static helper functions
 static void NTAPI debugReadStreamFlags(FWPS_STREAM_DATA *dataStream, FWPS_CLASSIFY_OUT *classifyOut);
+static NTSTATUS sendCertificate(FWPS_STREAM_DATA *dataStream, ConnectionFlowContext* context);
 
 void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, const FWPS_INCOMING_METADATA_VALUES * inMetaValues, void * layerData, const void * classifyContext, const FWPS_FILTER * filter, UINT64 flowContext, FWPS_CLASSIFY_OUT * classifyOut) {
 	FWPS_STREAM_CALLOUT_IO_PACKET *ioPacket;
@@ -65,9 +67,7 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 
 	// see if we can grab certificate
 	if (requestedAction == RA_WAIT) {
-		// copy to certificate to our outgoing message queue
-		// Use our workitem to open our read queue
-		WdfWorkItemEnqueue(THReadyReadItem);
+		sendCertificate(dataStream, context);
 	}
 
 	// if we are done with this data, and just care about what is coming
@@ -119,7 +119,7 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 	if (requestedAction == RA_WAIT) {
 		// Just keep giving us data as it comes in
 		ioPacket->streamAction = FWPS_STREAM_ACTION_DEFER;
-		// apperantly defer doesn't work any more, so we have to do stupid stuff on our own
+		// apperantly defer doesn't work any more, so we have to do stuff on our own
 		// https://social.msdn.microsoft.com/Forums/windowsdesktop/en-US/ab3bf8a9-834d-4ef7-b825-84ec290c21f1/filtering-tcp-outofband
 
 		ioPacket->countBytesRequired = 0;
@@ -208,6 +208,30 @@ void NTAPI trusthubALECalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64
 	UNREFERENCED_PARAMETER(flowContext);
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "ALE FlowDelete Called\r\n");
 }
+
+NTSTATUS sendCertificate(FWPS_STREAM_DATA *dataStream, ConnectionFlowContext* context) {
+	UINT8* data;
+	NTSTATUS status;
+
+	// get the certificate
+	status = handleCertificate(dataStream, context, &data);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Had a problem grabbing the certificate\r\n");
+		return STATUS_NOT_FOUND;
+	}
+	// put it all in our outgoing message queue
+	status = ThAddMessage(&THOutputQueue, TH_CERTIFICATE, context->processId, context->processPath, context->bytesToRead, data);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Had a problem adding the certificate to the message queue\r\n");
+		return STATUS_NOT_FOUND;
+	}
+	// Use our workitem to open our read queue
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added cert message to the message queue, enabling read queue\r\n");
+	WdfWorkItemEnqueue(THReadyReadItem);
+
+	return status;
+}
+
 
 void NTAPI debugReadStreamFlags(FWPS_STREAM_DATA *dataStream, FWPS_CLASSIFY_OUT *classifyOut) {
 	if (classifyOut->flags & FWPS_CLASSIFY_OUT_FLAG_BUFFER_LIMIT_REACHED) {

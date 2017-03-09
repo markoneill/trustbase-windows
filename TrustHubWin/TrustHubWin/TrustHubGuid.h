@@ -30,4 +30,6 @@ DEFINE_GUID(
 #define TRUSTHUB_DEVICENAME L"\\Device\\TrustHub"
 #define TRUSTHUB_SYMNAME L"\\DosDevices\\Global\\TrustHub"
 
+#define TH_POOL_TAG 'buht'
+
 UINT32 TrustHub_callout_id;

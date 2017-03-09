@@ -1,23 +1,23 @@
 #include "ConnectionContext.h"
 #include "TrustHubGuid.h"
 
-static NTSTATUS allocateConnectionFlowContext(_Out_ ConnectionFlowContext** flowContextOut);
+static NTSTATUS allocateConnectionFlowContext(OUT ConnectionFlowContext** flowContextOut);
 
-VOID cleanupConnectionFlowContext(_In_ ConnectionFlowContext* context) {
+VOID cleanupConnectionFlowContext(IN ConnectionFlowContext* context) {
 	if (context->processPath.data) {
-		ExFreePoolWithTag(context->processPath.data, FLOW_CONTEXT_POOL_TAG);
+		ExFreePoolWithTag(context->processPath.data, TH_POOL_TAG);
 	}
-	ExFreePoolWithTag(context, FLOW_CONTEXT_POOL_TAG);
+	ExFreePoolWithTag(context, TH_POOL_TAG);
 }
 
-NTSTATUS allocateConnectionFlowContext (_Out_ ConnectionFlowContext** flowContextOut)
+NTSTATUS allocateConnectionFlowContext (OUT ConnectionFlowContext** flowContextOut)
 {
 	NTSTATUS status = STATUS_SUCCESS;
 	ConnectionFlowContext* flowContext = NULL;
 
 	*flowContextOut = NULL;
 
-	flowContext = (ConnectionFlowContext*)ExAllocatePoolWithTag(NonPagedPool, sizeof(ConnectionFlowContext), FLOW_CONTEXT_POOL_TAG);
+	flowContext = (ConnectionFlowContext*)ExAllocatePoolWithTag(NonPagedPool, sizeof(ConnectionFlowContext), TH_POOL_TAG);
 
 	if (!flowContext) {
 		status = STATUS_NO_MEMORY;
@@ -31,15 +31,15 @@ NTSTATUS allocateConnectionFlowContext (_Out_ ConnectionFlowContext** flowContex
 	if (!NT_SUCCESS(status)) {
 		if (flowContext)
 		{
-			ExFreePoolWithTag(flowContext, FLOW_CONTEXT_POOL_TAG);
+			ExFreePoolWithTag(flowContext, TH_POOL_TAG);
 		}
 	}
 	return status;
 }
 
 ConnectionFlowContext* createConnectionFlowContext (
-	_In_ const FWPS_INCOMING_VALUES* inFixedValues,
-	_In_ const FWPS_INCOMING_METADATA_VALUES* inMetaValues)
+	IN const FWPS_INCOMING_VALUES* inFixedValues,
+	IN const FWPS_INCOMING_METADATA_VALUES* inMetaValues)
 {
 	UNREFERENCED_PARAMETER(inFixedValues);
 
@@ -57,7 +57,7 @@ ConnectionFlowContext* createConnectionFlowContext (
 			inMetaValues->processPath->data;
 			flowContext->processPath.size = inMetaValues->processPath->size;
 			// Allocate the data
-			flowContext->processPath.data = (UINT8*)ExAllocatePoolWithTag(NonPagedPool, inMetaValues->processPath->size, FLOW_CONTEXT_POOL_TAG);
+			flowContext->processPath.data = (UINT8*)ExAllocatePoolWithTag(NonPagedPool, inMetaValues->processPath->size, TH_POOL_TAG);
 			// copy the data
 			RtlCopyMemory(flowContext->processPath.data, inMetaValues->processPath->data, inMetaValues->processPath->size);
 		} else {

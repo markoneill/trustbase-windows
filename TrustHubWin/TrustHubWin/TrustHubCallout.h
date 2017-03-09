@@ -18,8 +18,8 @@ _Must_inspect_result_
 __inline
 HRESULT
 ULongLongToULongPtr(
-	_In_ ULONGLONG ullOperand,
-	_Out_ _Deref_out_range_(== , ullOperand) ULONG_PTR* pulResult)
+	IN ULONGLONG ullOperand,
+	OUT _Deref_out_range_(== , ullOperand) ULONG_PTR* pulResult)
 {
 	*pulResult = ullOperand;
 	return STATUS_SUCCESS;
@@ -33,7 +33,6 @@ ULongLongToULongPtr(
 #pragma warning(disable: 4201)	// Disable "Nameless struct/union" compiler warning for fwpsk.h only
 #include <fwpsk.h>				// Functions and enumerated types used to implement callouts in kernel mode
 #pragma warning(pop)			// Re-enable "Nameless struct/union" compiler warning
-
 
 // STREAM Callouts
 void NTAPI trusthubCalloutClassify(

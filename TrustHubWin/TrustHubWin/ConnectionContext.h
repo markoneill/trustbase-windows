@@ -10,8 +10,6 @@
 #include <fwpsk.h>				// Functions and enumerated types used to implement callouts in kernel mode
 #pragma warning(pop)
 
-#define FLOW_CONTEXT_POOL_TAG 'buht'
-
 typedef struct ConnectionFlowContext {
 	UINT64 processId;
 	FWP_BYTE_BLOB processPath;
@@ -21,8 +19,8 @@ typedef struct ConnectionFlowContext {
 	UINT16 recordLength;
 } ConnectionFlowContext;
 
-VOID cleanupConnectionFlowContext(_In_ ConnectionFlowContext* context);
+VOID cleanupConnectionFlowContext(IN ConnectionFlowContext* context);
 
 ConnectionFlowContext* createConnectionFlowContext(
-	_In_ const FWPS_INCOMING_VALUES* inFixedValues,
-	_In_ const FWPS_INCOMING_METADATA_VALUES* inMetaValues);
+	IN const FWPS_INCOMING_VALUES* inFixedValues,
+	IN const FWPS_INCOMING_METADATA_VALUES* inMetaValues);

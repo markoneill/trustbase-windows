@@ -41,7 +41,12 @@ NTSTATUS ThInitQueues(IN WDFDEVICE device) {
 		return status;
 	}
 
-	// init message queues
+	// initialize message queues
+	status = ThInitMessageQueue(&THOutputQueue);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not init the output message queue\r\n");
+		return status;
+	}
 
 	return status;
 }
@@ -84,30 +89,57 @@ NTSTATUS ThInitWorkItems(IN WDFDEVICE device) {
 // Called when the framework receives IRP_MJ_READ requests
 VOID ThIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	UNREFERENCED_PARAMETER(Queue);
-	UNREFERENCED_PARAMETER(Request);
 	UNREFERENCED_PARAMETER(Length);
 	PAGED_CODE();
 	size_t bufsize;
 	NTSTATUS status = STATUS_SUCCESS;
+	THMessage* message;
 	void* buffer;
 	size_t len;
 
-	len = 16;
-
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "File Read Called\r\n");
 
+	// get the message size
+	status = ThSizeNextMessage(&THOutputQueue, &len);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not get the next message size\r\n");
+		WdfRequestCompleteWithInformation(Request, STATUS_UNSUCCESSFUL, 0);
+		return;
+	}
+
+	// get the buffer
 	status = WdfRequestRetrieveOutputBuffer(Request, len, &buffer, &bufsize);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not retrieve output buffer on read request\r\n");
+		WdfRequestCompleteWithInformation(Request, STATUS_CANCELLED, 0);
+		// the buffer wasn't big enough probably
+		return;
 	}
 
+	// get the message if we got to here
+	status = ThPopMessage(&THOutputQueue, &message);
+	if (!NT_SUCCESS(status) || message == NULL) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not retrieve message on read request\r\n");
+		WdfRequestCompleteWithInformation(Request, STATUS_UNSUCCESSFUL, 0);
+		return;
+	}
+
+	// copy our response into the buffer
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "a buff: %x\r\n", *((PUINT64)buffer));
 
-	RtlCopyMemory(buffer, "Run The Jewels\n", len);
+	status = ThCopyMessage(buffer, bufsize, message);
+	if (!NT_SUCCESS(status)) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not copy message to output buffer\r\n");
+		WdfRequestCompleteWithInformation(Request, STATUS_UNSUCCESSFUL, 0);
+		return;
+	}
+
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "b buff: %x\r\n", *((PUINT64)buffer));
 
-	// Decrement the number to be read, and stop if we have responded to all current to be reads
-	WdfIoQueueStop(THReadQueue, NULL, NULL);
+	// stop if we have responded to all current to be reads
+	if (IsListEmpty(&((&THOutputQueue)->ListHead))) {
+		WdfIoQueueStop(THReadQueue, NULL, NULL);
+	}
 	WdfRequestCompleteWithInformation(Request, status, len);
 }
 
@@ -127,7 +159,5 @@ VOID THReadyRead(IN WDFWORKITEM WorkItem) {
 	UNREFERENCED_PARAMETER(WorkItem);
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "WorkItem Called\r\n");
 	WdfIoQueueStart(THReadQueue);
-	// Increment the number we have ready to be read
-
 	// We reuse this workitem, so we don't have to delete it
 }

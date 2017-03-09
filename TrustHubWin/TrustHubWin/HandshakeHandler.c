@@ -1,29 +1,31 @@
 #include <fwpsk.h>
 #include <Ntstrsafe.h>
 #include "ConnectionContext.h"
+#include "TrustHubGuid.h"
 #include "HandshakeHandler.h"
 
 #define UINT24 UINT32
 
 #define DEBUGHEXLEN 8
 void NTAPI printData(FWPS_STREAM_DATA *dataStream);
-BOOL stateCanTransition(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context);
-void ffBytes(_In_ ConnectionFlowContext *context, _In_ int amount);
-byte nextByte(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context);
-byte peekByte(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context);
-UINT16 nextUint16(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context);
-UINT24 nextUint24(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context);
-UINT32 nextUint32(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context);
+BOOL stateCanTransition(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context);
+void ffBytes(IN ConnectionFlowContext *context, IN int amount);
+byte nextByte(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context);
+byte peekByte(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context);
+UINT16 nextUint16(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context);
+UINT24 nextUint24(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context);
+UINT32 nextUint32(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context);
+NTSTATUS nextNetBuffer(IN NET_BUFFER* currentBuffer, IN NET_BUFFER_LIST* currentList, OUT NET_BUFFER** newBuffer, OUT NET_BUFFER_LIST** newList, OUT ULONG* newLen);
 
-REQUESTED_ACTION NTAPI handleStateUnknown(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context);
-REQUESTED_ACTION NTAPI handleStateRecordLayer(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context);
-REQUESTED_ACTION NTAPI handleStateHandshakeLayer(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context);
+REQUESTED_ACTION NTAPI handleStateUnknown(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context);
+REQUESTED_ACTION NTAPI handleStateRecordLayer(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context);
+REQUESTED_ACTION NTAPI handleStateHandshakeLayer(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context);
 
 // calls the appropriate function to parse the data, and updates the state
-REQUESTED_ACTION NTAPI updateState(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context ) {
+REQUESTED_ACTION NTAPI updateState(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context ) {
 	REQUESTED_ACTION ra;
 	ra = RA_ERROR;
-	//printData(dataStream);
+	printData(dataStream);
 
 	while (stateCanTransition(dataStream, context)) {
 		switch (context->currentState) {
@@ -40,7 +42,6 @@ REQUESTED_ACTION NTAPI updateState(_In_ FWPS_STREAM_DATA *dataStream, _In_ Conne
 			ra = handleStateHandshakeLayer(dataStream, context);
 			break;
 		case PS_CERTIFICATE:
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Found the Certificate\r\n");
 			return ra;
 		default:
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Bad connection state\r\n");
@@ -50,7 +51,85 @@ REQUESTED_ACTION NTAPI updateState(_In_ FWPS_STREAM_DATA *dataStream, _In_ Conne
 	return ra;
 }
 
-REQUESTED_ACTION NTAPI handleStateUnknown(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context) {
+NTSTATUS handleCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context, OUT UINT8** data) {
+	NTSTATUS status = STATUS_SUCCESS;
+	NET_BUFFER_LIST* currentList;
+	NET_BUFFER* currentBuffer;
+	ULONG datalen = 0;
+	ULONG traversed = 0;
+	ULONG copied = 0;
+	ULONG offset = 0;
+	UINT8* buf;
+
+	*data = NULL;
+
+	// seek to the certificate
+	currentList = dataStream->netBufferListChain;
+
+	currentBuffer = NET_BUFFER_LIST_FIRST_NB(currentList);
+	if (currentBuffer == NULL) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Null buffer\r\n");
+		datalen = 0;
+	} else {
+		datalen = currentBuffer->DataLength;
+	}
+
+	// seek to byte
+	// while we still need to jump over buffers, and we have bytes to jump over
+	while (context->bytesRead >= traversed + datalen && datalen > 0) {
+		traversed += datalen;
+		status = nextNetBuffer(currentBuffer, currentList, &currentBuffer, &currentList, &datalen);
+		if (!NT_SUCCESS(status)) {
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error, did not get Certificate, could not get the next net buffer\r\n");
+			return STATUS_NOT_FOUND;
+		}
+	}
+	if (datalen == 0) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error, did not get Certificate\r\n");
+		return STATUS_NOT_FOUND;
+	}
+	// we now have the correct buffer, but we may have to keep traversing multiple buffers to get all the data
+	// allocate the area for the certificate
+	(*data) = (UINT8*)ExAllocatePoolWithTag(NonPagedPool, context->bytesToRead, TH_POOL_TAG);
+	
+	// copy over the data
+	offset = context->bytesRead - traversed;
+	while (copied < context->bytesToRead) {
+		if (datalen >= context->bytesToRead - copied) {
+			// clean copy
+			buf = (UINT8*)NdisGetDataBuffer(currentBuffer, offset + (context->bytesToRead - copied), NULL, 1, 0);
+			if (buf == NULL) {
+				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error, did not get Certificate, could not get the data buffer while copying\r\n");
+				*data = NULL;
+				return STATUS_NOT_FOUND;
+			}
+			RtlCopyMemory(&((*data)[copied]), &(buf[offset]), context->bytesToRead - copied);
+			break;
+		} else {
+			// copy what we can
+			buf = (UINT8*)NdisGetDataBuffer(currentBuffer, datalen, NULL, 1, 0);
+			if (buf == NULL) {
+				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error, did not get Certificate, could not get the data buffer while copying a portion\r\n");
+				*data = NULL;
+				return STATUS_NOT_FOUND;
+			}
+			RtlCopyMemory(&((*data)[copied]), &(buf[offset]), datalen - offset);
+			copied += datalen - offset;
+			offset = 0;
+		}
+
+		status = nextNetBuffer(currentBuffer, currentList, &currentBuffer, &currentList, &datalen);
+		if (!NT_SUCCESS(status)) {
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error, did not get Certificate, could not get the next net buffer while copying\r\n");
+			*data = NULL;
+			return STATUS_NOT_FOUND;
+		}
+	}
+
+	return status;
+}
+
+REQUESTED_ACTION NTAPI handleStateUnknown(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	byte nbyte = peekByte(dataStream, context);
 	if (nbyte == TH_TLS_HANDSHAKE_IDENTIFIER) {
 		context->currentState = PS_RECORD_LAYER;
@@ -63,7 +142,7 @@ REQUESTED_ACTION NTAPI handleStateUnknown(_In_ FWPS_STREAM_DATA *dataStream, _In
 	return RA_NOT_INTERESTED;
 }
 
-REQUESTED_ACTION NTAPI handleStateRecordLayer(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context) {
+REQUESTED_ACTION NTAPI handleStateRecordLayer(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	byte nbyte;
 	UINT16 record_length;
 
@@ -91,7 +170,7 @@ REQUESTED_ACTION NTAPI handleStateRecordLayer(_In_ FWPS_STREAM_DATA *dataStream,
 	return RA_NEED_MORE;
 }
 
-REQUESTED_ACTION NTAPI handleStateHandshakeLayer(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context) {
+REQUESTED_ACTION NTAPI handleStateHandshakeLayer(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	byte nbyte;
 	UINT24 handshake_message_length;
 	while (context->bytesToRead > 0) { // read all the records we can
@@ -118,8 +197,10 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(_In_ FWPS_STREAM_DATA *dataStre
 			}
 		} else if (nbyte == TYPE_CERTIFICATE) {
 			// get the certificates size
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Found the Certificate\r\n");
 			handshake_message_length = nextUint24(dataStream, context);
-			context->bytesToRead = handshake_message_length;
+			context->bytesRead -= 3;
+			context->bytesToRead = handshake_message_length + 3;
 			context->currentState = PS_CERTIFICATE;
 			return RA_WAIT;
 		} else if (nbyte == TYPE_CERTIFICATE_VERIFY || nbyte == TYPE_CLIENT_KEY_EXCHANGE) {
@@ -138,12 +219,12 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(_In_ FWPS_STREAM_DATA *dataStre
 	return RA_ERROR;
 }
 
-BOOL stateCanTransition(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context) {
+BOOL stateCanTransition(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Can transition? State %x, b2r %x, br %x, dl %x\r\n", context->currentState, context->bytesToRead, context->bytesRead, dataStream->dataLength);
 	return ((context->bytesToRead > 0) && (context->bytesRead < dataStream->dataLength) && (context->bytesToRead <= dataStream->dataLength - context->bytesRead));
 }
 
-byte peekByte(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context) {
+byte peekByte(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	byte retbyte = nextByte(dataStream, context);
 	context->bytesRead -= 1;
 	context->bytesToRead += 1;
@@ -151,11 +232,11 @@ byte peekByte(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *con
 }
 
 
-void ffBytes(_In_ ConnectionFlowContext *context, _In_ int amount) {
+void ffBytes(IN ConnectionFlowContext *context, IN int amount) {
 	context->bytesRead += amount;
 }
 
-UINT16 nextUint16(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context) {
+UINT16 nextUint16(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	// TODO: change this to something not intel specific
 	UINT16 ret = 0;
 	UINT16 piece;
@@ -165,7 +246,7 @@ UINT16 nextUint16(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext 
 	return ret;
 }
 
-UINT24 nextUint24(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context) {
+UINT24 nextUint24(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	// TODO: change this to something not intel specific
 	UINT24 ret = 0;
 	UINT24 piece;
@@ -177,7 +258,7 @@ UINT24 nextUint24(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext 
 	return ret;
 }
 
-UINT32 nextUint32(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context) {
+UINT32 nextUint32(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	// TODO: change this to something not intel specific
 	UINT32 ret = 0;
 	UINT32 piece;
@@ -191,10 +272,10 @@ UINT32 nextUint32(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext 
 	return ret;
 }
 
-byte nextByte(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *context) {
-	NET_BUFFER_LIST *currentList;
-	NET_BUFFER *currentBuffer;
-	byte *data;
+byte nextByte(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
+	NET_BUFFER_LIST* currentList;
+	NET_BUFFER* currentBuffer;
+	byte* data;
 	byte retbyte;
 	ULONG datalen = 0;
 	ULONG traversed = 0;
@@ -213,35 +294,12 @@ byte nextByte(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *con
 	// while we still need to jump over buffers, and we have bytes to jump over
 	while (context->bytesRead >= traversed + datalen && datalen > 0) {
 		traversed += datalen;
-		currentBuffer = NET_BUFFER_NEXT_NB(currentBuffer);
-		if (currentBuffer == NULL) {
-			// first try to get the next list
-			currentList = NET_BUFFER_LIST_NEXT_NBL(currentList);
-			if (currentList == NULL) {
-				// reached end, no other lists
-				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Hit a Null list in nextByte %x\r\n", traversed);
-				datalen = 0;
-			} else {
-				// found a new list
-				// get next buffer
-				currentBuffer = NET_BUFFER_LIST_FIRST_NB(currentList);
-				if (currentBuffer == NULL) {
-					// reached end anyways
-					DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Hit a Null buffer in nextByte %x\r\n", traversed);
-					datalen = 0;
-				} else {
-					// this buffer is good
-					datalen = datalen = currentBuffer->DataLength;
-				}
-			}
-		} else {
-			datalen = currentBuffer->DataLength;
-		}
+		nextNetBuffer(currentBuffer, currentList, &currentBuffer, &currentList, &datalen);
 	}
 
 	// read byte
 	if (datalen > 0) {
-		data = NdisGetDataBuffer(currentBuffer, 1, NULL, 1, 0);
+		data = NdisGetDataBuffer(currentBuffer, 1 + (context->bytesRead - traversed), NULL, 1, 0);
 		retbyte = data[context->bytesRead - traversed];
 		context->bytesRead += 1;
 		context->bytesToRead -= 1;
@@ -250,6 +308,40 @@ byte nextByte(_In_ FWPS_STREAM_DATA *dataStream, _In_ ConnectionFlowContext *con
 		retbyte = 0x0;
 	}
 	return retbyte;
+}
+
+NTSTATUS nextNetBuffer(IN NET_BUFFER* currentBuffer, IN NET_BUFFER_LIST* currentList, OUT NET_BUFFER** newBuffer, OUT NET_BUFFER_LIST** newList, OUT ULONG* newLen) {
+	NTSTATUS status = STATUS_SUCCESS;
+
+	(*newBuffer) = NET_BUFFER_NEXT_NB(currentBuffer);
+	if ((*newBuffer) == NULL) {
+		// first try to get the next list
+		*newList = NET_BUFFER_LIST_NEXT_NBL(currentList);
+		if ((*newList) == NULL) {
+			// reached end, no other lists
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Hit a Null list while getting next buffer\r\n");
+			*newLen = 0;
+			*newBuffer = NULL;
+			return STATUS_NOT_FOUND;
+		} else {
+			// found a new list
+			// get next buffer
+			*newBuffer = NET_BUFFER_LIST_FIRST_NB(*newList);
+			if ((*newBuffer) == NULL) {
+				// reached end anyways
+				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Hit a Null buffer while getting next buffer\r\n");
+				*newLen = 0;
+				return STATUS_NOT_FOUND;
+			} else {
+				// this buffer is good
+				*newLen = (*newBuffer)->DataLength;
+			}
+		}
+	} else {
+		*newLen = (*newBuffer)->DataLength;
+	}
+
+	return status;
 }
 
 void NTAPI printData(FWPS_STREAM_DATA *dataStream) {

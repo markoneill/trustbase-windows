@@ -21,15 +21,15 @@ Environment:
 #endif
 
 // Initializes required WDFDriver and WDFDevice objects
-NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STRING * registry_path);
-NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device);
-NTSTATUS THRegisterStreamCallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE engineHandle);
-NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE engineHandle);
+NTSTATUS THInitDriverAndDevice(IN DRIVER_OBJECT * driver_obj, IN UNICODE_STRING * registry_path);
+NTSTATUS THRegisterCallouts(IN DEVICE_OBJECT * wdm_device);
+NTSTATUS THRegisterStreamCallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engineHandle);
+NTSTATUS THRegisterALECallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engineHandle);
 NTSTATUS unregister_trusthub_callouts();
-void thdriver_evt_unload(_In_ WDFDRIVER Driver);
+void thdriver_evt_unload(IN WDFDRIVER Driver);
 
 // Initializes required WDFDriver and WDFDevice objects
-NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STRING * registry_path) {
+NTSTATUS THInitDriverAndDevice(IN DRIVER_OBJECT * driver_obj, IN UNICODE_STRING * registry_path) {
 	NTSTATUS status = STATUS_SUCCESS;
 
 	WDF_DRIVER_CONFIG config = { 0 };
@@ -141,7 +141,7 @@ NTSTATUS THInitDriverAndDevice(_In_ DRIVER_OBJECT * driver_obj, _In_ UNICODE_STR
 	return status;
 }
 
-NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
+NTSTATUS THRegisterCallouts(IN DEVICE_OBJECT * wdm_device) {
 	NTSTATUS status = STATUS_SUCCESS;
 	FWPM_SESSION session = { 0 };
 	HANDLE engineHandle;
@@ -203,7 +203,7 @@ NTSTATUS THRegisterCallouts(_In_ DEVICE_OBJECT * wdm_device) {
 	return status;
 }
 
-NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE engineHandle) {
+NTSTATUS THRegisterALECallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engineHandle) {
 	NTSTATUS status = STATUS_SUCCESS;
 	FWPS_CALLOUT sCallout = { 0 };
 	FWPM_CALLOUT mCallout = { 0 };
@@ -277,7 +277,7 @@ NTSTATUS THRegisterALECallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE engin
 	return status;
 }
 
-NTSTATUS THRegisterStreamCallout(_In_ DEVICE_OBJECT * wdm_device, _In_ HANDLE engineHandle) {
+NTSTATUS THRegisterStreamCallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engineHandle) {
 	NTSTATUS status = STATUS_SUCCESS;
 	FWPS_CALLOUT sCallout = { 0 };
 	FWPM_CALLOUT mCallout = { 0 };
@@ -374,7 +374,7 @@ Return Value:
 STATUS_SUCCESS if successful,
 STATUS_UNSUCCESSFUL otherwise.
 --*/
-NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT  DriverObject, _In_ PUNICODE_STRING RegistryPath) {
+NTSTATUS DriverEntry(IN PDRIVER_OBJECT  DriverObject, IN PUNICODE_STRING RegistryPath) {
 
     NTSTATUS status;
 
@@ -396,7 +396,7 @@ NTSTATUS DriverEntry(_In_ PDRIVER_OBJECT  DriverObject, _In_ PUNICODE_STRING Reg
 }
 
 // Clean up the Driver
-void DriverUnload(_In_ PDRIVER_OBJECT driver_obj) {
+void DriverUnload(IN PDRIVER_OBJECT driver_obj) {
 	NTSTATUS status = STATUS_SUCCESS;
 	UNICODE_STRING symlink = { 0 };
 	UNREFERENCED_PARAMETER(driver_obj);
@@ -413,7 +413,7 @@ void DriverUnload(_In_ PDRIVER_OBJECT driver_obj) {
 	return;
 }
 
-void thdriver_evt_unload(_In_ WDFDRIVER Driver) {
+void thdriver_evt_unload(IN WDFDRIVER Driver) {
 	UNREFERENCED_PARAMETER(Driver);
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- TrustHubWin unload event ---\r\n");
 	// Delete the framework device object

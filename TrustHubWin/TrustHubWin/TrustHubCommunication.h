@@ -12,7 +12,7 @@
 #pragma warning(pop)			// Re-enable "Nameless struct/union" compiler warning
 #include <fwpvi.h>
 #include <fwpmk.h>				// Functions used for managing IKE and AuthIP main mode (MM) policy and security associations
-#include "TrustHubMessageQueue.h"
+#include "TrustHubMessage.h"
 
 
 // global IO queues
@@ -23,7 +23,7 @@ WDFQUEUE THWriteQueue;
 WDFWORKITEM  THReadyReadItem;
 
 //global message queues
-THMessageQueue outwardQueue;
+THMessageQueue THOutputQueue;
 
 NTSTATUS ThInitQueues(IN WDFDEVICE device);
 NTSTATUS ThInitWorkItems(IN WDFDEVICE device);
