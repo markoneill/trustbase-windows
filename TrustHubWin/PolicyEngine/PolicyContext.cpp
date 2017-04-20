@@ -46,6 +46,7 @@ bool PolicyContext::loadConfig(const char* path) {
 			std::string handler;
 			std::string description = "";
 			std::string version = "";
+			std::string type = "";
 			if (!plugin_group[i].lookupValue("name", name)) {
 				thlog() << "Could not parse name of plugin " << i;
 				continue;
@@ -60,11 +61,14 @@ bool PolicyContext::loadConfig(const char* path) {
 			}
 			plugin_group[i].lookupValue("description", description);
 			plugin_group[i].lookupValue("version", version);
+			plugin_group[i].lookupValue("type", type);
 
-			thlog() << name << ' ' << ppath << ' ' << handler << ' ' << description << ' ' << version;
-
+			Plugin::Type ttype = Plugin::SYNC;
+			if (type.at(0) == 'a' || type.at(0) == 'A') {
+				ttype = Plugin::ASYNC;
+			}
 			// Create and store plugin object
-			plugins[i] = Plugin(name, ppath, handler, description, version);
+			plugins[i] = Plugin(name, ppath, handler, ttype, description, version);
 		}
 
 		// Parse aggregation
@@ -81,7 +85,7 @@ bool PolicyContext::loadConfig(const char* path) {
 		for (int i = 0; i < count; i++) {
 			const char* plugin_name = necessary_group[i];
 			// Find the plugin and set it necessary
-			getPlugin("plugin_name")->setValue(Plugin::NEEDED);
+			getPlugin(plugin_name)->setValue(Plugin::NEEDED);
 		}
 
 		const libconfig::Setting& congress_group = ag_group["sufficient"]["congress_group"];
@@ -90,7 +94,7 @@ bool PolicyContext::loadConfig(const char* path) {
 		for (int i = 0; i < count; i++) {
 			const char* plugin_name = congress_group[i];
 			// Find the plugin and set it to congress
-			getPlugin("plugin_name")->setValue(Plugin::CONGRESS);
+			getPlugin(plugin_name)->setValue(Plugin::CONGRESS);
 		}
 
 

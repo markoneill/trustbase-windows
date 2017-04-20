@@ -8,10 +8,11 @@
 class Plugin {
 public:
 	enum Value {NEEDED, CONGRESS, IGNORED};
+	enum Type {SYNC, ASYNC};
 
 	Plugin();
 	Plugin(const Plugin& other);
-	Plugin(std::string name, std::string path, std::string handler, std::string description="", std::string version="");
+	Plugin(std::string name, std::string path, std::string handler, Plugin::Type type=Plugin::SYNC, std::string description="", std::string version="");
 	~Plugin();
 
 	bool init();
@@ -26,7 +27,7 @@ private:
 	std::string handler;
 	std::string description;
 	std::string version;
-
+	Plugin::Type type;
 	Plugin::Value value;
 
 	query_func_t query;

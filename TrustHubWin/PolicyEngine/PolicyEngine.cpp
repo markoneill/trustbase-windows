@@ -7,6 +7,8 @@
 #include "communications.h"
 #include "PolicyContext.h"
 
+#define CONFIG_LOCATION	"C:/Users/ilab/Source/Repos/TrustKern/TrustHubWin/PolicyEngine/trusthub.cfg"
+
 int main()
 {
 	// Start Logging
@@ -17,7 +19,7 @@ int main()
 	// load configuration
 	PolicyContext context;
 
-	if (!context.loadConfig("C:/Users/ilab/temp/trusthub-linux/policy-engine/trusthub.cfg")) {
+	if (!context.loadConfig(CONFIG_LOCATION)) {
 		thlog() << "Failed to load configuration file";
 		return -1;
 	}
@@ -33,7 +35,7 @@ int main()
 	// Print start message
 	context.printWelcome();
 
-	return;
+	return 0;
 	// init things
 	if (!Communications::init_communication()) {
 		thlog() << "Initialization errors, exiting...";

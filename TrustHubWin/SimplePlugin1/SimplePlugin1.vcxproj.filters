@@ -24,43 +24,13 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="communications.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="THLogger.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PolicyContext.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Plugin.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="trusthub_plugin.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PolicyEngine.cpp">
+    <ClCompile Include="SimplePlugin1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="communications.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="THLogger.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="PolicyContext.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Plugin.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="trusthub.cfg" />
   </ItemGroup>
 </Project>

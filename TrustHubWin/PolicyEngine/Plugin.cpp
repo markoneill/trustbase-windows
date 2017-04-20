@@ -10,15 +10,17 @@ Plugin::Plugin(const Plugin & other) {
 	this->handler = other.handler;
 	this->description = other.description;
 	this->version = other.version;
-	this->value = Plugin::IGNORED;
+	this->type = other.type;
+	this->value = other.value;
 }
 
-Plugin::Plugin(std::string name, std::string path, std::string handler, std::string description, std::string version) {
+Plugin::Plugin(std::string name, std::string path, std::string handler, Plugin::Type type, std::string description, std::string version) {
 	this->name = name;
 	this->path = path;
 	this->handler = handler;
 	this->description = description;
 	this->version = version;
+	this->type = type;
 	this->value = Plugin::IGNORED;
 }
 
@@ -40,7 +42,7 @@ bool Plugin::init() {
 	// resolve function address
 	query = (query_func_t)GetProcAddress(hDLL, "query");
 	if (!query) {
-		thlog() << "Could not locate 'query' function for plugin " << name;
+		thlog() << "Could not locate 'query' function for plugin : " << name;
 		return false;
 	}
 
@@ -69,6 +71,6 @@ void Plugin::printInfo() {
 	default:
 		thlog() << "\t\t Aggregation Group: None";
 	}
-	thlog() << "\t\t Query Function: " << std::hex << query;
+	thlog() << "\t\t Query Function: 0x" << std::hex << query;
 	thlog() << "\t },";
 }
