@@ -13,6 +13,7 @@
 #include <fwpvi.h>
 #include <fwpmk.h>				// Functions used for managing IKE and AuthIP main mode (MM) policy and security associations
 #include "TrustHubMessage.h"
+#include "TrustHubGuid.h"
 
 
 // global IO queues
@@ -24,6 +25,7 @@ WDFWORKITEM  THReadyReadItem;
 
 //global message queues
 THMessageQueue THOutputQueue;
+THResponseTable THResponses;
 
 NTSTATUS ThInitQueues(IN WDFDEVICE device);
 NTSTATUS ThInitWorkItems(IN WDFDEVICE device);

@@ -3,6 +3,7 @@
 #include <fwpsk.h>
 #include <Ntstrsafe.h>
 #include "HandshakeTypes.h"
+#include "TrustHubMessage.h"
 
 #define NDIS61 1 // Need to declare this to compile WFP stuff on Win7, I'm not sure why
 #pragma warning(push)
@@ -17,6 +18,7 @@ typedef struct ConnectionFlowContext {
 	unsigned bytesRead;
 	unsigned bytesToRead;
 	UINT16 recordLength;
+	THResponseType answer;
 } ConnectionFlowContext;
 
 VOID cleanupConnectionFlowContext(IN ConnectionFlowContext* context);

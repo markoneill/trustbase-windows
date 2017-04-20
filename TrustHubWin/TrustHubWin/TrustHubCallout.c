@@ -8,7 +8,7 @@
 
 // static helper functions
 static void NTAPI debugReadStreamFlags(FWPS_STREAM_DATA *dataStream, FWPS_CLASSIFY_OUT *classifyOut);
-static NTSTATUS sendCertificate(FWPS_STREAM_DATA *dataStream, ConnectionFlowContext* context);
+static NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext* context, IN UINT64 flowHandle, IN UINT16 layerId);
 
 void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, const FWPS_INCOMING_METADATA_VALUES * inMetaValues, void * layerData, const void * classifyContext, const FWPS_FILTER * filter, UINT64 flowContext, FWPS_CLASSIFY_OUT * classifyOut) {
 	FWPS_STREAM_CALLOUT_IO_PACKET *ioPacket;
@@ -33,7 +33,7 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 	// We shouldnt have to check if there is a context or not, because we have the FWP_CALLOUT_FLAG_CONDITIONAL_ON_FLOW;
 	context = (ConnectionFlowContext*)flowContext;
 	if (context->processPath.size > 0) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Connection with %S\r\n", context->processPath.data);
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Connection with %S (%x)\r\n", context->processPath.data, inMetaValues->flowHandle);
 	} else {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Connection with flow %x\r\n", inMetaValues->flowHandle);
 	}
@@ -57,17 +57,30 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 		return;
 	}
 
-	// read the data flags
-	//debugReadStreamFlags(dataStream, classifyOut);
+	// See if we should already have the answer
+	if (context->currentState == PS_DONE) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got called for PS_DONE\r\n", inMetaValues->processId);
+		// find the response in the table
+		if (context->answer == WAITING_ON_RESPONSE) {
+			if (!NT_SUCCESS(ThPopResponse(&THResponses, inMetaValues->flowHandle, &(context->answer)))) {
+				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not pop the response");
+				context->answer = RESPONSE_ALLOW;
+			}
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Read the answer as %x", context->answer);
+		}
+		if (context->answer == RESPONSE_BLOCK) {
+			requestedAction = RA_BLOCK; // stop this connection
+		} else {
+			requestedAction = RA_NOT_INTERESTED; // allow this connection from here on out
+		}
+	} else { // Process the incoming data
 
-	// Inspect the various data sources to determine
-	// the action to be taken on the data
+		// read the data flags
+		//debugReadStreamFlags(dataStream, classifyOut);
 
-	requestedAction = updateState(dataStream, context);
-
-	// see if we can grab certificate
-	if (requestedAction == RA_WAIT) {
-		sendCertificate(dataStream, context);
+		// Inspect the various data sources to determine
+		// the action to be taken on the data
+		requestedAction = updateState(dataStream, context);
 	}
 
 	// if we are done with this data, and just care about what is coming
@@ -103,28 +116,36 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 	}
 
 	// if we are done with this stream all together
-	if (requestedAction == RA_NOT_INTERESTED || requestedAction == RA_ERROR || requestedAction == RA_WAIT) {
+	if (requestedAction == RA_NOT_INTERESTED || requestedAction == RA_ERROR) {
 		// Let the filter engine know we are good
 		ioPacket->streamAction = FWPS_STREAM_ACTION_ALLOW_CONNECTION;
 		ioPacket->countBytesRequired = 0;
 		ioPacket->countBytesEnforced = 0;
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Done with this stream\r\n");
 		// Set the action to permit
-		classifyOut->actionType = FWP_ACTION_PERMIT;
+		classifyOut->actionType = FWP_ACTION_NONE; // need this to permit
 
+		return;
+	}
+
+	// we are down with this stream and have decided to block it
+	if (requestedAction == RA_BLOCK) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Blocking this stream\r\n");
+		ioPacket->streamAction = FWPS_STREAM_ACTION_DROP_CONNECTION;
+		classifyOut->actionType = FWP_ACTION_NONE; // need this to drop
 		return;
 	}
 
 	// if we are at the certificate and need to send it before we decide to allow this stream
 	if (requestedAction == RA_WAIT) {
+		sendCertificate(dataStream, context, inMetaValues->flowHandle, inFixedValues->layerId);
+		context->currentState = PS_DONE; // set this so next time we get called, we finish
 		// Just keep giving us data as it comes in
 		ioPacket->streamAction = FWPS_STREAM_ACTION_DEFER;
-		// apperantly defer doesn't work any more, so we have to do stuff on our own
-		// https://social.msdn.microsoft.com/Forums/windowsdesktop/en-US/ab3bf8a9-834d-4ef7-b825-84ec290c21f1/filtering-tcp-outofband
 
 		ioPacket->countBytesRequired = 0;
 		ioPacket->countBytesEnforced = 0;
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Continuing: req %x, read %x\r\n", ioPacket->countBytesRequired, ioPacket->countBytesEnforced);
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Waiting on handle %x\r\n", inMetaValues->flowHandle);
 		// Set the action to continue to the next filter
 		classifyOut->actionType = FWP_ACTION_NONE;
 
@@ -209,9 +230,12 @@ void NTAPI trusthubALECalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "ALE FlowDelete Called\r\n");
 }
 
-NTSTATUS sendCertificate(FWPS_STREAM_DATA *dataStream, ConnectionFlowContext* context) {
+NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext* context, IN UINT64 flowHandle, IN UINT16 layerId) {
 	UINT8* data;
 	NTSTATUS status;
+
+	// create a new THResponse for this
+	ThAddResponse(&THResponses, flowHandle, layerId, dataStream->flags);
 
 	// get the certificate
 	status = handleCertificate(dataStream, context, &data);
@@ -220,7 +244,7 @@ NTSTATUS sendCertificate(FWPS_STREAM_DATA *dataStream, ConnectionFlowContext* co
 		return STATUS_NOT_FOUND;
 	}
 	// put it all in our outgoing message queue
-	status = ThAddMessage(&THOutputQueue, TH_CERTIFICATE, context->processId, context->processPath, context->bytesToRead, data);
+	status = ThAddMessage(&THOutputQueue, flowHandle, context->processId, context->processPath, context->bytesToRead, data);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Had a problem adding the certificate to the message queue\r\n");
 		return STATUS_NOT_FOUND;

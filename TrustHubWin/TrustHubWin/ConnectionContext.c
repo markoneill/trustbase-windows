@@ -52,6 +52,7 @@ ConnectionFlowContext* createConnectionFlowContext (
 		flowContext->bytesRead = 0;
 		flowContext->bytesToRead = 1;
 		flowContext->recordLength = 0;
+		flowContext->answer = WAITING_ON_RESPONSE;
 		// Process Path
 		if (inMetaValues->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_PATH) {
 			inMetaValues->processPath->data;
