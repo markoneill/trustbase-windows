@@ -2,12 +2,12 @@
 #include "communications.h"
 
 namespace Communications {
-	bool keep_running;
 	HANDLE file;
 	UINT8* buf;
 	DWORD bufsize;
 	UINT8* response_buf;
 	DWORD response_bufsize;
+	std::atomic<bool> keep_running (true);
 }
 
 bool Communications::send_response(Communications::THResponseType result, UINT64 flowHandle) {

@@ -4,6 +4,9 @@
 #include <LibLoaderAPI.h>
 #include "THLogger.h"
 #include "trusthub_plugin.h"
+#include "communications.h"
+#include "QueryQueue.h"
+#include "Query.h"
 
 class Plugin {
 public:
@@ -16,10 +19,13 @@ public:
 	~Plugin();
 
 	bool init();
+	bool plugin_loop(QueryQueue* qq);
 
 	std::string getName();
 	void setValue(Plugin::Value val);
 	void printInfo();
+
+	static int async_callback(int plugin_id, int query_id, int result);
 
 private:
 	std::string name;
@@ -31,6 +37,8 @@ private:
 	Plugin::Value value;
 
 	query_func_t query;
+	initialize_func_t initialize;
+	finalize_func_t finalize;
 
 };
 

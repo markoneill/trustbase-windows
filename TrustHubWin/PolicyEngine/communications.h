@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Windows.h>
+#include <atomic>
 #include "THLogger.h"
 
 #define TRUSTHUBKERN	L"\\\\.\\TrustHub"
@@ -16,4 +17,6 @@ namespace Communications {
 	bool init_communication();
 	bool listen_for_queries();
 	void cleanup();
+
+	extern std::atomic<bool> keep_running;
 }

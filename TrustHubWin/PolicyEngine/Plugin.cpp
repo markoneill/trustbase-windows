@@ -12,6 +12,10 @@ Plugin::Plugin(const Plugin & other) {
 	this->version = other.version;
 	this->type = other.type;
 	this->value = other.value;
+
+	this->query = other.query;
+	this->initialize = other.initialize;
+	this->finalize = other.finalize;
 }
 
 Plugin::Plugin(std::string name, std::string path, std::string handler, Plugin::Type type, std::string description, std::string version) {
@@ -22,6 +26,10 @@ Plugin::Plugin(std::string name, std::string path, std::string handler, Plugin::
 	this->version = version;
 	this->type = type;
 	this->value = Plugin::IGNORED;
+
+	this->query = NULL;
+	this->initialize = NULL;
+	this->finalize = NULL;
 }
 
 Plugin::~Plugin() {
@@ -45,6 +53,31 @@ bool Plugin::init() {
 		thlog() << "Could not locate 'query' function for plugin : " << name;
 		return false;
 	}
+
+	return true;
+}
+
+bool Plugin::plugin_loop(QueryQueue* qq) { //TODO
+	// DEBUG
+	thlog() << "Started Plugin loop for " << name;
+
+	// setup
+
+	// initialize the plugin
+	if (initialize != NULL) {
+
+	}
+
+	// loop waiting for queries
+	while (Communications::keep_running) {
+		// dequeue query
+		Sleep(200);
+		// run the query plugin function
+
+	}
+	
+	// clean up
+	thlog() << "Ending Plugin loop for " << name;
 
 	return true;
 }
@@ -73,4 +106,11 @@ void Plugin::printInfo() {
 	}
 	thlog() << "\t\t Query Function: 0x" << std::hex << query;
 	thlog() << "\t },";
+}
+
+int Plugin::async_callback(int plugin_id, int query_id, int result) { //TODO
+	// add our response
+
+
+	return 1; // let plugin know the callback was successful
 }

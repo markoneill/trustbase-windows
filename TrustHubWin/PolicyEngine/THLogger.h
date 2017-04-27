@@ -4,20 +4,14 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <mutex>
 
 
 class thlog {
 public:
-	thlog() {};
-	~thlog() {
-		// when we are destructed, we write out
-		// this can help prevent threading issues
-		log_file << tmp_ss.str() << std::endl;
+	thlog();
 
-		if (also_cout) {
-			std::cout << tmp_ss.str() << std::endl;
-		}
-	}
+	~thlog();
 
 	template<class T>
 	thlog& operator<<(const T &x) {
@@ -25,19 +19,9 @@ public:
 		return *this;
 	}
 
-	static bool setFile(const char* path, bool also_stdout=false) {
-		if (log_file.is_open()) {
-			log_file.close();
-		}
-		log_file.open(path, std::ofstream::app);
+	static bool setFile(const char* path, bool also_stdout = false);
 
-		also_cout = also_stdout;
-		return true;
-	}
-
-	static bool close() {
-		log_file.close();
-	}
+	static bool close();
 
 private:
 	// disallow any copying
@@ -48,6 +32,7 @@ private:
 
 	static std::ofstream log_file;
 	static bool also_cout;
+	static std::mutex mtx;
 };
 
 

@@ -4,14 +4,14 @@
 #include "stdafx.h"
 #include "trusthub_plugin.h"
 
-#ifdef __cplusplus  
+#ifdef __cplusplus
 extern "C" {  // only need to export C interface if  
 			  // used by C++ source code  
 #endif  
 	__declspec(dllexport) int __stdcall query(query_data_t*);
 	__declspec(dllexport) int __stdcall initialize(init_data_t*);
 	__declspec(dllexport) int __stdcall finalize();
-#ifdef __cplusplus  
+#ifdef __cplusplus
 }
 #endif  
 
