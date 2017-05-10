@@ -8,6 +8,9 @@ namespace Communications {
 	UINT8* response_buf;
 	DWORD response_bufsize;
 	std::atomic<bool> keep_running (true);
+
+	QueryQueue* qq;
+	int plugin_count;
 }
 
 bool Communications::send_response(Communications::THResponseType result, UINT64 flowHandle) {
@@ -55,11 +58,15 @@ bool Communications::recv_query() {
 	}
 
 	thlog() << "Querying plugins";
-	//send_response(RESPONSE_ALLOW, flowHandle);
+	// Poll the plugins
+	Query* query = new Query(flowHandle, hostname, port, raw_certificate, cert_len, client_hello, client_hello_len, server_hello, server_hello_len);
+	qq->enqueue_n_and_link(query);
 	return true;
 }
 
-bool Communications::init_communication() {
+bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) {
+	qq = in_qq;
+	plugin_count = in_plugin_count;
 	if (!buf) {
 		bufsize = INITIALBUFSIZE;
 		buf = new UINT8[bufsize];

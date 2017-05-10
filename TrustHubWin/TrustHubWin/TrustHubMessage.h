@@ -15,6 +15,7 @@
 #define THMESSAGEQUEUE_SIZE		256
 
 // we need this, because just doing FIELD_OFFSET is not reliable because padding
+
 #define THMESSAGE_OFFSET_LEN				(0)
 #define THMESSAGE_OFFSET_FLOWHANDLE			(THMESSAGE_OFFSET_LEN + sizeof(UINT64))
 #define THMESSAGE_OFFSET_PROCESSID			(THMESSAGE_OFFSET_FLOWHANDLE + sizeof(UINT64))
@@ -30,6 +31,10 @@ typedef struct THMessage {
 	UINT64 processID;
 	UINT32 processPathSize;
 	UINT8* processPath;
+	UINT32 clientHelloSize;
+	UINT8* clientHello;
+	UINT32 serverHelloSize;
+	UINT8* serverHello;
 	UINT32 dataSize;
 	UINT8* data;
 	
@@ -53,7 +58,9 @@ typedef struct THMessageQueue {
 
 typedef RTL_AVL_TABLE THResponseTable;
 
-NTSTATUS ThAddMessage(IN THMessageQueue* queue, IN UINT64 flowHandle, IN UINT64 processID, IN FWP_BYTE_BLOB processPath, IN UINT32 dataSize, IN UINT8* data);
+NTSTATUS ThMakeMessage(OUT THMessage** msg, IN UINT64 flowHandle, IN UINT64 processID, IN FWP_BYTE_BLOB processPath);
+
+NTSTATUS ThAddMessage(IN THMessageQueue* queue, IN THMessage* msg);
 
 NTSTATUS ThSizeNextMessage(IN THMessageQueue* queue, OUT size_t* len);
 
@@ -72,6 +79,8 @@ NTSTATUS ThInitMessageQueue(OUT THMessageQueue* queue);
 NTSTATUS ThCopyMessage(IN UINT8* buffer, size_t bufsize, THMessage* message, size_t* bytesWritten);
 
 NTSTATUS ThFinishedMessage(IN THMessage* message);
+
+VOID ThPrintMessage(IN THMessage* message);
 
 NTSTATUS ThInitResponseTable(IN THResponseTable* table);
 

@@ -4,6 +4,8 @@
 static NTSTATUS allocateConnectionFlowContext(OUT ConnectionFlowContext** flowContextOut);
 
 VOID cleanupConnectionFlowContext(IN ConnectionFlowContext* context) {
+	// message should be freed from ThIoRead
+	context->message = NULL;
 	if (context->processPath.data) {
 		ExFreePoolWithTag(context->processPath.data, TH_POOL_TAG);
 	}
@@ -70,6 +72,11 @@ ConnectionFlowContext* createConnectionFlowContext (
 		} else {
 			flowContext->processId = 0;
 		}
+		// Message
+		if (!NT_SUCCESS(ThMakeMessage(&(flowContext->message), inMetaValues->flowHandle, inMetaValues->processId, flowContext->processPath))) {
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Couldn't allocate a message in context for flow %x\r\n", inMetaValues->flowHandle);
+		}
+
 	} else {
 		flowContext = NULL;
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Couldn't allocate a context for flow %x\r\n", inMetaValues->flowHandle);

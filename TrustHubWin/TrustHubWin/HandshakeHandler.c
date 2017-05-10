@@ -21,10 +21,12 @@ REQUESTED_ACTION NTAPI handleStateUnknown(IN FWPS_STREAM_DATA *dataStream, IN Co
 REQUESTED_ACTION NTAPI handleStateRecordLayer(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context);
 REQUESTED_ACTION NTAPI handleStateHandshakeLayer(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context);
 
+NTSTATUS copyData(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context, IN unsigned int copy_len, OUT UINT8** data);
+
 // calls the appropriate function to parse the data, and updates the state
 REQUESTED_ACTION NTAPI updateState(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context ) {
 	REQUESTED_ACTION ra;
-	ra = RA_ERROR;
+	ra = RA_NEED_MORE;
 	printData(dataStream);
 
 	while (stateCanTransition(dataStream, context)) {
@@ -51,7 +53,7 @@ REQUESTED_ACTION NTAPI updateState(IN FWPS_STREAM_DATA *dataStream, IN Connectio
 	return ra;
 }
 
-NTSTATUS handleCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context, OUT UINT8** data) {
+NTSTATUS copyData(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context, IN unsigned int copy_len, OUT UINT8** data) {
 	NTSTATUS status = STATUS_SUCCESS;
 	NET_BUFFER_LIST* currentList;
 	NET_BUFFER* currentBuffer;
@@ -90,20 +92,20 @@ NTSTATUS handleCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowCon
 	}
 	// we now have the correct buffer, but we may have to keep traversing multiple buffers to get all the data
 	// allocate the area for the certificate
-	(*data) = (UINT8*)ExAllocatePoolWithTag(NonPagedPool, context->bytesToRead, TH_POOL_TAG);
+	(*data) = (UINT8*)ExAllocatePoolWithTag(NonPagedPool, copy_len, TH_POOL_TAG);
 	
 	// copy over the data
 	offset = context->bytesRead - traversed;
-	while (copied < context->bytesToRead) {
-		if (datalen >= context->bytesToRead - copied) {
+	while (copied < copy_len) {
+		if (datalen >= copy_len - copied) {
 			// clean copy
-			buf = (UINT8*)NdisGetDataBuffer(currentBuffer, offset + (context->bytesToRead - copied), NULL, 1, 0);
+			buf = (UINT8*)NdisGetDataBuffer(currentBuffer, offset + (copy_len - copied), NULL, 1, 0);
 			if (buf == NULL) {
 				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error, did not get Certificate, could not get the data buffer while copying\r\n");
 				*data = NULL;
 				return STATUS_NOT_FOUND;
 			}
-			RtlCopyMemory(&((*data)[copied]), &(buf[offset]), context->bytesToRead - copied);
+			RtlCopyMemory(&((*data)[copied]), &(buf[offset]), copy_len - copied);
 			break;
 		} else {
 			// copy what we can
@@ -125,6 +127,9 @@ NTSTATUS handleCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowCon
 			return STATUS_NOT_FOUND;
 		}
 	}
+
+	context->bytesRead += copy_len;
+	context->bytesToRead -= copy_len;
 
 	return status;
 }
@@ -173,6 +178,7 @@ REQUESTED_ACTION NTAPI handleStateRecordLayer(IN FWPS_STREAM_DATA *dataStream, I
 REQUESTED_ACTION NTAPI handleStateHandshakeLayer(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	byte nbyte;
 	UINT24 handshake_message_length;
+	unsigned int copy_len = 0;
 	while (context->bytesToRead > 0) { // read all the records we can
 		nbyte = nextByte(dataStream, context);
 		handshake_message_length = nextUint24(dataStream, context);
@@ -181,15 +187,27 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(IN FWPS_STREAM_DATA *dataStream
 		// handle different handshake message types
 		if (nbyte == TYPE_CLIENT_HELLO) {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Sent a client hello\r\n");
+			//ffBytes(context, handshake_message_length);
+			// save the client hello
+			context->bytesRead -= 3;
+			copy_len = handshake_message_length + 3;
+			context->message->clientHelloSize = handshake_message_length + 3;
+			copyData(dataStream, context, copy_len, &(context->message->clientHello));
+
+			// Expect a header next packet
 			context->bytesToRead = TH_TLS_RECORD_HEADER_SIZE;
 			context->currentState = PS_RECORD_LAYER;
-			ffBytes(context, handshake_message_length);
 			return RA_CONTINUE; // we don't care about the rest of this record
-			// TODO save the client hello
 		} else if (nbyte == TYPE_SERVER_HELLO) {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Received a Server Hello\r\n");
-			ffBytes(context, handshake_message_length); // fastforward past the server hello
+			//ffBytes(context, handshake_message_length); // fastforward past the server hello
+			// copy the server hello
+			context->bytesRead -= 3;
+			copy_len = handshake_message_length + 3;
+			context->message->serverHelloSize = handshake_message_length + 3;
+			copyData(dataStream, context, copy_len, &(context->message->serverHello));
 			// if we have read all of this record, lets hop out
+			// else current state remains at handshake
 			if (context->bytesRead <= (unsigned)(context->recordLength + TH_TLS_RECORD_HEADER_SIZE)) {
 				context->bytesToRead = TH_TLS_RECORD_HEADER_SIZE;
 				context->currentState = PS_RECORD_LAYER;
@@ -202,6 +220,10 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(IN FWPS_STREAM_DATA *dataStream
 			context->bytesRead -= 3;
 			context->bytesToRead = handshake_message_length + 3;
 			context->currentState = PS_CERTIFICATE;
+
+			context->message->dataSize = handshake_message_length + 3;
+			copy_len = handshake_message_length + 3;
+			copyData(dataStream, context, copy_len, &(context->message->data));
 			return RA_WAIT;
 		} else if (nbyte == TYPE_CERTIFICATE_VERIFY || nbyte == TYPE_CLIENT_KEY_EXCHANGE) {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got handshake message type verify or key exchange, and we should not have gotten here.\r\n");

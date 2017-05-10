@@ -397,27 +397,19 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT  DriverObject, IN PUNICODE_STRING Registr
 
 // Clean up the Driver
 void DriverUnload(IN PDRIVER_OBJECT driver_obj) {
-	NTSTATUS status = STATUS_SUCCESS;
-	UNICODE_STRING symlink = { 0 };
 	UNREFERENCED_PARAMETER(driver_obj);
 
-	status = unregister_trusthub_callouts();
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Failed to Unregister Callout\r\n");
-	}
-
-	RtlInitUnicodeString(&symlink, TRUSTHUB_SYMNAME);
-	IoDeleteSymbolicLink(&symlink);
-
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- TrustHubWin driver unloaded ---\r\n");
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- TrustHubWin driver unload ---\r\n");
 	return;
 }
 
 void thdriver_evt_unload(IN WDFDRIVER Driver) {
 	UNREFERENCED_PARAMETER(Driver);
+	UNICODE_STRING symlink = { 0 };
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- TrustHubWin unload event ---\r\n");
-	// Delete the framework device object
-	//TODO
-	//WdfObjectDelete(wdfDevice);
+	unregister_trusthub_callouts();
+	RtlInitUnicodeString(&symlink, TRUSTHUB_SYMNAME);
+	IoDeleteSymbolicLink(&symlink);
+
 	return;
 }

@@ -165,7 +165,7 @@ VOID ThIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 
 	response = (THResponseType)(((UINT8*)cursor)[0]);
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got response %x for handle %x", response, flowhandle);
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got response %x for handle %x\r\n", response, flowhandle);
 
 	ThHandleResponse(&THResponses, flowhandle, response);
 

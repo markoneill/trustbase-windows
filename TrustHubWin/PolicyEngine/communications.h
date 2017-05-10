@@ -3,6 +3,8 @@
 #include <Windows.h>
 #include <atomic>
 #include "THLogger.h"
+#include "Query.h"
+#include "QueryQueue.h"
 
 #define TRUSTHUBKERN	L"\\\\.\\TrustHub"
 #define INITIALBUFSIZE	16384
@@ -14,7 +16,7 @@ namespace Communications {
 
 	bool send_response(THResponseType result, UINT64 flowHandle);
 	bool recv_query();
-	bool init_communication();
+	bool init_communication(QueryQueue* qq, int plugin_count);
 	bool listen_for_queries();
 	void cleanup();
 

@@ -80,6 +80,8 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 
 		// Inspect the various data sources to determine
 		// the action to be taken on the data
+
+		// DEBUG
 		requestedAction = updateState(dataStream, context);
 	}
 
@@ -117,6 +119,10 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 
 	// if we are done with this stream all together
 	if (requestedAction == RA_NOT_INTERESTED || requestedAction == RA_ERROR) {
+		// Ok, don't process anything else on this stream
+		context->answer = RESPONSE_ALLOW;
+		context->currentState = PS_DONE;
+
 		// Let the filter engine know we are good
 		ioPacket->streamAction = FWPS_STREAM_ACTION_ALLOW_CONNECTION;
 		ioPacket->countBytesRequired = 0;
@@ -124,7 +130,6 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Done with this stream\r\n");
 		// Set the action to permit
 		classifyOut->actionType = FWP_ACTION_NONE; // need this to permit
-
 		return;
 	}
 
@@ -140,6 +145,7 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 	if (requestedAction == RA_WAIT) {
 		sendCertificate(dataStream, context, inMetaValues->flowHandle, inFixedValues->layerId);
 		context->currentState = PS_DONE; // set this so next time we get called, we finish
+		context->answer = WAITING_ON_RESPONSE;
 		// Just keep giving us data as it comes in
 		ioPacket->streamAction = FWPS_STREAM_ACTION_DEFER;
 
@@ -231,26 +237,25 @@ void NTAPI trusthubALECalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64
 }
 
 NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext* context, IN UINT64 flowHandle, IN UINT16 layerId) {
-	UINT8* data;
 	NTSTATUS status;
+	status = STATUS_SUCCESS;
+
+	ThPrintMessage(context->message);
 
 	// create a new THResponse for this
 	ThAddResponse(&THResponses, flowHandle, layerId, dataStream->flags);
 
-	// get the certificate
-	status = handleCertificate(dataStream, context, &data);
-	if (!NT_SUCCESS(status)) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Had a problem grabbing the certificate\r\n");
-		return STATUS_NOT_FOUND;
-	}
 	// put it all in our outgoing message queue
-	status = ThAddMessage(&THOutputQueue, flowHandle, context->processId, context->processPath, context->bytesToRead, data);
+	status = ThAddMessage(&THOutputQueue, context->message);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Had a problem adding the certificate to the message queue\r\n");
 		return STATUS_NOT_FOUND;
 	}
+	// Now that the message is in the queue, make sure we don't keep a reference in the context
+	context->message = NULL;
+
 	// Use our workitem to open our read queue
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added cert message to the message queue, enabling read queue\r\n");
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added query message to the message queue, enabling read queue\r\n");
 	WdfWorkItemEnqueue(THReadyReadItem);
 
 	return status;

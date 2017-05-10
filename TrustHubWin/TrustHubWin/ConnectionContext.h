@@ -18,6 +18,7 @@ typedef struct ConnectionFlowContext {
 	unsigned bytesRead;
 	unsigned bytesToRead;
 	UINT16 recordLength;
+	THMessage* message;
 	THResponseType answer;
 } ConnectionFlowContext;
 

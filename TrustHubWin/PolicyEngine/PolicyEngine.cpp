@@ -14,7 +14,7 @@
 #define CONFIG_LOCATION	"C:/Users/ilab/Source/Repos/TrustKern/TrustHubWin/PolicyEngine/trusthub.cfg"
 #define TIMEOUT_TIME	1000
 
-bool decider_loop();
+bool decider_loop(QueryQueue* qq);
 
 int main()
 {
@@ -56,19 +56,19 @@ int main()
 	}
 
 	// init things
-	/*if (!Communications::init_communication()) {
+	if (!Communications::init_communication(&qq, context.plugin_count)) {
 	thlog() << "Initialization errors, exiting...";
 	return -1;
-	}*/
+	}
 
 	// loop
-	//Communications::listen_for_queries();
+	Communications::listen_for_queries();
 
 	// cleanup threads
 	//TODO
 
 	// cleanup communication
-	//Communications::cleanup();
+	Communications::cleanup();
 
 	// wait on all threads to finish
 	for (int i = 0; i <= context.plugin_count; i++) {
