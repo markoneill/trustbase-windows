@@ -6,22 +6,27 @@
 
 class QueryQueue {
 public:
-	QueryQueue();
+	QueryQueue(int plugin_count);
 	~QueryQueue();
 
-	bool enqueue_n_and_link(int n, Query* query);
-	bool enqueue(Query* query);
-	Query* dequeue();
+	bool enqueue_and_link(Query* query);
+	bool enqueue(int plugin_id, Query* query);
+	Query* dequeue(int plugin_id);
 	bool link(Query* query);
 	Query* unlink(int id);
 
-private:	
+private:
+	struct PluginQueue {
+		// queue of queries for plugins
+		std::mutex queue_mux;
+		std::condition_variable queue_hasdata;
+		std::deque<Query*> queue;
+	};
+
+	PluginQueue* queues;
+	int plugin_count;
+
 	// linked list of queries for async response
 	std::mutex list_mux;
 	std::deque<Query*> list;
-	// queue of queries for plugins
-	std::mutex queue_mux;
-	std::condition_variable queue_hasdata;
-	std::deque<Query*> queue;
 };
-

@@ -13,9 +13,8 @@
 #define COMMUNICATIONS_DEBUG_QUERY	"C:/Users/ilab/Source/Repos/TrustKern/TrustHubWin/PolicyEngine/example_query.bin"
 
 namespace Communications {
-	typedef enum THResponseType { RESPONSE_ALLOW = 0, RESPONSE_BLOCK = 1, WAITING_ON_RESPONSE = 7 } THResponseType;
 
-	bool send_response(THResponseType result, UINT64 flowHandle);
+	bool send_response(int result, UINT64 flowHandle);
 	bool recv_query();
 	bool debug_recv_query();
 	Query* parse_query(UINT8* buffer, UINT64 buflen);

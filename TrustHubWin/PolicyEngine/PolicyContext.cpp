@@ -69,7 +69,7 @@ bool PolicyContext::loadConfig(const char* path) {
 				ttype = Plugin::ASYNC;
 			}
 			// Create and store plugin object
-			plugins[i] = Plugin(name, ppath, handler, ttype, description, version);
+			plugins[i] = Plugin(i, name, ppath, handler, ttype, description, version);
 		}
 
 		// Parse aggregation

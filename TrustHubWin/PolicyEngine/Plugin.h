@@ -15,7 +15,7 @@ public:
 
 	Plugin();
 	Plugin(const Plugin& other);
-	Plugin(std::string name, std::string path, std::string handler, Plugin::Type type=Plugin::SYNC, std::string description="", std::string version="");
+	Plugin(int id, std::string name, std::string path, std::string handler, Plugin::Type type=Plugin::SYNC, std::string description="", std::string version="");
 	~Plugin();
 
 	bool init();
@@ -23,6 +23,7 @@ public:
 
 	std::string getName();
 	void setValue(Plugin::Value val);
+	Plugin::Value getValue();
 	void printInfo();
 
 	static int async_callback(int plugin_id, int query_id, int result);
@@ -40,5 +41,6 @@ private:
 	initialize_func_t initialize;
 	finalize_func_t finalize;
 
+	int id;
 };
 

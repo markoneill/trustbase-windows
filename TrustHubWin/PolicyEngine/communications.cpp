@@ -13,7 +13,7 @@ namespace Communications {
 	int plugin_count;
 }
 
-bool Communications::send_response(Communications::THResponseType result, UINT64 flowHandle) {
+bool Communications::send_response(int result, UINT64 flowHandle) {
 	((UINT64*)response_buf)[0] = flowHandle;
 	((UINT8*)response_buf)[sizeof(UINT64)] = (UINT8)result;
 
@@ -72,7 +72,7 @@ bool Communications::recv_query() {
 
 	thlog() << "Querying plugins";
 	// Poll the plugins
-	qq->enqueue_n_and_link(plugin_count+1, query); // plugin count + 1 for decider thread
+	qq->enqueue_and_link(query);
 	return true;
 }
 
@@ -99,8 +99,10 @@ bool Communications::debug_recv_query() {
 
 	thlog() << "Querying plugins";
 
-	qq->enqueue_n_and_link(plugin_count + 1, query); // plugin count + 1 for decider thread
+	qq->enqueue_and_link(query); // plugin count + 1 for decider thread
 
+	// flip keep running
+	Communications::keep_running = false;
 	return true;
 }
 
@@ -196,15 +198,23 @@ Query* Communications::parse_query(UINT8* buffer, UINT64 buflen) {
 		memcpy(cert, cursor, certSize);
 		cursor += certSize;
 	} catch (const std::runtime_error& e) {
+		delete[] processPath;
+		delete[] cert;
+		delete[] serverHello;
+		delete[] clientHello;
 		thlog() << "Error while parsing Query " << e.what();
 		return nullptr;
 	} catch (const std::bad_alloc& e) {
+		delete[] processPath;
+		delete[] cert;
+		delete[] serverHello;
+		delete[] clientHello;
 		thlog() << "Error allocating while parsing Query " << e.what();
 		return nullptr;
 	}
 
 	// create a query
-	Query* query = new Query(flowHandle, processId, processPath, cert, certSize, clientHello, clientHelloSize, serverHello, serverHelloSize);
+	Query* query = new Query(flowHandle, processId, processPath, cert, certSize, clientHello, clientHelloSize, serverHello, serverHelloSize, plugin_count);
 	return query;
 }
 

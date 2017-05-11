@@ -16,9 +16,10 @@ Plugin::Plugin(const Plugin & other) {
 	this->query = other.query;
 	this->initialize = other.initialize;
 	this->finalize = other.finalize;
+	this->id = other.id;
 }
 
-Plugin::Plugin(std::string name, std::string path, std::string handler, Plugin::Type type, std::string description, std::string version) {
+Plugin::Plugin(int id, std::string name, std::string path, std::string handler, Plugin::Type type, std::string description, std::string version) {
 	this->name = name;
 	this->path = path;
 	this->handler = handler;
@@ -26,6 +27,7 @@ Plugin::Plugin(std::string name, std::string path, std::string handler, Plugin::
 	this->version = version;
 	this->type = type;
 	this->value = Plugin::IGNORED;
+	this->id = id;
 
 	this->query = NULL;
 	this->initialize = NULL;
@@ -47,11 +49,24 @@ bool Plugin::init() {
 		return false;
 	}
 
-	// resolve function address
+	// resolve function addresses
 	query = (query_func_t)GetProcAddress(hDLL, "query");
 	if (!query) {
 		thlog() << "Could not locate 'query' function for plugin : " << name;
 		return false;
+	}
+
+	initialize = (initialize_func_t)GetProcAddress(hDLL, "initialize");
+	finalize = (finalize_func_t)GetProcAddress(hDLL, "finalize");
+
+	if (initialize) {
+		// initialize the plugin
+		init_data_t idata;
+		idata.callback = Plugin::async_callback;
+		idata.plugin_id = this->id;
+		idata.plugin_path = this->path.c_str();
+
+		initialize(&idata);
 	}
 
 	return true;
@@ -71,8 +86,24 @@ bool Plugin::plugin_loop(QueryQueue* qq) { //TODO
 	// loop waiting for queries
 	while (Communications::keep_running) {
 		// dequeue query
-		Sleep(200);
+		Query* newquery = qq->dequeue(id);
+		if (value == Plugin::IGNORED) {
+			// respond ok
+			newquery->setResponse(id, PLUGIN_RESPONSE_VALID);
+		}
+		
+		thlog() << "Plugin " << id << " got called";
+
+		// TODO set default response for this plugin
+
 		// run the query plugin function
+		int response = this->query(&(newquery->data));
+		if (type == Plugin::SYNC) {
+			// set response
+			newquery->setResponse(id, response);
+			thlog() << "Plugin " << id << " synchronously returned " <<
+				((response == PLUGIN_RESPONSE_VALID) ? "valid" : ((response == PLUGIN_RESPONSE_INVALID) ? "invalid" : ((response == PLUGIN_RESPONSE_ABSTAIN)?"abstain":"error")));
+		}
 
 	}
 	
@@ -90,8 +121,13 @@ void Plugin::setValue(Plugin::Value val) {
 	this->value = val;
 }
 
+Plugin::Value Plugin::getValue() {
+	return value;
+}
+
 void Plugin::printInfo() {
-	thlog() << "\t " << name << " {";
+	thlog() << "\t Plugin " << id << " {";
+	thlog() << "\t\t Name: " << name;
 	thlog() << "\t\t Description: " << description;
 	thlog() << "\t\t Path: " << path;
 	switch (value) {

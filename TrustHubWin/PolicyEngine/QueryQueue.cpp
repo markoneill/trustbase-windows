@@ -2,16 +2,18 @@
 #include "QueryQueue.h"
 
 
-QueryQueue::QueryQueue() {
+QueryQueue::QueryQueue(int plugin_count) {
+	this->plugin_count = plugin_count;
+	queues = new PluginQueue[plugin_count + 1];
 }
-
 
 QueryQueue::~QueryQueue() {
+	delete[] queues;
 }
 
-bool QueryQueue::enqueue_n_and_link(int n, Query * query) {
-	for (int i = 0; i < n; i++) {
-		if (!enqueue(query)) {
+bool QueryQueue::enqueue_and_link(Query * query) {
+	for (int i = 0; i <= plugin_count; i++) { // enqueue 1 for the decided thread too
+		if (!enqueue(i, query)) {
 			return false;
 		}
 	}
@@ -19,24 +21,24 @@ bool QueryQueue::enqueue_n_and_link(int n, Query * query) {
 	return true;
 }
 
-bool QueryQueue::enqueue(Query * query) {
-	std::unique_lock<std::mutex> lck(queue_mux);
+bool QueryQueue::enqueue(int plugin_id, Query * query) {
+	std::unique_lock<std::mutex> lck(queues[plugin_id].queue_mux);
 
-	queue.push_front(query);
+	queues[plugin_id].queue.push_front(query);
 
-	queue_hasdata.notify_one();
+	queues[plugin_id].queue_hasdata.notify_one();
 	lck.unlock();
 	return true;
 }
 
-Query* QueryQueue::dequeue() {
-	std::unique_lock<std::mutex> lck(queue_mux);
-	while (queue.empty()) {
-		queue_hasdata.wait(lck);
+Query* QueryQueue::dequeue(int plugin_id) {
+	std::unique_lock<std::mutex> lck(queues[plugin_id].queue_mux);
+	while (queues[plugin_id].queue.empty()) {
+		queues[plugin_id].queue_hasdata.wait(lck);
 	}
 	
-	Query* query = queue.back();
-	queue.pop_back();
+	Query* query = queues[plugin_id].queue.back();
+	queues[plugin_id].queue.pop_back();
 	
 	lck.unlock();
 
