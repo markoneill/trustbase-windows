@@ -24,7 +24,8 @@
 
 #define THRESPONSE_MESSAGE_SIZE						(sizeof(UINT64)+sizeof(UINT8))
 
-typedef enum THResponseType {RESPONSE_ALLOW=0, RESPONSE_BLOCK=1, WAITING_ON_RESPONSE=7} THResponseType;
+// same as PLUGIN_RESPONSE_VALID, PLUGIN_RESPONSE_VALID
+typedef enum THResponseType {RESPONSE_ALLOW=1, RESPONSE_BLOCK=0, WAITING_ON_RESPONSE=7} THResponseType;
 
 typedef struct THMessage {
 	UINT64 flowHandle;

@@ -44,7 +44,7 @@ int main()
 	context.printWelcome();
 
 	// Get a Query Queue
-	QueryQueue qq();
+	QueryQueue qq;
 
 	// start decider and plugin threads
 	plugin_threads = new std::thread[context.plugin_count + 1];
@@ -56,7 +56,7 @@ int main()
 	}
 
 	// init things
-	if (!Communications::init_communication(&qq, context.plugin_count)) {
+	if (!Communications::init_communication(&qq, (int)context.plugin_count)) {
 	thlog() << "Initialization errors, exiting...";
 	return -1;
 	}
@@ -111,6 +111,7 @@ bool decider_loop(QueryQueue* qq) { // TODO
 		// cleanup timeout query stuff
 
 		// send the response
+
 	}
 
 	return true;

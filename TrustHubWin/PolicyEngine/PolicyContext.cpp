@@ -21,6 +21,7 @@ bool PolicyContext::loadConfig(const char* path) {
 		cfg.readFile(path);
 	}
 	catch (const libconfig::FileIOException &fioex) {
+		(void)fioex;
 		thlog() << "I/O error while reading file " << path;
 		return false;
 	}

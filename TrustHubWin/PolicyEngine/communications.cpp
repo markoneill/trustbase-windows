@@ -16,6 +16,11 @@ namespace Communications {
 bool Communications::send_response(Communications::THResponseType result, UINT64 flowHandle) {
 	((UINT64*)response_buf)[0] = flowHandle;
 	((UINT8*)response_buf)[sizeof(UINT64)] = (UINT8)result;
+
+	if (COMMUNICATIONS_DEBUG_MODE) {
+		thlog() << "Would have responded " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid");
+		return true;
+	}
 	return true;
 }
 
@@ -43,6 +48,7 @@ bool Communications::recv_query() {
 			return false;
 		}
 		if (Read >= toRead) {
+			buf = bufcur;
 			break;
 		} else if (2 * Read < bufsize) {
 			// we need to double our buffer, copy our buf, drop it, and point bufcur to the end of the data
@@ -57,11 +63,149 @@ bool Communications::recv_query() {
 		}
 	}
 
+	// parse the message
+	Query* query = parse_query(buf, Read);
+	if (!query) {
+		thlog() << "Could not parse the query";
+		return false;
+	}
+
 	thlog() << "Querying plugins";
 	// Poll the plugins
-	Query* query = new Query(flowHandle, hostname, port, raw_certificate, cert_len, client_hello, client_hello_len, server_hello, server_hello_len);
-	qq->enqueue_n_and_link(query);
+	qq->enqueue_n_and_link(plugin_count+1, query); // plugin count + 1 for decider thread
 	return true;
+}
+
+bool Communications::debug_recv_query() {
+	// parse an example query, so we can test the policy engine without having to actually start the kernel module
+	std::ifstream input(COMMUNICATIONS_DEBUG_QUERY, std::ios::binary|std::ios::ate);
+	std::streamsize size = input.tellg();
+	input.seekg(0, std::ios::beg);
+
+	UINT8* buf = new UINT8[size];
+	if (!input.read((char*)buf, size)) {
+		thlog() << "Error, could not read in debug query";
+	}
+	input.close();
+
+	Query* query = parse_query(buf, size);
+
+	if (!query) {
+		thlog() << "Could not parse the debug query";
+		return false;
+	}
+
+	query->printQueryInfo();
+
+	thlog() << "Querying plugins";
+
+	qq->enqueue_n_and_link(plugin_count + 1, query); // plugin count + 1 for decider thread
+
+	return true;
+}
+
+Query* Communications::parse_query(UINT8* buffer, UINT64 buflen) {
+	UINT8* cursor = buffer;
+	UINT64 length;
+	UINT64 flowHandle;
+	UINT64 processId;
+	UINT32 processPathSize;
+	char* processPath = NULL;
+	UINT32 clientHelloSize;
+	UINT8* clientHello = NULL;
+	UINT32 serverHelloSize;
+	UINT8* serverHello = NULL;
+	UINT32 certSize;
+	UINT8* cert = NULL;
+
+	try {
+		length = *((UINT64*)cursor);
+		cursor += sizeof(UINT64);
+		if ((UINT64)(cursor - buffer) > buflen) {
+			thlog() << "Parsing length : buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer);
+			throw std::runtime_error("");
+		}
+
+		flowHandle = *((UINT64*)cursor);
+		cursor += sizeof(UINT64);
+		if ((UINT64)(cursor - buffer) > buflen) {
+			thlog() << "Parsing flowHandle : buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer);
+			throw std::runtime_error("");
+		}
+
+		processId = *((UINT64*)cursor);
+		cursor += sizeof(UINT64);
+		if ((UINT64)(cursor - buffer) > buflen) {
+			thlog() << "Parsing processId: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer);
+			throw std::runtime_error("");
+		}
+
+		processPathSize = *((UINT32*)cursor);
+		cursor += sizeof(UINT32);
+		if ((UINT64)(cursor + processPathSize - buffer) > buflen) {
+			thlog() << "Parsing path: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer);
+			throw std::runtime_error("");
+		}
+		processPath = new char[processPathSize];
+		if (!processPath) {
+			thlog() << "Could not allocate " << processPathSize << " bytes while parseing query";
+			throw std::bad_alloc();
+		}
+		memcpy(processPath, cursor, processPathSize);
+		cursor += processPathSize;
+
+		clientHelloSize = *((UINT32*)cursor);
+		cursor += sizeof(UINT32);
+		if ((UINT64)(cursor + clientHelloSize - buffer) > buflen) {
+			thlog() << "Parsing client hello: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << clientHelloSize;
+			throw std::runtime_error("");
+		}
+		clientHello = new UINT8[clientHelloSize];
+		if (!clientHello) {
+			thlog() << "Could not allocate " << clientHelloSize << " bytes while parseing query";
+			throw std::bad_alloc();
+		}
+		memcpy(clientHello, cursor, clientHelloSize);
+		cursor += clientHelloSize;
+
+		serverHelloSize = *((UINT32*)cursor);
+		cursor += sizeof(UINT32);
+		if ((UINT64)(cursor + serverHelloSize - buffer) > buflen) {
+			thlog() << "Parsing server hello: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << serverHelloSize;
+			throw std::runtime_error("");
+		}
+		serverHello = new UINT8[serverHelloSize];
+		if (!serverHello) {
+			thlog() << "Could not allocate " << serverHelloSize << " bytes while parseing query";
+			throw std::bad_alloc();
+		}
+		memcpy(serverHello, cursor, serverHelloSize);
+		cursor += serverHelloSize;
+
+		certSize = *((UINT32*)cursor);
+		cursor += sizeof(UINT32);
+		if ((UINT64)(cursor + certSize - buffer) > buflen) {
+			thlog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << certSize;
+			throw std::runtime_error("");
+		}
+		cert = new UINT8[certSize];
+		if (!clientHello) {
+			thlog() << "Could not allocate " << clientHelloSize << " bytes while parsing query";
+			throw std::bad_alloc();
+		}
+		memcpy(cert, cursor, certSize);
+		cursor += certSize;
+	} catch (const std::runtime_error& e) {
+		thlog() << "Error while parsing Query " << e.what();
+		return nullptr;
+	} catch (const std::bad_alloc& e) {
+		thlog() << "Error allocating while parsing Query " << e.what();
+		return nullptr;
+	}
+
+	// create a query
+	Query* query = new Query(flowHandle, processId, processPath, cert, certSize, clientHello, clientHelloSize, serverHello, serverHelloSize);
+	return query;
 }
 
 bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) {
@@ -94,7 +238,7 @@ bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) 
 
 bool Communications::listen_for_queries() {
 	if (COMMUNICATIONS_DEBUG_MODE) {
-		// debug_recv_query();
+		debug_recv_query();
 		return true;
 	}
 
