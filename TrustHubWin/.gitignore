@@ -49,6 +49,7 @@ Thumbs.db
 #VisualStudio Garbage#
 ######################
 *.tlog
+*.user
 *.ilk
 *.lref
 *.cer
