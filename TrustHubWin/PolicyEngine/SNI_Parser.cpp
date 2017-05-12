@@ -74,3 +74,20 @@ char* SNI_Parser::sni_get_hostname(char* client_hello, int client_hello_len) {
 
 	return hostname;
 }
+
+inline unsigned int SNI_Parser::be24_to_cpu(be24 x)
+{
+	return (uint32_t) (
+		(x.b[0] << 16) | 
+		(x.b[1] << 8) | 
+		(x.b[2]) 
+	);
+}
+
+inline unsigned short SNI_Parser::be16_to_cpu(be16 x)
+{
+	return (uint16_t) (
+		(x.b[0] << 8) | 
+		(x.b[1])
+	);
+}
