@@ -8,7 +8,7 @@
 #define SIZE_RANDOM_DATA		32
 #define SIZE_SESSION_ID_LEN		1
 #define	SIZE_CIPHER_SUITE_LEN		2
-#define SIZE_COMPRESSION_METHODS_LEN	2
+#define SIZE_COMPRESSION_METHODS_LEN	1
 #define SIZE_EXTS_LEN			2
 #define SIZE_EXT_TYPE			2
 #define SIZE_EXT_LEN			2
@@ -32,7 +32,7 @@ char* SNI_Parser::sni_get_hostname(char* client_hello, int client_hello_len) {
 
 	hostname = NULL;
 
-	bufptr = client_hello + 1;
+	bufptr = client_hello;
 	hello_length = be24_to_cpu(*(be24*)bufptr);
 	bufptr += SIZE_CLIENT_HELLO_LEN; // advance past length info
 	bufptr += SIZE_TLS_VERSION_INFO; // advance past version info
@@ -43,7 +43,7 @@ char* SNI_Parser::sni_get_hostname(char* client_hello, int client_hello_len) {
 	cipher_suite_length = be16_to_cpu(*(be16*)bufptr);
 	bufptr += SIZE_CIPHER_SUITE_LEN; // advance past cipher suite length field
 	bufptr += cipher_suite_length; // advance past cipher suites;
-	compression_methods_length = be16_to_cpu(*(be16*)bufptr);
+	compression_methods_length = bufptr[0];
 	bufptr += SIZE_COMPRESSION_METHODS_LEN; // advance past compression methods length field
 	bufptr += compression_methods_length; // advance past compression methods
 										  /* If there are bytes left, there are extensions, and possibly a SNI */
@@ -64,7 +64,6 @@ char* SNI_Parser::sni_get_hostname(char* client_hello, int client_hello_len) {
 				hostname = new char[name_length + 1];
 				memcpy(hostname, bufptr, name_length);
 				hostname[name_length] = '\0'; // null terminate it
-				thlog() << "Found sni hostname " << hostname;
 				break;
 			}
 			bufptr += extension_length; // advanced to the next extension
