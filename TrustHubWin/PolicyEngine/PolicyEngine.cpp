@@ -85,7 +85,7 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		// dequeue a query
 		Query* query = qq->dequeue((int)context->plugin_count);
 
-		thlog() << "decider dequeued query " << query->getId();
+		thlog() << "Decider dequeued query " << query->getId();
 		
 		// get system's response
 		//TODO

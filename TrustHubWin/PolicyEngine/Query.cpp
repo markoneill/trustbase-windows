@@ -1,7 +1,5 @@
 #include "stdafx.h"
 #include "Query.h"
-#include "SNI_Parser.h"
-#include "THLog.h"
 
 // Things that need to go in the config
 #define DEFAULT_RESPONSE	PLUGIN_RESPONSE_VALID
@@ -26,15 +24,7 @@ Query::Query(UINT64 flowHandle, UINT64 processId, char* processPath, UINT8 * raw
 	Query::next_id++;
 
 	//Get Hostname
-	SNI_Parser sni_parser = new SNIParser();
-	try {
-		data.hostname = sni_parser.sni_get_hostname(client_hello, client_hello_len);
-	}
-	catch (Exception e) {
-		thlog() << "Failed to parse SNI to retrieve hostname.";
-	}
-		
-	delete sni_parser;
+	data.hostname = SNI_Parser::sni_get_hostname((char*)client_hello, client_hello_len);
 
 	// allocate responses
 	responses = new int[plugin_count];

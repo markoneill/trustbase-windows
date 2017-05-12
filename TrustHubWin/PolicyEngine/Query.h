@@ -6,6 +6,7 @@
 #include <atomic>
 #include <condition_variable>
 #include "THLogger.h"
+#include "SNI_Parser.h"
 
 
 class Query {

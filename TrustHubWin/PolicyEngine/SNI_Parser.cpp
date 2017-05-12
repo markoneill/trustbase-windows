@@ -1,20 +1,24 @@
-#include ClientHelloParser.h
-#include <string>
-#include <THLogger.h>
+#include "stdafx.h"
+#include "SNI_Parser.h"
+
+// Client Hello byte navigation
+#define SIZE_CLIENT_HELLO_HEAD_LEN	4
+#define SIZE_CLIENT_HELLO_LEN		3
+#define SIZE_TLS_VERSION_INFO		2
+#define SIZE_RANDOM_DATA		32
+#define SIZE_SESSION_ID_LEN		1
+#define	SIZE_CIPHER_SUITE_LEN		2
+#define SIZE_COMPRESSION_METHODS_LEN	2
+#define SIZE_EXTS_LEN			2
+#define SIZE_EXT_TYPE			2
+#define SIZE_EXT_LEN			2
+#define	EXT_TYPE_SNI			0
+#define SIZE_SNI_LIST_LEN		2
+#define SIZE_SNI_TYPE			1
+#define SIZE_SNI_NAME_LEN		2
 
 
-
-
-
-SNIParser::ClientHelloParser() {
-
-}
-
-SNIParser::~ClientHelloParser() {
-	
-}
-
-char* SNIParser::sni_get_hostname(char* client_hello, int client_hello_len) {
+char* SNI_Parser::sni_get_hostname(char* client_hello, int client_hello_len) {
 	char* hostname;
 	char* bufptr;
 	unsigned int hello_length;
@@ -60,7 +64,7 @@ char* SNIParser::sni_get_hostname(char* client_hello, int client_hello_len) {
 				hostname = new char[name_length + 1];
 				memcpy(hostname, bufptr, name_length);
 				hostname[name_length] = '\0'; // null terminate it
-				thlog(LOG_DEBUG, "Found sni hostname %s", hostname);
+				thlog() << "Found sni hostname " << hostname;
 				break;
 			}
 			bufptr += extension_length; // advanced to the next extension
