@@ -6,15 +6,15 @@
 
 
 
-ClientHelloParser::ClientHelloParser() {
+SNIParser::ClientHelloParser() {
 
 }
 
-ClientHelloParser::~ClientHelloParser() {
+SNIParser::~ClientHelloParser() {
 	
 }
 
-char* ClientHelloParser::sni_get_hostname(char* client_hello, int client_hello_len) {
+char* SNIParser::sni_get_hostname(char* client_hello, int client_hello_len) {
 	char* hostname;
 	char* bufptr;
 	unsigned int hello_length;

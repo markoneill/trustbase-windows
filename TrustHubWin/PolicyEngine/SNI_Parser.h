@@ -37,7 +37,7 @@
 
 typedef struct { uint8_t b[3]; } be24, le24;
 
-class ClientHelloParser {
+class SNIParser {
 
 public:
 	ClientHelloParser();
