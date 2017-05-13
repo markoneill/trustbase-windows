@@ -63,8 +63,8 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 		// find the response in the table
 		if (context->answer == WAITING_ON_RESPONSE) {
 			if (!NT_SUCCESS(ThPopResponse(&THResponses, inMetaValues->flowHandle, &(context->answer)))) {
-				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not pop the response");
-				context->answer = RESPONSE_ALLOW;
+				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error! Could not pop the response");
+				context->answer = RESPONSE_ALLOW; // Default to allow on error
 			}
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Read the answer as %x", context->answer);
 		}

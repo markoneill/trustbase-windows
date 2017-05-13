@@ -98,7 +98,7 @@ VOID ThIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	size_t len = MAX_PATH; // they should at least fit the biggest process path, but should actually be much bigger
 
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "File Read Called\r\n");
-
+	
 	// get the message
 	status = ThGetMessage(&THOutputQueue, &message);
 	if (!NT_SUCCESS(status) || message == NULL) {
@@ -175,7 +175,6 @@ VOID ThIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 VOID THReadyRead(IN WDFWORKITEM WorkItem) {
 	UNREFERENCED_PARAMETER(WorkItem);
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "WorkItem Called\r\n");
-	// put the defered info in the 
 	WdfIoQueueStart(THReadQueue);
 	// We reuse this workitem, so we don't have to delete it
 }

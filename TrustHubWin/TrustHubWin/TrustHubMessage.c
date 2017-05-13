@@ -31,6 +31,8 @@ NTSTATUS ThMakeMessage(OUT THMessage** msg, IN UINT64 flowHandle, IN UINT64 proc
 NTSTATUS ThAddMessage(IN THMessageQueue* queue, IN THMessage* msg) {
 	KIRQL irql;
 
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Before adding message, list is %sempty\r\n", ((IsListEmpty(&(queue->ListHead))) ? "" : "not "));
+
 	// add it to our thing
 	KeAcquireSpinLock(&(queue->lock), &irql);
 	InsertTailList(&(queue->ListHead), &(msg->ListEntry));
@@ -94,7 +96,7 @@ NTSTATUS ThGetMessage(IN THMessageQueue* queue, OUT THMessage** message) {
 	KeAcquireSpinLock(&(queue->lock), &irql);
 	if (IsListEmpty(&(queue->ListHead))) {
 		KeReleaseSpinLock(&(queue->lock), irql);
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not find a message\r\n");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not find a message, list is empty\r\n");
 		return STATUS_NOT_FOUND;
 	}
 	entry = queue->ListHead.Flink;
@@ -109,9 +111,16 @@ NTSTATUS ThRemMessage(IN THMessageQueue* queue) {
 	NTSTATUS status = STATUS_SUCCESS;
 	KIRQL irql;
 
+	if (IsListEmpty(&(queue->ListHead))) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Tried to remove from empty list, could not remove message\r\n");
+		return STATUS_UNSUCCESSFUL;
+	}
+
 	KeAcquireSpinLock(&(queue->lock), &irql);
 	PLIST_ENTRY mentry = RemoveHeadList(&(queue->ListHead));
 	KeReleaseSpinLock(&(queue->lock), irql);
+
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "After removing message, list is %sempty\r\n", ((IsListEmpty(&(queue->ListHead))) ? "" : "not "));
 
 	if (mentry == NULL) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not pop message\r\n");
@@ -365,6 +374,8 @@ NTSTATUS ThAddResponse(IN THResponseTable* table, IN UINT64 flowHandle, IN UINT1
 
 	if (!success) {
 		status = STATUS_UNSUCCESSFUL;
+	} else {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added to Response List, len now %d\r\n", RtlNumberGenericTableElementsAvl(table));
 	}
 	return status;
 }
@@ -409,6 +420,7 @@ NTSTATUS ThPopResponse(IN THResponseTable* table, IN UINT64 flowHandle, OUT THRe
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error! Could not find response in table");
 		return STATUS_NOT_FOUND;
 	}
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Removed from Response List, len now %d\r\n", RtlNumberGenericTableElementsAvl(table));
 
 	return status;
 }
