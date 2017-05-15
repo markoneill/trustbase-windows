@@ -19,6 +19,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libconfig++", "libconfig\li
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimplePlugin1", "SimplePlugin1\SimplePlugin1.vcxproj", "{EF07240B-87D4-4C7D-8F69-6CFF69D2A203}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimplePlugin2", "SimplePlugin2\SimplePlugin2.vcxproj", "{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -168,6 +170,20 @@ Global
 		{EF07240B-87D4-4C7D-8F69-6CFF69D2A203}.Release|x64.Build.0 = Release|x64
 		{EF07240B-87D4-4C7D-8F69-6CFF69D2A203}.Release|x86.ActiveCfg = Release|Win32
 		{EF07240B-87D4-4C7D-8F69-6CFF69D2A203}.Release|x86.Build.0 = Release|Win32
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Debug|ARM.ActiveCfg = Debug|Win32
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Debug|x64.ActiveCfg = Debug|x64
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Debug|x64.Build.0 = Debug|x64
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Debug|x86.ActiveCfg = Debug|Win32
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Debug|x86.Build.0 = Debug|Win32
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Release|Any CPU.ActiveCfg = Release|Win32
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Release|ARM.ActiveCfg = Release|Win32
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Release|ARM64.ActiveCfg = Release|Win32
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Release|x64.ActiveCfg = Release|x64
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Release|x64.Build.0 = Release|x64
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Release|x86.ActiveCfg = Release|Win32
+		{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

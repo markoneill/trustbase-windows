@@ -88,21 +88,25 @@ bool Communications::debug_recv_query() {
 	}
 	input.close();
 
-	Query* query = parse_query(buf, size);
+	for (int i = 0; i < 3; i++) {
+		Query* query = parse_query(buf, size);
 
-	if (!query) {
-		thlog() << "Could not parse the debug query";
-		return false;
+		if (!query) {
+			thlog() << "Could not parse the debug query";
+			return false;
+		}
+
+		query->printQueryInfo();
+
+		thlog() << "Enqueing query and querying plugins";
+
+		qq->enqueue_and_link(query); // plugin count + 1 for decider thread
+		Sleep(1000);
 	}
-
-	query->printQueryInfo();
-
-	thlog() << "Querying plugins";
-
-	qq->enqueue_and_link(query); // plugin count + 1 for decider thread
 
 	// flip keep running
 	Communications::keep_running = false;
+	qq->enqueue(nullptr);
 	return true;
 }
 

@@ -12,22 +12,22 @@ QueryQueue::~QueryQueue() {
 }
 
 bool QueryQueue::enqueue_and_link(Query * query) {
-	for (int i = 0; i <= plugin_count; i++) { // enqueue 1 for the decided thread too
-		if (!enqueue(i, query)) {
-			return false;
-		}
+	if (!enqueue(query)) {
+		return false;
 	}
 	link(query);
 	return true;
 }
 
-bool QueryQueue::enqueue(int plugin_id, Query * query) {
-	std::unique_lock<std::mutex> lck(queues[plugin_id].queue_mux);
+bool QueryQueue::enqueue(Query * query) {
+	for (int i = 0; i <= plugin_count; i++) { // enqueue 1 for the decided thread too
+		std::unique_lock<std::mutex> lck(queues[i].queue_mux);
 
-	queues[plugin_id].queue.push_front(query);
+		queues[i].queue.push_front(query);
 
-	queues[plugin_id].queue_hasdata.notify_one();
-	lck.unlock();
+		queues[i].queue_hasdata.notify_one();
+		lck.unlock();
+	}
 	return true;
 }
 
@@ -53,7 +53,7 @@ bool QueryQueue::link(Query * query) {
 
 	lck.unlock();
 
-	return true;;
+	return true;
 }
 
 // unlink will remove the query from the linked list
@@ -72,4 +72,21 @@ Query* QueryQueue::unlink(int id) {
 	lck.unlock();
 
 	return NULL;
+}
+
+Query* QueryQueue::find_linked(int query_id) {
+	std::unique_lock<std::mutex> lck(list_mux);
+	Query* found = nullptr;
+
+	// iterate reverse over our stored queries
+	for (std::deque<Query*>::reverse_iterator it = list.rbegin(); it != list.rend(); ++it) {
+		if ((*it)->getId() == query_id) {
+			found = (*it);
+			break;
+		}
+	}
+
+	lck.unlock();
+
+	return found;
 }

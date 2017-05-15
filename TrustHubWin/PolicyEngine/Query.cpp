@@ -27,6 +27,8 @@ Query::Query(UINT64 flowHandle, UINT64 processId, char* processPath, UINT8 * raw
 	data.hostname = SNI_Parser::sni_get_hostname((char*)client_hello, client_hello_len);
 
 	// allocate responses
+	this->num_plugins = plugin_count;
+	this->num_responses = 0;
 	responses = new int[plugin_count];
 	for (int i = 0; i < plugin_count; i++) {
 		responses[i] = DEFAULT_RESPONSE;
@@ -47,7 +49,13 @@ void Query::setResponse(int plugin_id, int response) {
 	if (accepting_responses) {
 		responses[plugin_id] = response;
 		num_responses++;
+		if (num_responses >= num_plugins) {
+			std::unique_lock<std::mutex> lck(mutex);
+			threshold_met.notify_all();
+			lck.unlock();
+		}
 	}
+	thlog() << "Set response called, " << num_responses << "/" << num_plugins;
 }
 
 int Query::getResponse(int plugin_id) {

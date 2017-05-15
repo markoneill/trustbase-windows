@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "Plugin.h"
 
+static QueryQueue* qq;
+
 Plugin::Plugin() {
 }
 
@@ -72,21 +74,18 @@ bool Plugin::init() {
 	return true;
 }
 
-bool Plugin::plugin_loop(QueryQueue* qq) { //TODO
+bool Plugin::plugin_loop() { //TODO
 	// DEBUG
 	thlog() << "Started Plugin loop for " << name;
-
-	// setup
-
-	// initialize the plugin
-	if (initialize != NULL) {
-
-	}
 
 	// loop waiting for queries
 	while (Communications::keep_running) {
 		// dequeue query
 		Query* newquery = qq->dequeue(id);
+		if (newquery == nullptr) {
+			// done to wake from lock
+			continue;
+		}
 		if (value == Plugin::IGNORED) {
 			// respond ok
 			newquery->setResponse(id, PLUGIN_RESPONSE_VALID);
@@ -101,10 +100,9 @@ bool Plugin::plugin_loop(QueryQueue* qq) { //TODO
 		if (type == Plugin::SYNC) {
 			// set response
 			newquery->setResponse(id, response);
-			thlog() << "Plugin " << id << " synchronously returned " <<
+			thlog() << "For query " << newquery->getId() << " Plugin " << id << " synchronously returned " <<
 				((response == PLUGIN_RESPONSE_VALID) ? "valid" : ((response == PLUGIN_RESPONSE_INVALID) ? "invalid" : ((response == PLUGIN_RESPONSE_ABSTAIN)?"abstain":"error")));
 		}
-
 	}
 	
 	// clean up
@@ -146,7 +144,20 @@ void Plugin::printInfo() {
 
 int Plugin::async_callback(int plugin_id, int query_id, int result) { //TODO
 	// add our response
+	// set response
+	Query* foundquery = qq->find_linked(query_id);
+	if (foundquery == nullptr) {
+		thlog() << "Tried to asynchronously reply to a query that is no longer tracked";
+		return 0; // let plugin know it was unsuccessful
+	}
 
+	foundquery->setResponse(plugin_id, result);
+	thlog() << "For Query " << query_id << " Plugin " << plugin_id << " asynchronously returned " <<
+		((result == PLUGIN_RESPONSE_VALID) ? "valid" : ((result == PLUGIN_RESPONSE_INVALID) ? "invalid" : ((result == PLUGIN_RESPONSE_ABSTAIN) ? "abstain" : "error")));
 
 	return 1; // let plugin know the callback was successful
+}
+
+void Plugin::set_QueryQueue(QueryQueue* qq_in) {
+	qq = qq_in;
 }

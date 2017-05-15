@@ -19,7 +19,7 @@ public:
 	~Plugin();
 
 	bool init();
-	bool plugin_loop(QueryQueue* qq);
+	bool plugin_loop();
 
 	std::string getName();
 	void setValue(Plugin::Value val);
@@ -27,6 +27,7 @@ public:
 	void printInfo();
 
 	static int async_callback(int plugin_id, int query_id, int result);
+	static void set_QueryQueue(QueryQueue* qq);
 
 private:
 	std::string name;
@@ -42,5 +43,7 @@ private:
 	finalize_func_t finalize;
 
 	int id;
+
+	static QueryQueue* qq_in;
 };
 

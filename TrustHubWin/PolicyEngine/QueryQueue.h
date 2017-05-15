@@ -10,10 +10,11 @@ public:
 	~QueryQueue();
 
 	bool enqueue_and_link(Query* query);
-	bool enqueue(int plugin_id, Query* query);
+	bool enqueue(Query* query);
 	Query* dequeue(int plugin_id);
 	bool link(Query* query);
 	Query* unlink(int id);
+	Query* find_linked(int query_id);
 
 private:
 	struct PluginQueue {

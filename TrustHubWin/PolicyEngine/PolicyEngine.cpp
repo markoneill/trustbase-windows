@@ -13,7 +13,7 @@
 
 #define CONFIG_LOCATION		"C:/Users/ilab/Source/Repos/TrustKern/TrustHubWin/PolicyEngine/trusthub.cfg"
 // Things that need to go in the config
-#define TIMEOUT_TIME		1000
+#define TIMEOUT_TIME		15000
 
 bool decider_loop(QueryQueue* qq, PolicyContext* context);
 
@@ -46,14 +46,17 @@ int main()
 
 	// Get a Query Queue
 	QueryQueue qq((int)context.plugin_count);
+	// set it as the plugin's queue
+	Plugin::set_QueryQueue(&qq);
 
 	// start decider and plugin threads
 	plugin_threads = new std::thread[context.plugin_count + 1];
+	thlog() << "Starting Decider Thread";
 	plugin_threads[context.plugin_count] = std::thread(decider_loop, &qq, &context);
-	thlog() << "Starting " << context.plugin_count << " plugins";
+	thlog() << "Starting " << context.plugin_count << " plugins...";
 	for (int i = 0; i < context.plugin_count; i++) {
-		thlog() << "Starting #" << i << " " << context.plugins[i].getName();
-		plugin_threads[i] = std::thread(&Plugin::plugin_loop, context.plugins[i], &qq);
+		thlog() << "Starting Plugin #" << i << " : " << context.plugins[i].getName();
+		plugin_threads[i] = std::thread(&Plugin::plugin_loop, context.plugins[i]);
 	}
 
 	// init things
@@ -66,12 +69,11 @@ int main()
 	Communications::listen_for_queries();
 
 	// cleanup threads
-	//TODO
-
 	// wait on all threads to finish
 	for (int i = 0; i <= context.plugin_count; i++) {
 		plugin_threads[i].join();
 	}
+	delete[] plugin_threads;
 
 	// cleanup communication
 	Communications::cleanup();
@@ -84,6 +86,10 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 	while (Communications::keep_running) {
 		// dequeue a query
 		Query* query = qq->dequeue((int)context->plugin_count);
+		if (query == nullptr) {
+			// Done to wake from lock
+			continue;
+		}
 
 		thlog() << "Decider dequeued query " << query->getId();
 		
@@ -102,7 +108,10 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 			}
 		}
 		lk.unlock();
+		thlog() << "Handling query "<< query->getId() << " with " << query->num_responses << " responses";
 		query->accepting_responses = false;
+		// remove the query from the linked list
+		qq->unlink(query->getId());
 
 		// aggregate the responses
 		int response = PLUGIN_RESPONSE_VALID;
@@ -125,6 +134,9 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 
 		// send the response
 		Communications::send_response(response, query->getFlow());
+
+		// free that query
+		delete query;
 	}
 
 	return true;

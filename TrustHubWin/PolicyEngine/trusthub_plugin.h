@@ -27,7 +27,7 @@ typedef struct query_data_t {
 typedef struct init_data_t {
 	int plugin_id;
 	const char* plugin_path;
-	int(*callback)(int plugin_id, int query_id, int plugin_response);
+	int (*callback)(int plugin_id, int query_id, int plugin_response);
 } init_data_t;
 
 
