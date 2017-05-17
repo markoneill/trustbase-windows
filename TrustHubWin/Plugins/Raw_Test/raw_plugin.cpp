@@ -1,16 +1,16 @@
-// SimplePlugin1.cpp : Defines the exported functions for the DLL application.
-//
-
-#include "stdafx.h"
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
 #include "trusthub_plugin.h"
+#include "THLogger.h"
 
 #ifdef __cplusplus
 extern "C" {  // only need to export C interface if  
 			  // used by C++ source code  
 #endif  
-	__declspec(dllexport) int __stdcall query(query_data_t*);
-	__declspec(dllexport) int __stdcall initialize(init_data_t*);
-	__declspec(dllexport) int __stdcall finalize();
+	__declspec(dllexport) int __cdecl query(query_data_t*);
+	__declspec(dllexport) int __cdecl initialize(init_data_t*);
+	__declspec(dllexport) int __cdecl finalize();
 #ifdef __cplusplus
 }
 #endif  
@@ -19,17 +19,19 @@ extern "C" {  // only need to export C interface if
 // Plugins must include the "trusthub_plugin.h" header
 // In visual studio, add the path to the Policy engine code under:
 //   Configuration Properties->C/C++->General->Additional Include Directories
-__declspec(dllexport) int __stdcall query(query_data_t*) {
-    return PLUGIN_RESPONSE_VALID;
+__declspec(dllexport) int __cdecl query(query_data_t*) {
+	thlog() << "\n******Plugin ran******\n\n";
+	//printf("\n******Plugin ran******\n\n");
+	return PLUGIN_RESPONSE_VALID;
 }
 
 // Plugins can also have an optional exported "initialize" function that takes an init_data_t* arg
-__declspec(dllexport) int __stdcall initialize(init_data_t*) {
+__declspec(dllexport) int __cdecl initialize(init_data_t*) {
 	return PLUGIN_INITIALIZE_OK;
 }
 
 // Plugins can also have an optional exported "finalize" function that takes no arg
-__declspec(dllexport) int __stdcall finalize() {
+__declspec(dllexport) int __cdecl finalize() {
 	return PLUGIN_FINALIZE_OK;
 }
 

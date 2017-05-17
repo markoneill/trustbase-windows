@@ -11,7 +11,7 @@
 #include "Query.h"
 #include "QueryQueue.h"
 
-#define CONFIG_LOCATION		"C:/Users/ilab/Source/Repos/TrustKern/TrustHubWin/PolicyEngine/trusthub.cfg"
+#define CONFIG_LOCATION		"./trusthub.cfg"
 // Things that need to go in the config
 #define TIMEOUT_TIME		15000
 
