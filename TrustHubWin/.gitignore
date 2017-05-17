@@ -56,8 +56,12 @@ Thumbs.db
 *.lastbuildstate
 *.cache
 *.Cache
+*.ipch
 *Debug/
+*Release/
 *obj/
+#Tools#
+*tools/
 
 #This very file     #
 #####################

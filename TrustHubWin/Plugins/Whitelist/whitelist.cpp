@@ -8,7 +8,7 @@
 #include "dirent.h"
 //#include <libgen.h>
 #include "trusthub_plugin.h"
-#include "THlogger.h"
+#include "OpenSSLPluginHelper.h"
 
 //substitute for fnmatch
 //#include <fnmatch.h>
@@ -17,8 +17,8 @@
 
 #define MAX_LENGTH	1024
 
-//int(*plog)(thlog_level_t level, const char* format, ...);
-char* plugin_path;
+int(*plog)(thlog_level_t level, const char* format, ...);
+const char * plugin_path;
 
 #ifdef __cplusplus
 extern "C" {  // only need to export C interface if  
@@ -39,8 +39,8 @@ static int pem_append(char* filename, STACK_OF(X509)* chain);
 
 __declspec(dllexport) int __cdecl initialize(init_data_t* idata) {
 	plugin_path = idata->plugin_path;
-	//plog = idata->thlog;
-	//plog(LOG_DEBUG, "Whitelist initilized");
+	plog = idata->log;
+	plog(LOG_DEBUG, "Whitelist initilized");
 	return 0;
 }
 
@@ -53,10 +53,11 @@ __declspec(dllexport) int __cdecl query(query_data_t* data) {
 	int i;
 	unsigned char white_fingerprint[EVP_MAX_MD_SIZE];
 	unsigned int white_fingerprint_len;
-
-	//plog(LOG_DEBUG, "Whitelist querying");
+	plog(LOG_DEBUG, "Whitelist: query function ran");
+	plog(LOG_DEBUG, "Whitelist querying");
 	/* Only check the leaf certificate */
-	cert = sk_X509_value(data->chain, 0);
+	STACK_OF(X509)* certChain = OpenSSLPluginHelper::parse_chain(data->raw_chain, data->raw_chain_len);
+	cert = sk_X509_value(certChain, 0);
 	//print_certificate(cert);
 
 	/* Get the fingerprint for the leaf cert */
@@ -69,7 +70,7 @@ __declspec(dllexport) int __cdecl query(query_data_t* data) {
 		return PLUGIN_RESPONSE_ERROR;
 	}
 
-	//plog(LOG_DEBUG, "Got fingerprint");
+	plog(LOG_DEBUG, "Got fingerprint");
 
 	/* Compare fingerprint to the whitelist */
 	whitelist = get_whitelist();
@@ -79,7 +80,7 @@ __declspec(dllexport) int __cdecl query(query_data_t* data) {
 
 	// Right now this is going over every whitelisted cert, and taking a hash of them, then comparing
 	// TODO: For quicker results, switch to storing only hashes of the whitelisted certificates
-	//plog(LOG_DEBUG, "running through whitelist");
+	plog(LOG_DEBUG, "running through whitelist");
 	for (i = 0; i < sk_X509_num(whitelist); i++) {
 		cert = sk_X509_value(whitelist, i);
 		white_fingerprint_len = sizeof(white_fingerprint);
@@ -145,7 +146,7 @@ static int compare_fingerprint(unsigned char *fp1, int fp1len, unsigned char *fp
 	//end sub
 
 	strcat(whitelist_dir, "\\whitelist");
-	//plog(LOG_DEBUG, "Getting whitelist at %s", whitelist_dir);
+	plog(LOG_DEBUG, "Getting whitelist at %s", whitelist_dir);
 	whitelist = sk_X509_new_null();
 
 	if ((dir = opendir(whitelist_dir)) != NULL) {

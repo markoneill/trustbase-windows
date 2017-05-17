@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 #include "trusthub_plugin.h"
-#include "THLogger.h"
 
 /*
 *	Begin using this library with the initialize() function.

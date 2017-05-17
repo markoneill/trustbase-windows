@@ -15,6 +15,8 @@ Query::Query(UINT64 flowHandle, UINT64 processId, char* processPath, UINT8 * raw
 	data.port = 0;
 	data.raw_chain = raw_certificate;
 	data.raw_chain_len = cert_len;
+	data.chain = parse_chain(raw_certificate, cert_len);
+
 	data.client_hello = (char*)client_hello;
 	data.client_hello_len = client_hello_len;
 	data.server_hello = (char*)server_hello;
@@ -77,4 +79,38 @@ void Query::printQueryInfo() {
 	std::string path(wpath.begin(), wpath.end());
 	thlog() << "\tPath : " << path;
 	thlog() << "\tHostname : " << data.hostname;
+}
+STACK_OF(X509)* Query::parse_chain(unsigned char* data, size_t len) {
+	unsigned char* start_pos;
+	unsigned char* current_pos;
+	const unsigned char* cert_ptr;
+	X509* cert;
+	unsigned int cert_len;
+	start_pos = data;
+	current_pos = data;
+	STACK_OF(X509)* chain;
+
+	chain = sk_X509_new_null();
+	while ((current_pos - start_pos) < len) {
+		cert_len = ntoh24(current_pos);
+		current_pos += CERT_LENGTH_FIELD_SIZE;
+		cert_ptr = current_pos;
+		cert = d2i_X509(NULL, &cert_ptr, cert_len);
+		if (!cert) {
+			printf("unable to parse certificate");
+			thlog() << "unable to parse certificate";
+		}
+		//thlog_cert(cert);
+
+		sk_X509_push(chain, cert);
+		current_pos += cert_len;
+	}
+	if (sk_X509_num(chain) <= 0) {
+		// XXX Is this even possible?
+	}
+	return chain;
+}
+unsigned int Query::ntoh24(const unsigned char* data) {
+	unsigned int ret = (data[0] << 16) | (data[1] << 8) | data[2];
+	return ret;
 }

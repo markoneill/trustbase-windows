@@ -3,13 +3,11 @@
 #include <string.h>
 
 #include <libconfig.h++>
-
 //#include <libgen.h>
 #include "trusthub_plugin.h"
-//#include "THlogger.h"
 
 #define CONFIG_FILE "/../plugin-config/cipher_suite.cfg"
-#define PLUGIN_INIT_ERROR false//-1
+#define PLUGIN_INIT_ERROR -1
 
 #define CLIENT_HELLO_CIPHER_LEN_OFF	0x27
 #define CLIENT_HELLO_CIPHER_LEN_SIZE	2
@@ -33,6 +31,7 @@ extern "C" {  // only need to export C interface if
 #ifdef __cplusplus
 }
 #endif  
+int(*plog)(thlog_level_t level, const char* format, ...);
 
 static void hexdump(char* data, size_t len);
 static bool loadconfig(const char* config_path);
@@ -59,9 +58,11 @@ typedef struct cipher_settings_t {
 cipher_settings_t cipher_settings;
 
 __declspec(dllexport) int __cdecl initialize(init_data_t* idata) {
-	char* plugin_path;
+	const char* plugin_path;
 	char* config_path;
 	int i;
+
+	plog = idata->log;
 
 	// make the path for our plugin
 	plugin_path = idata->plugin_path;
@@ -88,21 +89,19 @@ __declspec(dllexport) int __cdecl initialize(init_data_t* idata) {
 
 __declspec(dllexport) int __cdecl query(query_data_t* data) {
 	int rval;
-
+	plog(LOG_DEBUG, "cipher_suite: query function ran");
 	if (cipher_settings.isApproved == PLUGIN_INIT_ERROR) {
 		return PLUGIN_RESPONSE_ERROR;
 	}
 	rval = PLUGIN_RESPONSE_VALID;
 
 	if (data->client_hello == NULL) {
-		//thlog() << "Bad data";
-		//plog(LOG_DEBUG, "Bad data");
+		plog(LOG_DEBUG, "Bad data");
 		return PLUGIN_RESPONSE_ERROR;
 	}
 	hexdump(data->client_hello, data->client_hello_len);
 	if (data->server_hello == NULL) {
-		//thlog() << "Bad data";
-		//plog(LOG_DEBUG, "Bad data");
+		plog(LOG_DEBUG, "Bad data");
 		return PLUGIN_RESPONSE_ERROR;
 	}
 	//hexdump(data->server_hello, data->server_hello_len);
@@ -133,7 +132,7 @@ int verify_client_hello(char* client_hello, size_t client_hello_len) {
 
 	offset = CLIENT_HELLO_CIPHER_LEN_OFF;
 	if (offset + CLIENT_HELLO_CIPHER_LEN_SIZE > client_hello_len) {
-		//plog(LOG_ERROR, "Cipher Suite Plugin: Got a truncated Client Hello.");
+		plog(LOG_ERROR, "Cipher Suite Plugin: Got a truncated Client Hello.");
 		return PLUGIN_RESPONSE_ERROR;
 	}
 	size = get_int_from_net(&(client_hello[offset]), CLIENT_HELLO_CIPHER_LEN_SIZE);
@@ -141,7 +140,7 @@ int verify_client_hello(char* client_hello, size_t client_hello_len) {
 	offset += size;
 
 	if (offset + CLIENT_HELLO_COMPRESS_LEN_SIZE > client_hello_len) {
-		//plog(LOG_ERROR, "Cipher Suite Plugin: Recieved a truncated Client Hello");
+		plog(LOG_ERROR, "Cipher Suite Plugin: Recieved a truncated Client Hello");
 		return PLUGIN_RESPONSE_ERROR;
 	}
 	size = get_int_from_net(&(client_hello[offset]), CLIENT_HELLO_COMPRESS_LEN_SIZE);
@@ -162,15 +161,11 @@ int verify_server_hello(char* server_hello, size_t server_hello_len) {
 	// extract the choosen cipher
 	offset = SERVER_HELLO_CIPHER_OFF;
 	if (offset + SERVER_HELLO_CIPHER_SIZE > server_hello_len) {
-		//thlog() << "Cipher Suite Plugin: Got truncated Server Hello";
-
-		//plog(LOG_ERROR, "Cipher Suite Plugin: Got truncated Server Hello");
+		plog(LOG_ERROR, "Cipher Suite Plugin: Got truncated Server Hello");
 		return PLUGIN_RESPONSE_ERROR;
 	}
 
 	cipher = get_int_from_net(&(server_hello[offset]), SERVER_HELLO_CIPHER_SIZE);
-	//thlog() << "We see a cipher of " << cipher;
-
 	//plog(LOG_DEBUG, "We see a cipher of %x", cipher);
 	// check the cipher
 	found = 0;
@@ -183,15 +178,13 @@ int verify_server_hello(char* server_hello, size_t server_hello_len) {
 			}
 			else {
 				// we found a bad cipher
-				//thlog() << "Cipher Suite Plugin: Found a rejected cipher suite";
-				//plog(LOG_INFO, "Cipher Suite Plugin: Found a rejected cipher suite");
+				plog(LOG_INFO, "Cipher Suite Plugin: Found a rejected cipher suite");
 				return PLUGIN_RESPONSE_INVALID;
 			}
 		}
 	}
 	if (cipher_settings.isApproved && !found) {
-		//thlog() << "Cipher Suite Plugin: Didn't find an accepted cipher suite";
-		//plog(LOG_INFO, "Cipher Suite Plugin: Didn't find an accepted cipher suite");
+		plog(LOG_INFO, "Cipher Suite Plugin: Didn't find an accepted cipher suite");
 		return PLUGIN_RESPONSE_INVALID;
 	}
 
@@ -220,7 +213,7 @@ int processExtList(char* inbuf, int offset, int buf_len, int* req_exts, size_t r
 		}
 		for (i = 0; i<rej_exts_len; i++) {
 			if (ext == rej_exts[i]) {
-				//plog(LOG_INFO, "Cipher Suite Plugin: Found a rejected extention");
+				plog(LOG_INFO, "Cipher Suite Plugin: Found a rejected extention");
 				//return PLUGIN_RESPONSE_INVALID;
 			}
 		}
@@ -235,7 +228,7 @@ int processExtList(char* inbuf, int offset, int buf_len, int* req_exts, size_t r
 		offset += ext_len;
 	}
 	if (num_req_found < req_exts_len) {
-		//plog(LOG_INFO, "Cipher Suite Plugin: Did not find a required extention");
+		plog(LOG_INFO, "Cipher Suite Plugin: Did not find a required extention");
 		return PLUGIN_RESPONSE_INVALID;
 	}
 	return PLUGIN_RESPONSE_VALID;
@@ -254,17 +247,17 @@ unsigned int get_int_from_net(char* inbuf, int len) {
 
 bool loadconfig(const char* config_path) {
 	libconfig::Config cfg;
-	//thlog() << "Loading configuration at " << config_path;
+	plog(LOG_DEBUG, "Loading configuration at %s", config_path);
 	try {
 		cfg.readFile(config_path);
 	}
 	catch (const libconfig::FileIOException &fioex) {
-		//thlog() << "Cipher Suite Plugin could not open config file at " << config_path;
+		plog(LOG_ERROR, "Cipher Suite Plugin could not open config file at %s", config_path);
 		cipher_settings.isApproved = PLUGIN_INIT_ERROR;
 		return false;
 	}
 	catch (const libconfig::ParseException &pex) {
-		//thlog() << "Parse error at " << pex.getFile() << ":" << pex.getLine() << " - " << pex.getError();
+		plog(LOG_ERROR, "Parse error at %s : %d - %s", pex.getFile(), pex.getLine(), pex.getError());
 		cipher_settings.isApproved = PLUGIN_INIT_ERROR;
 		return false;
 	}
@@ -272,7 +265,7 @@ bool loadconfig(const char* config_path) {
 		bool status = cfg.lookupValue("approved_ciphers", cipher_settings.isApproved);
 		if (!status)
 		{
-			//thlog() << "Broken config file for cipher suite plugin.";
+			plog(LOG_ERROR, "Broken config file for cipher suite plugin.");
 			cipher_settings.isApproved = PLUGIN_INIT_ERROR;
 			return false;
 		}
@@ -284,7 +277,7 @@ bool loadconfig(const char* config_path) {
 		cipher_settings.cipherList = new int[count];
 		if (!ciphers_list.isList() && !ciphers_list.isGroup() && !ciphers_list.isArray())
 		{
-			//thlog() << "ciphers_list is not a list, group, or array";
+			plog(LOG_ERROR, "Broken config file for cipher suite plugin, no 'ciphers_list'");
 			cipher_settings.isApproved = PLUGIN_INIT_ERROR;
 			return false;
 		}
@@ -301,7 +294,7 @@ bool loadconfig(const char* config_path) {
 
 		if (!required_server_extentions.isList() && !required_server_extentions.isGroup() && !required_server_extentions.isArray())
 		{
-			//thlog() << "required_server_extentions is not a list, group, or array";
+			plog(LOG_ERROR, "required_server_extentions is not a list, group, or array");
 			cipher_settings.isApproved = PLUGIN_INIT_ERROR;
 			return false;
 		}
@@ -317,7 +310,7 @@ bool loadconfig(const char* config_path) {
 
 		if (!rejected_server_extentions.isList() && !rejected_server_extentions.isGroup() && !rejected_server_extentions.isArray())
 		{
-			//thlog() << "rejected_server_extentions is not a list, group, or array";
+			plog(LOG_ERROR, "rejected_server_extentions is not a list, group, or array");
 			cipher_settings.isApproved = PLUGIN_INIT_ERROR;
 			return false;
 		}
@@ -333,7 +326,7 @@ bool loadconfig(const char* config_path) {
 
 		if (!required_client_extentions.isList() && !required_client_extentions.isGroup() && !required_client_extentions.isArray())
 		{
-			//thlog() << "required_client_extentions is not a list, group, or array";
+			plog(LOG_ERROR, "required_client_extentions is not a list, group, or array");
 			cipher_settings.isApproved = PLUGIN_INIT_ERROR;
 			return false;
 		}
@@ -349,7 +342,7 @@ bool loadconfig(const char* config_path) {
 
 		if (!rejected_client_extentions.isList() && !rejected_client_extentions.isGroup() && !rejected_client_extentions.isArray())
 		{
-			//thlog() << "rejected_client_extentions is not a list, group, or array";
+			plog(LOG_ERROR, "rejected_client_extentions is not a list, group, or array");
 			cipher_settings.isApproved = PLUGIN_INIT_ERROR;
 			return false;
 		}
@@ -358,12 +351,12 @@ bool loadconfig(const char* config_path) {
 		}
 	}
 	catch (const libconfig::SettingNotFoundException &nfex) {
-		//thlog() << "Could not find setting " << nfex.getPath();
+		plog(LOG_ERROR, "Could not find setting %s", nfex.getPath());
 		cipher_settings.isApproved = PLUGIN_INIT_ERROR;
 		return false;
 	}
 	catch (...) {
-		//thlog() << "Incorrectly formed config file " << config_path;
+		plog(LOG_ERROR, "Incorrectly formed config file %s", config_path);
 		cipher_settings.isApproved = PLUGIN_INIT_ERROR;
 		return false;
 	}
@@ -390,5 +383,5 @@ void hexdump(char* data, size_t len) {
 		}
 		snprintf(formatted + (i * 3), 27, "%02x%s", (unsigned char)data[i], formatter);
 	}
-	//plog(LOG_DEBUG, "\n%s\n", formatted);
+	plog(LOG_DEBUG, "\n%s\n", formatted);
 }

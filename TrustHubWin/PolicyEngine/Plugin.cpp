@@ -67,7 +67,7 @@ bool Plugin::init() {
 		idata.callback = Plugin::async_callback;
 		idata.plugin_id = this->id;
 		idata.plugin_path = this->path.c_str();
-
+		idata.log = thlog::pluginTHLog;
 		initialize(&idata);
 	}
 

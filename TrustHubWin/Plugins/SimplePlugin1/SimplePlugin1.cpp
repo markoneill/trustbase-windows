@@ -3,7 +3,6 @@
 
 #include "stdafx.h"
 #include "trusthub_plugin.h"
-#include "THLogger.h"
 
 #ifdef __cplusplus
 extern "C" {  // only need to export C interface if  
@@ -15,20 +14,20 @@ extern "C" {  // only need to export C interface if
 #ifdef __cplusplus
 }
 #endif  
+int(*plog)(thlog_level_t level, const char* format, ...);
 
 // Plugins must have an exported "query" function that takes a query_data_t* argument
 // Plugins must include the "trusthub_plugin.h" header
 // In visual studio, add the path to the Policy engine code under:
 //   Configuration Properties->C/C++->General->Additional Include Directories
 __declspec(dllexport) int __stdcall query(query_data_t*) {
-
-	thlog() << "SimplePlugin1 query function run";
+	plog(LOG_DEBUG, "SimplePlugin1: query function ran");
     return PLUGIN_RESPONSE_VALID;
 }
 
 // Plugins can also have an optional exported "initialize" function that takes an init_data_t* arg
-__declspec(dllexport) int __stdcall initialize(init_data_t*) {
-	thlog::setFile("./policy_engine.log", true);
+__declspec(dllexport) int __stdcall initialize(init_data_t* idata) {
+	plog = idata->log;
 	return PLUGIN_INITIALIZE_OK;
 }
 

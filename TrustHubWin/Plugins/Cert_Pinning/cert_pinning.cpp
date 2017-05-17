@@ -10,8 +10,7 @@
 #include <openssl/sha.h>
 #include <openssl/asn1.h>
 #include "trusthub_plugin.h"
-#include "THlogger.h"
-
+#include "OpenSSLPluginHelper.h"
 #define PINNING_DATABASE "pinned_certs.db"
 
 #ifdef __cplusplus
@@ -27,28 +26,32 @@ extern "C" {  // only need to export C interface if
 
 char* database_path;
 
-//int(*plog)(thlog_level_t level, const char* format, ...);
+int(*plog)(thlog_level_t level, const char* format, ...);
 
 static time_t ASN1_GetTimeT(ASN1_TIME* time);
 
 __declspec(dllexport) int __cdecl initialize(init_data_t* idata) {
-	//plog = idata->thlog;
+	plog = idata->log;
 	database_path = NULL;
 	database_path = (char*)malloc(strlen(idata->plugin_path) + 2 + strlen(PINNING_DATABASE));
 	if (database_path == NULL) {
 		return -1;
 	}
 	//sub for dirname
-	char *p = strrchr(idata->plugin_path, '\\');
+	char* plugin_path = (char*)malloc(strlen(idata->plugin_path) + 1);
+	strcpy(plugin_path, idata->plugin_path);
+	char *p = strrchr(plugin_path, '\\');
 	if (p) { p[0] = 0; }
 	//strncpy(database_path, dirname(idata->plugin_path), strlen(idata->plugin_path));
-	strncpy(database_path, idata->plugin_path, strlen(idata->plugin_path));
+	strncpy(database_path, plugin_path, strlen(plugin_path));
 
 	//end sub
 	strcat(database_path, "\\");
 	strcat(database_path, PINNING_DATABASE);
 
-	//plog(LOG_DEBUG, "CERT PINNING: Trying to use database at %s", database_path);
+
+	free(plugin_path);
+	plog(LOG_DEBUG, "CERT PINNING: Trying to use database at %s", database_path);
 	return 0;
 }
 
@@ -67,7 +70,11 @@ __declspec(dllexport) int __cdecl query(query_data_t* data) {
 	rval = PLUGIN_RESPONSE_VALID;
 
 	// Get Certificate Public Key
-	cert = sk_X509_value(data->chain, 0);
+
+	plog(LOG_DEBUG, "cert_pinning: query function ran");
+
+	STACK_OF(X509)* certChain = OpenSSLPluginHelper::parse_chain(data->raw_chain, data->raw_chain_len);
+	cert = sk_X509_value(certChain, 0);
 	pub_key = X509_get_pubkey(cert);
 	pkey_buf = NULL;
 	i2d_PUBKEY(pub_key, &pkey_buf);
@@ -92,7 +99,7 @@ __declspec(dllexport) int __cdecl query(query_data_t* data) {
 
 	// Build the table if it is not there
 	if (sqlite3_prepare_v2(database, "CREATE TABLE IF NOT EXISTS pinned (hostname TEXT PRIMARY KEY, hash TEXT, exptime INTEGER)", -1, &statement, NULL) != SQLITE_OK) {
-		//plog(LOG_ERROR, "CERT PINNING: Could not create certificate table");
+		plog(LOG_ERROR, "CERT PINNING: Could not create certificate table");
 	}
 	sqlite3_step(statement);
 	sqlite3_finalize(statement);

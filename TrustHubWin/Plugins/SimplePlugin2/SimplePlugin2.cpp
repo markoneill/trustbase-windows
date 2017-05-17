@@ -3,7 +3,6 @@
 
 #include "stdafx.h"
 #include <thread>
-#include "THLogger.h"
 #include "trusthub_plugin.h"
 
 // globals
@@ -22,12 +21,14 @@ extern "C" {  // only need to export C interface if
 #ifdef __cplusplus
 }
 #endif
+int(*plog)(thlog_level_t level, const char* format, ...);
 
 // Plugins must have an exported "query" function that takes a query_data_t* argument
 // Plugins must include the "trusthub_plugin.h" header
 // In visual studio, add the path to the Policy engine code under:
 //   Configuration Properties->C/C++->General->Additional Include Directories
 __declspec(dllexport) int __stdcall query(query_data_t* qdata) {
+	plog(LOG_DEBUG, "SimplePlugin2: query function ran");
 	std::thread(sleep_then_respond, qdata->id).detach();
 	return 0; // Doesn't matter, we are going to respond via async stuff
 }
@@ -37,6 +38,8 @@ __declspec(dllexport) int __stdcall initialize(init_data_t* idata) {
 	// save the thing
 	th_callback = idata->callback;
 	plugin_id = idata->plugin_id;
+	plog = idata->log;
+
 	return PLUGIN_INITIALIZE_OK;
 }
 

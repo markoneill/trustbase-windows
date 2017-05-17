@@ -14,8 +14,11 @@
     <ClCompile Include="cipher_suite.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\libconfig\libconfig++.vcxproj">
+    <ProjectReference Include="..\..\libconfig\libconfig++.vcxproj">
       <Project>{a0c36ce7-d908-4573-8b69-249eeeb7d2be}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\Cert_Pinning\cert_pinning.vcxproj">
+      <Project>{10f3a838-1216-4a5c-b85a-3c6f99fc752a}</Project>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -36,7 +39,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -65,7 +68,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>DLL_EXPORT;_DEBUG;_WINDOWS;_USRDLL;cipher_suite_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\tools\openssl-64-debug\lib;..\..\tools\openssl-64-debug\include;..\..\tools\trusthub-include;..\libconfig;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\tools\openssl-64-debug\lib;..\..\tools\openssl-64-debug\include;..\..\PolicyEngine;..\..\libconfig;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -82,7 +85,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>DLL_EXPORT;NDEBUG;_WINDOWS;_USRDLL;cipher_suite_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\tools\openssl-64\lib;..\..\tools\openssl-64\include;..\..\tools\trusthub-include;..\libconfig;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\tools\openssl-64\lib;..\..\tools\openssl-64\include;..\..\PolicyEngine;..\..\libconfig;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

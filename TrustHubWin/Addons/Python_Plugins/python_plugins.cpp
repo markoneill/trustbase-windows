@@ -48,7 +48,7 @@ __declspec(dllexport) int __cdecl initialize(int count, char *plugin_dir, int(*c
 	}
 	plugin_final_functions = (PyObject**)calloc(plugin_count, sizeof(PyObject*));
 	if (plugin_final_functions == NULL) {
-		plog(LOG_ERROR, "Failed to allovate memory for %d plugins", plugin_count);
+		plog(LOG_ERROR, "Failed to allocate memory for %d plugins", plugin_count);
 		return 1;
 	}
 
