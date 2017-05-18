@@ -108,6 +108,10 @@ bool Plugin::plugin_loop() { //TODO
 	// clean up
 	thlog() << "Ending Plugin loop for " << name;
 
+	if (finalize) {
+		finalize();
+	}
+
 	return true;
 }
 

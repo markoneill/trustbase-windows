@@ -104,7 +104,7 @@ bool Communications::debug_recv_query() {
 		Sleep(1000);
 	}
 
-	// flip keep running
+	// flip keep running to close the Policy Engine
 	Communications::keep_running = false;
 	qq->enqueue(nullptr);
 	return true;
