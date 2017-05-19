@@ -5,7 +5,7 @@
 
 ## Structure Overview
 
-Trusthub for Windows is built of two main subgroups, the **Kernel Driver** and the **Policy Engine**. The **Kernel Driver** monitors connections, identifies TLS connections, and parses out the relevant information. The certificate chain and other relevant meta-data are passed to the **Policy Engine** for evaluation. The Policy Engine runs a pluggable list of validation protocols asynchronously to validate or reject the certificate. The Policy Engine then instructs the Kernel Driver to either allow or sever the connection.
+Trusthub for Windows has two main subgroups, the **Kernel Driver** and the **Policy Engine**. The **Kernel Driver** monitors connections, identifies TLS connections, and parses out the relevant information. The certificate chain and other relevant meta-data are passed to the **Policy Engine** for evaluation. The Policy Engine runs a pluggable list of validation protocols asynchronously to validate or reject the certificate. The Policy Engine then instructs the Kernel Driver to either allow or sever the connection.
 
 ## Kernel Driver Structure
 
