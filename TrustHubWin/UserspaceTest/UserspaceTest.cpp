@@ -78,52 +78,51 @@ int main(int argc, char* argv[]) {
 	printf("Process Path Size: %lx\r\n", processPathSize);
 	cursor += sizeof(UINT32);
 
-	/*for (int i = 0; i < processPathSize; i++) {
+	for (int i = 0; i < processPathSize; i++) {
 		printf("%s%02x ", (!(i % 16) ? "\r\n" : (!(i % 8) ? "   " : (!(i % 4) ? " " : ""))), *cursor);
 		cursor++;
 	}
-	printf("\r\n");*/
+	printf("\r\n");
 
 	DWORD clientHelloSize = *((UINT32*)cursor);
 	printf("Client Hello Size: %lx\r\n", clientHelloSize);
 	cursor += sizeof(UINT32);
 
-	/*for (int i = 0; i < clientHelloSize; i++) {
+	for (int i = 0; i < clientHelloSize; i++) {
 		printf("%s%02x ", (!(i % 16) ? "\r\n" : (!(i % 8) ? "   " : (!(i % 4) ? " " : ""))), *cursor);
 		cursor++;
-	}*/
+	}
 	printf("\r\n");
 
 	DWORD serverHelloSize = *((UINT32*)cursor);
 	printf("Server Hello Size: %lx\r\n", serverHelloSize);
 	cursor += sizeof(UINT32);
 
-	/*for (int i = 0; i < serverHelloSize; i++) {
+	for (int i = 0; i < serverHelloSize; i++) {
 		printf("%s%02x ", (!(i % 16) ? "\r\n" : (!(i % 8) ? "   " : (!(i % 4) ? " " : ""))), *cursor);
 		cursor++;
 	}
-	printf("\r\n");*/
+	printf("\r\n");
 
 	DWORD dataSize = *((UINT32*)cursor);
 	printf("Certificate Size: %lx\r\n", dataSize);
 	cursor += sizeof(UINT32);
 
-	/*for (int i = 0; i < dataSize; i++) {
+	for (int i = 0; i < dataSize; i++) {
 		printf("%s%02x ", (!(i % 16) ? "\r\n" : (!(i % 8) ? "   " : (!(i % 4) ? " " : ""))), *cursor);
 		cursor++;
-	}*/
+	}
 	printf("\r\n");
 
 
-	/*if (save_one) {
+	if (true) {
 		// save buffer
 		char* filename = "example_query.bin";
 
 		std::ofstream(filename, std::ios::binary).write((const char*)buf, Read);
 
-		printf("Wrote to file : %s\r\n", filename);
-		save_one = false;
-	}*/
+		printf("Saved query to file : %s\r\n", filename);
+	}
 
 	printf("Respond with succcess?\r\n>>(y/n)");
 	char choice;
