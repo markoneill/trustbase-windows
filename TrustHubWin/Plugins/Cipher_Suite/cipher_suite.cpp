@@ -6,7 +6,7 @@
 //#include <libgen.h>
 #include "trusthub_plugin.h"
 
-#define CONFIG_FILE "/../plugin-config/cipher_suite.cfg"
+#define CONFIG_FILE "/plugin-config/cipher_suite.cfg"
 #define PLUGIN_INIT_ERROR -1
 
 #define CLIENT_HELLO_CIPHER_LEN_OFF	0x27

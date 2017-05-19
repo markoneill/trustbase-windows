@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef THLOGGER_H
 #define THLOGGER_H
 

@@ -195,8 +195,8 @@ Query* Communications::parse_query(UINT8* buffer, UINT64 buflen) {
 			throw std::runtime_error("");
 		}
 		cert = new UINT8[certSize];
-		if (!clientHello) {
-			thlog() << "Could not allocate " << clientHelloSize << " bytes while parsing query";
+		if (!cert) {
+			thlog() << "Could not allocate " << certSize << " bytes while parsing query";
 			throw std::bad_alloc();
 		}
 		memcpy(cert, cursor, certSize);

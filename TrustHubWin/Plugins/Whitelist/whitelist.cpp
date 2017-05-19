@@ -8,7 +8,12 @@
 #include "dirent.h"
 //#include <libgen.h>
 #include "trusthub_plugin.h"
-#include "OpenSSLPluginHelper.h"
+
+#include <openssl/pem.h>
+extern "C"
+{
+#include "openssl/applink.c"
+}
 
 //substitute for fnmatch
 //#include <fnmatch.h>
@@ -56,8 +61,7 @@ __declspec(dllexport) int __cdecl query(query_data_t* data) {
 	plog(LOG_DEBUG, "Whitelist: query function ran");
 	plog(LOG_DEBUG, "Whitelist querying");
 	/* Only check the leaf certificate */
-	STACK_OF(X509)* certChain = OpenSSLPluginHelper::parse_chain(data->raw_chain, data->raw_chain_len);
-	cert = sk_X509_value(certChain, 0);
+	cert = sk_X509_value(data->chain, 0);
 	//print_certificate(cert);
 
 	/* Get the fingerprint for the leaf cert */
@@ -140,12 +144,12 @@ static int compare_fingerprint(unsigned char *fp1, int fp1len, unsigned char *fp
 	strncpy(whitelist_dir, plugin_path, strlen(plugin_path) + 1);
 	
 	//sub for dirname
-	char *p = strrchr(whitelist_dir, '\\');
+	char *p = strrchr(whitelist_dir, '/');
 	if (p) { p[0] = 0; }
 	//whitelist_dir = dirname(temp_path);
 	//end sub
 
-	strcat(whitelist_dir, "\\whitelist");
+	strcat(whitelist_dir, "/whitelist");
 	plog(LOG_DEBUG, "Getting whitelist at %s", whitelist_dir);
 	whitelist = sk_X509_new_null();
 

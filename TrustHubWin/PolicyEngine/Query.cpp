@@ -97,8 +97,8 @@ STACK_OF(X509)* Query::parse_chain(unsigned char* data, size_t len) {
 		cert_ptr = current_pos;
 		cert = d2i_X509(NULL, &cert_ptr, cert_len);
 		if (!cert) {
-			printf("unable to parse certificate");
 			thlog() << "unable to parse certificate";
+			return NULL;
 		}
 		//thlog_cert(cert);
 

@@ -1,6 +1,13 @@
 #include "stdafx.h"
 #include "Plugin.h"
-
+//app link include required here in order for plugins to use it openssl functionally correctly
+#ifndef APPLINK_
+#define APPLINK_
+extern "C"
+{
+#include "openssl/applink.c"
+}
+#endif //APPLINK
 static QueryQueue* qq;
 
 Plugin::Plugin() {

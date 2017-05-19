@@ -1,8 +1,8 @@
 #pragma once
 #include <stdint.h>
-#include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include "THLogger_Level.h"
+
 #define PLUGIN_RESPONSE_ERROR	-1
 #define PLUGIN_RESPONSE_VALID	1
 #define PLUGIN_RESPONSE_INVALID	0

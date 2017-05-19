@@ -3,7 +3,6 @@
 #include <string.h>
 #include "trusthub_plugin.h"
 #include <openssl/x509.h>
-#include "OpenSSLPluginHelper.h"
 
 #define MAX_LENGTH	1024
 
@@ -42,17 +41,10 @@ __declspec(dllexport) int __cdecl query(query_data_t* data) {
 	plog(LOG_DEBUG, "OpenSSL Test Plugin checking cert for host: %s\n", data->hostname);
 	plog(LOG_DEBUG, "Certificate Data:\n");
 
-	STACK_OF(X509)* certChain = OpenSSLPluginHelper::parse_chain(data->raw_chain, data->raw_chain_len);
-
-	cert = sk_X509_value(certChain, 0);
-	pub_key = X509_get_pubkey(cert);
-	pkey_buf = NULL;
-	i2d_PUBKEY(pub_key, &pkey_buf);
-
-	int count = sk_X509_num(certChain);
+	int count = sk_X509_num(data->chain);
 	for (i = 0; i < count; i++) {
-	cert = sk_X509_value(certChain, i);
-	//print_certificate(cert);
+	cert = sk_X509_value(data->chain, i);
+	print_certificate(cert);
 	}
 	return PLUGIN_RESPONSE_VALID;
 }

@@ -78,9 +78,11 @@ int thlog::pluginTHLog(thlog_level_t level, const char* format, ...)
 	va_list args;
 	// Parse the args
 	va_start(args, format);
-	int count = _scprintf(format, args);
+	int count2 = strlen(format);
+	int count = _vscprintf(format, args);
 	char* buffer = (char*)malloc(count + 1);
 	vsprintf(buffer, format, args);
+	int count3 = strlen(buffer);
 	thlog(level) << buffer;
 	//thlog(level) << format;
 

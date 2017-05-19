@@ -10,7 +10,6 @@
 #include <openssl/sha.h>
 #include <openssl/asn1.h>
 #include "trusthub_plugin.h"
-#include "OpenSSLPluginHelper.h"
 #define PINNING_DATABASE "pinned_certs.db"
 
 #ifdef __cplusplus
@@ -31,26 +30,28 @@ int(*plog)(thlog_level_t level, const char* format, ...);
 static time_t ASN1_GetTimeT(ASN1_TIME* time);
 
 __declspec(dllexport) int __cdecl initialize(init_data_t* idata) {
-	plog = idata->log;
-	database_path = NULL;
-	database_path = (char*)malloc(strlen(idata->plugin_path) + 2 + strlen(PINNING_DATABASE));
-	if (database_path == NULL) {
-		return -1;
-	}
-	//sub for dirname
-	char* plugin_path = (char*)malloc(strlen(idata->plugin_path) + 1);
-	strcpy(plugin_path, idata->plugin_path);
-	char *p = strrchr(plugin_path, '\\');
-	if (p) { p[0] = 0; }
-	//strncpy(database_path, dirname(idata->plugin_path), strlen(idata->plugin_path));
-	strncpy(database_path, plugin_path, strlen(plugin_path));
+	const char* plugin_path;
+	int i;
 
-	//end sub
-	strcat(database_path, "\\");
+	plog = idata->log;
+
+	// make the path for our plugin
+	plugin_path = idata->plugin_path;
+	database_path = (char*)malloc(strlen(plugin_path) + strlen(PINNING_DATABASE) + 1);
+	strcpy(database_path, plugin_path);
+	database_path[strlen(plugin_path)] = '\0';
+
+	// put a \0 in the thing
+	for (i = strlen(database_path) - 1; i>0; i--) {
+		if (database_path[i] == '/' || database_path[i] == '\\') {
+			database_path[i] = '\0';
+			break;
+		}
+	}
+
+	strcat(database_path, "/");
 	strcat(database_path, PINNING_DATABASE);
 
-
-	free(plugin_path);
 	plog(LOG_DEBUG, "CERT PINNING: Trying to use database at %s", database_path);
 	return 0;
 }
@@ -73,8 +74,7 @@ __declspec(dllexport) int __cdecl query(query_data_t* data) {
 
 	plog(LOG_DEBUG, "cert_pinning: query function ran");
 
-	STACK_OF(X509)* certChain = OpenSSLPluginHelper::parse_chain(data->raw_chain, data->raw_chain_len);
-	cert = sk_X509_value(certChain, 0);
+	cert = sk_X509_value(data->chain, 0);
 	pub_key = X509_get_pubkey(cert);
 	pkey_buf = NULL;
 	i2d_PUBKEY(pub_key, &pkey_buf);
