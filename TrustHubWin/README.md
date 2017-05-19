@@ -9,61 +9,63 @@ Trusthub for Windows has two main subgroups, the **Kernel Driver** and the **Pol
 
 ## Kernel Driver Structure
 
-The Kernel Driver uses the 'Windows Filtering Platform' in order to get all of the relevant information.
+The Kernel Driver uses the 'Windows Filtering Platform' to identify TLS connections, extract certificates and metadata, and block/allow TLS connections.
 
 ### Driver Setup
 
-The Driver is initialized mainly in 'Driver.c'. The `DriverEntry` function is called when the driver is inserted. The driver must register a device, which will be a instance of the driver. We do that in `THInitDriverAndDevice`. There we also create a symbolic link so our driver can be 'read' and 'written' to as a file by the Policy Engine. Also IO queues, Message queues, and Work Items are all set up here, which we will explain later.
+The Driver is mainly initialized in 'Driver.c'. The `DriverEntry` function is called when the driver is loaded. The driver must register a device `WDFDEVICE`, which will be a instance of the driver. We do that in `THInitDriverAndDevice`. There we also create a symbolic link so our driver can be 'read' and 'written' to as a file by the Policy Engine. Also IO queues, Message queues, and Work Items are all set up here, which we will explain later.
 
 ### Callout Layers
 
-The function `THRegisterCallouts` in 'Driver.c' is where we prepare the Windows Filtering Platform's engine. The Windows Filtering Platform allows us to insert into different network layers and inspect, modify, allow, or disallow the connection. Each layer callouts are added on a sublayer, the callouts are added, and the filters are added. Each layer has a 'Classify', 'Notify', and 'Flow Delete' callout. The registered callback functions are all in the 'TrustHubCallout.c' file.
+The function `THRegisterCallouts` in 'Driver.c' is where we prepare the Windows Filtering Platform's engine. The Windows Filtering Platform allows us to insert into different network layers and inspect, modify, allow, or disallow the connection. The network pipeline is divided in layers and sublayers. We add filters to the layers we want to inspect. When the filters find a match, they trigger our callout. We are using the 'Classify', 'Notify', and 'Flow Delete' callout types. The registered callout functions are all defined in the 'TrustHubCallout.c' file.
 
-A 'Notify' callout is called for events that have to do with the callout, such as filter addition and filter deletion.
+A 'Notify' callout is called whenever there are changes to a callout, such as filter addition and filter deletion.
 
-A 'Flow Delete' callout is called when a when a data flow is stopped, and provides a chance to clean up.
+A 'Flow Delete' callout is called as a data flow is stopped, and provides a chance to clean up our context information.
 
 A 'Classify' callout is where our callouts can inspect data, and allow or deny the data flow.
 
 We have filters at the ALE (Application Layer Enforcement) Layer and the Stream Layer. Officially, the layer identifiers are `FWPM_LAYER_ALE_FLOW_ESTABLISHED_V` and `FWPM_LAYER_STREAM_V4`. The ALE layer provides us with information on the program that initialized the data stream, and the Stream layer lets us inspect the data, to parse TLS handshakes.
 
-A data flow can have an associated "Context" used to associate our own metadata and state with each specific flow. The structure of our context information can be seen in 'ConnectionContext.h'.
+A data flow has an associated "Context" where we can store our own metadata and state with each specific flow. The structure of our context information can be seen in 'ConnectionContext.h'.
 
-We allocate our context in the ALE classify callout, and free it after our stream flow delete. The context is shared between layers, associated with the data flow.
+We allocate our context in the ALE classify callout, and free it after our stream flow delete. The context is shared between layers because it is associated with the data flow.
 
 ### Handshake Parsing
 
 The file 'HandshakeHandler.c' holds our parsing code, which will search the stream data for a TLS handshake, and extract out the Client Hello, Server Hello, and certificate. It will copy each of these into an array of bytes into the flow's context.
 
-The main controlling function is `updateState`, which is called by the stream callout whenever more data comes in. This function will return `RA_NEED_MORE` when a data packet it receives doesn't contain all of the data it needs, and the . `RA_NEED_MORE` will cause the stream callout to only be called again when the buffer has been extended with at least the number of bytes needed for the next portion.
+The main controlling function is `updateState`, which is called by the stream callout whenever more data comes in. This function will return `RA_NEED_MORE` when a data packet it receives doesn't contain all of the data it needs. The `RA_NEED_MORE` will cause the stream callout to only be called again by the 'Windows Filtering Platform' when the buffer has been extended with at least the number of bytes needed for the next portion.
 
-The handshake handling will return `RA_CONTINUE` if it just wants to continue to the next packet, for example after the Client Hello is processed.
+The handshake handling will return `RA_CONTINUE` if it should continue parsing the next packet, for example after the Client Hello is processed, but before the Server Hello has been received.
 
-The handshake handler will return `RA_NOT_INTERESTED` when the stream is not relevant, or we are finished with the stream.
+The handshake handler will return `RA_NOT_INTERESTED` when the stream is not relevant (i.e. not TLS), or we are finished with the stream.
 
-The handshake handler will return `RA_WAIT` after grabbing the certificate, to let the driver know it needs to hand a query to the Policy Engine to validate the stream before we can choose to allow or deny the stream.
+The handshake handler will return `RA_WAIT` after grabbing the certificate. Then the driver will hand a query to the Policy Engine to validate the stream. The driver will receive a response back from Policy Engine. This is necessary before we can choose to allow or deny the stream.
 
 ### Message and Response Queues
 
-There are two internal storage queues used, the `THResponses` queue, and the `THOutputQueue`. Responses are added to their queue in `send Certificate` in 'TrustHubCallout.c', waiting for a response from the Policy Engine. When a response comes back, it will be added into the queued item, and the stream callout will be able to lookup how to handle the stream.
+There are two internal storage queues used, the `THResponses` queue, and the `THOutputQueue`. Empty objects are added to the `THResponses` queue in `sendCertificate` in 'TrustHubCallout.c'. These objects wait for an response from the Policy Engine. 
 
-The output queue will contain the query we want to send out to the policy engine when we handle a read event.
+The `THOutputQueue` stores queries we want to send out to the policy engine the next time we handle a read event.
+
+When a response comes back, it will be added into the queued object in the `THResponses`, and the stream callout will be able to lookup how to handle the stream.
 
 ### Communication
 
-Communication works by handling `IRP_MJ_WRITE` and `IRP_MJ_READ` requests to the driver's symbolic link. To the Policy Engine, it looks like a simple read and write. Each event is tied to a WDF I/O queue. The Queues are enabled and disabled so our callbacks only handle the requests when we have content to deal with. 
+Kernel Driver <-> Policy Engine communication sends `IRP_MJ_WRITE` and `IRP_MJ_READ` requests to the driver's symbolic link. To the Policy Engine, it looks like a simple read and write. Each read/write event is tied to a WDF I/O Queue. Each WDF I/O Queue is enabled and disabled so our callbacks only handle the requests when we have content. 
 
 The Read Queue needs to be enabled after we parse the certificate, but the stream callout runs at too high of a runtime level (the IRQL is dispatch level) to enable the queue. If we were to try to enable the I/O queue at this level it would result in deadlock. To fix this we use a Work Item which will run at a lower runtime level, running the function `THReadyRead`. Also in 'TrustHubCommunication.c' are functions `ThIoRead` and `ThIoWrite` which handle the read and write request associated with the I/O queues.
 
 ## Policy Engine Structure
 
-The Policy Engine gets information from a configuration file, then loads the associated plugins and polls each of them when it recieves a query, responding with a decision.
+The Policy Engine gets information from a configuration file, then loads the associated plugins and polls each of them when it recieves a query. Each query responds with a decision or times out.
 
 ### Initialization and Configuration
 
-Our entry point is in the 'PolicyEngine.cpp' file. The first thing the `main` function does is load the plugin and configuration information from a configuration file using `context.loadConfig`.
+Our entry point is in the 'PolicyEngine.cpp' file. The `main` function first loads the plugin and configuration information from a configuration file using `context.loadConfig`.
 
-In order to load the configuration, we use libconfig++. The official version of libconfig++ would not build, so we have a fixed version in our repo. the Policy Engine project uses it by having a "Reference" in visual studio,  along with adding it's source directory as an include directory in:
+In order to load the configuration, we use libconfig++. The official version of libconfig++ would not build, so we have a fixed version in our repo. the Policy Engine project uses it by having a "Reference" in visual studio, along with adding it's source directory as an include directory in:
 
 > Policy Engine Properties -> Configuration Properties -> C/C++ -> General -> Additional Include Directories
 
@@ -71,7 +73,7 @@ Loading the configuration will also create all of the plugins specified in the c
 
 ### Plugins
 
-A plugin is a DLL that exports the specific functions query, initialize, and finalize, as defined in the file 'trusthub_plugin.h'. The Policy Engine, in the plugin function `init` uses LoadLibraryEx to load the DLL into memory, and uses GetProcAddress to find the symbols. Only query is required to be exported.
+A plugin is a DLL that exports the specific functions query, initialize, and finalize, as defined in the file 'trusthub_plugin.h'. The Policy Engine, in the plugin function `init` uses LoadLibraryEx to load the DLL into memory, and uses GetProcAddress to find the symbols. Only the query function is required to be exported.
 
 There are two main plugin types, synchronous and asynchronous. A synchronous plugin can just return one of the defined values in 'trusthub_plugin.h' like `PLUGIN_RESPONSE_...` .
 
@@ -79,9 +81,9 @@ An asynchronous plugin will ignore the return from the query function, and expec
 
 ### Communication and Query Queue
 
-The communications receives the query from the Kernel Driver, and parses it, creating a 'Query' object that will be shared among all plugins.
+The Communications class receives the query from the Kernel Driver, parses it, and creates a 'Query' object that will be shared among all plugins.
 
-The query is then enqueued in the 'QueryQueue'. This is actually had a queue for each plugin, along with a list to save references to queries for asynchronous response.
+The query is then enqueued in the 'QueryQueue'. This has a queue for each plugin, along with a list to save references to queries for asynchronous response.
 
 ### Decider
 
@@ -104,7 +106,10 @@ The Policy Engine can be tested on it's own if `COMMUNICATIONS_DEBUG_MODE` in co
 
 #### Plugins
 
-Plugins should be built as a 'DLL' that exports a the functions 'query,' 'initialize,' and 'finalize'. See 'SamplePlugin1' or 'SamplePlugin2' for examples.
+Plugins must be compiled to a 'DLL'. 
+Plugins must export the functions 'query,' 'initialize,' and 'finalize'. 
+
+See 'SamplePlugin1' or 'SamplePlugin2' for examples.
 
 #### Kernel Driver
 
