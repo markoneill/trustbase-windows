@@ -25,9 +25,9 @@
 extern "C" {  // only need to export C interface if  
 			  // used by C++ source code  
 #endif  
-	__declspec(dllexport) int __cdecl query(query_data_t*);
-	__declspec(dllexport) int __cdecl initialize(init_data_t*);
-	__declspec(dllexport) int __cdecl finalize();
+	__declspec(dllexport) int __stdcall query(query_data_t*);
+	__declspec(dllexport) int __stdcall initialize(init_data_t*);
+	__declspec(dllexport) int __stdcall finalize();
 #ifdef __cplusplus
 }
 #endif  
@@ -57,7 +57,7 @@ typedef struct cipher_settings_t {
 
 cipher_settings_t cipher_settings;
 
-__declspec(dllexport) int __cdecl initialize(init_data_t* idata) {
+__declspec(dllexport) int __stdcall initialize(init_data_t* idata) {
 	const char* plugin_path;
 	char* config_path;
 	int i;
@@ -87,7 +87,7 @@ __declspec(dllexport) int __cdecl initialize(init_data_t* idata) {
 	return 0;
 }
 
-__declspec(dllexport) int __cdecl query(query_data_t* data) {
+__declspec(dllexport) int __stdcall query(query_data_t* data) {
 	int rval;
 	plog(LOG_DEBUG, "cipher_suite: query function ran");
 	if (cipher_settings.isApproved == PLUGIN_INIT_ERROR) {
@@ -116,7 +116,7 @@ __declspec(dllexport) int __cdecl query(query_data_t* data) {
 	return rval;
 }
 
-__declspec(dllexport) int __cdecl finalize() {
+__declspec(dllexport) int __stdcall finalize() {
 	// free settings
 	free(cipher_settings.cipherList);
 	free(cipher_settings.requiredServerExtList);

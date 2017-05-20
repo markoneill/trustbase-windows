@@ -29,7 +29,7 @@ extern "C" {  // only need to export C interface if
 *	returns EXIT_SUCCESS on success and EXIT_FAILURE on failure
 */
 //int initialize(int plugin_count, char *plugin_directory, int (*callback_pointer)(int,int,int), const char *lib_file);
-__declspec(dllexport) int __cdecl initialize(int count, char *plugin_dir, int(*callback)(int, int, int), const char *lib_file, int(*log_func)(thlog_level_t level, const char* format, ...));
+__declspec(dllexport) int __stdcall initialize(init_addon_data_t*);
 
 /*
 *	Finalizes the Python Interpreter and frees memory from plugin pointers.
@@ -37,7 +37,7 @@ __declspec(dllexport) int __cdecl initialize(int count, char *plugin_dir, int(*c
 *
 *	returns EXIT_SUCCESS
 */
-__declspec(dllexport) int __cdecl finalize(void);
+__declspec(dllexport) int __stdcall finalize(void);
 
 /*
 *	Loads a specified python module into memory as a plugin, which remains in
@@ -53,7 +53,7 @@ __declspec(dllexport) int __cdecl finalize(void);
 *
 *	is_async: 0 if not async, 1 if is async
 */
-__declspec(dllexport) int __cdecl load_plugin(int id, char *file_name, int is_async);
+__declspec(dllexport) int __stdcall load_plugin(int id, char *file_name, int is_async);
 
 
 /*
@@ -65,7 +65,7 @@ __declspec(dllexport) int __cdecl load_plugin(int id, char *file_name, int is_as
 *	cert_chain: the cert chain to test for validity
 *	length: the length of cert_chain
 */
-__declspec(dllexport) int __cdecl query_plugin(int id, query_data_t* data);
+__declspec(dllexport) int __stdcall query_plugin(int id, query_data_t* data);
 
 /*
 *	id: a non-negative integer that is used as an index in an array
@@ -77,7 +77,7 @@ __declspec(dllexport) int __cdecl query_plugin(int id, query_data_t* data);
 *	length: the length of cert_chain
 *	query_id: the async query
 */
-__declspec(dllexport) int __cdecl query_plugin_async(int id, query_data_t* data);
+__declspec(dllexport) int __stdcall query_plugin_async(int id, query_data_t* data);
 #ifdef __cplusplus
 }
 #endif  
@@ -104,7 +104,7 @@ extern "C" {  // only need to export C interface if
 *		for which plugin to query as assigned by the load_plugin() function
 *
 */
-__declspec(dllexport) int __cdecl finalize_plugin(int id);
+__declspec(dllexport) int __stdcall finalize_plugin(int id);
 #ifdef __cplusplus
 }
 #endif  

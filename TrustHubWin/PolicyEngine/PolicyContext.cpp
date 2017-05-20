@@ -5,11 +5,14 @@
 PolicyContext::PolicyContext() {
 	this->plugins = NULL;
 	this->plugin_count = 0;
+	this->addons = NULL;
+	this->addon_count = 0;
 }
 
 
 PolicyContext::~PolicyContext() {
 	delete[] plugins;
+	delete[] addons;
 }
 
 bool PolicyContext::loadConfig(const char* path) {
@@ -30,10 +33,43 @@ bool PolicyContext::loadConfig(const char* path) {
 		return false;
 	}
 
-
 	try {
 		// Parse addons
-		//TODO
+		const libconfig::Setting& addons_group = cfg.lookup("addons");
+		count = addons_group.getLength();
+		addons = new Addon[count];
+		addon_count = count;
+
+		for (int i = 0; i < count; i++) {
+			std::string name;
+			std::string description = "";
+			std::string version = "";
+			std::string type;
+			std::string addonpath;
+
+			if (!addons_group[i].lookupValue("name", name)) {
+				thlog() << "Could not parse name of addon " << i;
+				continue;
+			}
+
+			addons_group[i].lookupValue("description", description);
+			addons_group[i].lookupValue("version", version);
+
+			if (!addons_group[i].lookupValue("type", type)) {
+				thlog() << "Could not parse type of addon " << name;
+				continue;
+			}
+
+			if (!addons_group[i].lookupValue("path", addonpath)) {
+				thlog() << "Could not parse path of addon " << name;
+				continue;
+			}
+
+			// Create and store addon object
+			addons[i] = Addon(i, name, addonpath, type, description, version);
+
+		}
+
 
 		// Parse plugins
 		const libconfig::Setting& plugin_group = cfg.lookup("plugins");
@@ -48,6 +84,7 @@ bool PolicyContext::loadConfig(const char* path) {
 			std::string description = "";
 			std::string version = "";
 			std::string type = "";
+			int openssl = 0;
 			if (!plugin_group[i].lookupValue("name", name)) {
 				thlog() << "Could not parse name of plugin " << i;
 				continue;
@@ -63,13 +100,26 @@ bool PolicyContext::loadConfig(const char* path) {
 			plugin_group[i].lookupValue("description", description);
 			plugin_group[i].lookupValue("version", version);
 			plugin_group[i].lookupValue("type", type);
+			plugin_group[i].lookupValue("openssl", openssl);
 
 			Plugin::Type ttype = Plugin::SYNC;
 			if (type.at(0) == 'a' || type.at(0) == 'A') {
 				ttype = Plugin::ASYNC;
 			}
+
+			Plugin::HandlerType httype = Plugin::UNKNOWN;
+			if (handler.compare("native") == 0) {
+				if (openssl==0) {
+					httype = Plugin::RAW;
+				}
+				else
+				{
+					httype = Plugin::OPENSSL;
+				}
+			}
+
 			// Create and store plugin object
-			plugins[i] = Plugin(i, name, ppath, handler, ttype, description, version);
+			plugins[i] = Plugin(i, name, ppath, handler, ttype, httype, description, version);
 		}
 
 		// Parse aggregation
@@ -98,7 +148,6 @@ bool PolicyContext::loadConfig(const char* path) {
 			getPlugin(plugin_name)->setValue(Plugin::CONGRESS);
 		}
 
-
 	} catch (const libconfig::SettingNotFoundException &nfex) {
 		thlog() << "Could not find setting " << nfex.getPath();
 		return false;
@@ -107,6 +156,15 @@ bool PolicyContext::loadConfig(const char* path) {
 		return false;
 	}
 
+	return true;
+}
+
+bool PolicyContext::initAddons() {
+	for (int i = 0; i < addon_count; i++) {
+		if (!addons[i].init(this->plugin_count,Plugin::async_callback)) {
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -123,7 +181,7 @@ Plugin * PolicyContext::getPlugin(const char * name) {
 
 bool PolicyContext::initPlugins() {
 	for (int i = 0; i < plugin_count; i++) {
-		if (!plugins[i].init()) {
+		if (!plugins[i].init(addons, addon_count)) {
 			return false;
 		}
 	}

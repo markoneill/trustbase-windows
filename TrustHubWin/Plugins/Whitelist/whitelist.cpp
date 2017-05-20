@@ -29,9 +29,9 @@ const char * plugin_path;
 extern "C" {  // only need to export C interface if  
 			  // used by C++ source code  
 #endif  
-	__declspec(dllexport) int __cdecl query(query_data_t*);
-	__declspec(dllexport) int __cdecl initialize(init_data_t*);
-	__declspec(dllexport) int __cdecl finalize();
+	__declspec(dllexport) int __stdcall query(query_data_t*);
+	__declspec(dllexport) int __stdcall initialize(init_data_t*);
+	__declspec(dllexport) int __stdcall finalize();
 #ifdef __cplusplus
 }
 #endif  
@@ -42,14 +42,14 @@ static STACK_OF(X509)* get_whitelist();
 
 static int pem_append(char* filename, STACK_OF(X509)* chain);
 
-__declspec(dllexport) int __cdecl initialize(init_data_t* idata) {
+__declspec(dllexport) int __stdcall initialize(init_data_t* idata) {
 	plugin_path = idata->plugin_path;
 	plog = idata->log;
 	plog(LOG_DEBUG, "Whitelist initilized");
 	return 0;
 }
 
-__declspec(dllexport) int __cdecl query(query_data_t* data) {
+__declspec(dllexport) int __stdcall query(query_data_t* data) {
 	X509* cert;
 	STACK_OF(X509)* whitelist;
 	EVP_MD* digest;
@@ -105,7 +105,7 @@ __declspec(dllexport) int __cdecl query(query_data_t* data) {
 }
 
 // Plugins can also have an optional exported "finalize" function that takes no arg
-__declspec(dllexport) int __cdecl finalize() {
+__declspec(dllexport) int __stdcall finalize() {
 	return PLUGIN_FINALIZE_OK;
 }
 static unsigned int get_cert_fingerprint(X509* cert, EVP_MD* digest, unsigned char* fingerprint, unsigned int* fingerprint_len) {

@@ -10,9 +10,9 @@
 extern "C" {  // only need to export C interface if  
 			  // used by C++ source code  
 #endif  
-	__declspec(dllexport) int __cdecl query(query_data_t*);
-	__declspec(dllexport) int __cdecl initialize(init_data_t*);
-	__declspec(dllexport) int __cdecl finalize();
+	__declspec(dllexport) int __stdcall query(query_data_t*);
+	__declspec(dllexport) int __stdcall initialize(init_data_t*);
+	__declspec(dllexport) int __stdcall finalize();
 
 #ifdef __cplusplus
 }
@@ -33,7 +33,7 @@ void print_certificate(X509* cert) {
 // Plugins must include the "trusthub_plugin.h" header
 // In visual studio, add the path to the Policy engine code under:
 //   Configuration Properties->C/C++->General->Additional Include Directories
-__declspec(dllexport) int __cdecl query(query_data_t* data) {
+__declspec(dllexport) int __stdcall query(query_data_t* data) {
 	int i;
 	X509* cert;
 	EVP_PKEY* pub_key;
@@ -50,13 +50,13 @@ __declspec(dllexport) int __cdecl query(query_data_t* data) {
 }
 
 // Plugins can also have an optional exported "initialize" function that takes an init_data_t* arg
-__declspec(dllexport) int __cdecl initialize(init_data_t* idata) {
+__declspec(dllexport) int __stdcall initialize(init_data_t* idata) {
 	plog = idata->log;
 
 	return PLUGIN_INITIALIZE_OK;
 }
 
 // Plugins can also have an optional exported "finalize" function that takes no arg
-__declspec(dllexport) int __cdecl finalize() {
+__declspec(dllexport) int __stdcall finalize() {
 	return PLUGIN_FINALIZE_OK;
 }

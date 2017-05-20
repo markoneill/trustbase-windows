@@ -18,16 +18,16 @@ const char *this_file = "python_plugins.dll";
 int(*async_callback)(int, int, int);
 int(*plog)(thlog_level_t level, const char* format, ...);
 
-__declspec(dllexport) int __cdecl initialize(int count, char *plugin_dir, int(*callback)(int, int, int), const char *lib_file, int(*log_func)(thlog_level_t level, const char* format, ...)) {
+__declspec(dllexport) int __stdcall initialize(init_addon_data_t* data) {
 	char python_stmt[128];
 	char *argv_path[] = { "" };
 	Py_Initialize();
-	plugin_count = count;
+	plugin_count = data->plugin_count;
 
-	plog = log_func;
+	plog = data->log;
 
-	async_callback = callback;
-	this_file = lib_file;
+	async_callback = data->callback;
+	this_file = data->lib_file;
 
 	// Set the python module search path to plugin_dir
 	PySys_SetArgvEx(0, argv_path, 0);
@@ -55,7 +55,7 @@ __declspec(dllexport) int __cdecl initialize(int count, char *plugin_dir, int(*c
 	return 0;
 }
 
-__declspec(dllexport) int __cdecl finalize(void) {
+__declspec(dllexport) int __stdcall finalize(void) {
 	int i;
 	for (i = 0; i < plugin_count; i++) {
 		if (plugin_functions[i] != NULL) {
@@ -82,7 +82,7 @@ __declspec(dllexport) int __cdecl finalize(void) {
 * @param id The plugin id, and it's query function's index in pluginfunctions
 * @param file_name The path to the file, must have at least one / and end in .py
 */
-__declspec(dllexport) int __cdecl load_plugin(int id, char* file_name, int is_async) {
+__declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_async) {
 	PyObject* pName;
 	PyObject* pModule;
 	PyObject* pFunc;
@@ -99,7 +99,7 @@ __declspec(dllexport) int __cdecl load_plugin(int id, char* file_name, int is_as
 	if (dot_ptr != NULL) {
 		*dot_ptr = '\0';
 	}
-	slash_ptr = strrchr(path, '\\');
+	slash_ptr = strrchr(path, '/');
 	if (slash_ptr != NULL) {
 		*slash_ptr = '\0';
 		module_name = slash_ptr + 1;
@@ -292,7 +292,7 @@ __declspec(dllexport) int __cdecl load_plugin(int id, char* file_name, int is_as
 * @param length The length of cert_chain
 */
 
-__declspec(dllexport) int __cdecl query_plugin(int id, query_data_t* data) {
+__declspec(dllexport) int __stdcall query_plugin(int id, query_data_t* data) {
 	int result;
 	int set_arg;
 	PyObject* pFunc;
@@ -417,7 +417,7 @@ __declspec(dllexport) int __cdecl query_plugin(int id, query_data_t* data) {
 * @param cert_chain A character representation of the certificate chain
 * @param length The length of cert_chain
 */
-__declspec(dllexport) int __cdecl query_plugin_async(int id, query_data_t* data) {
+__declspec(dllexport) int __stdcall query_plugin_async(int id, query_data_t* data) {
 	int result;
 	int set_arg;
 	PyObject* pFunc;
@@ -559,7 +559,7 @@ int callback(int result, int plugin_id, int query_id) {
 	return 0;
 }
 
-__declspec(dllexport) int __cdecl finalize_plugin(int id) {
+__declspec(dllexport) int __stdcall finalize_plugin(int id) {
 	PyObject* pValue;
 	PyObject* pFunc;
 	// Call finalize functions

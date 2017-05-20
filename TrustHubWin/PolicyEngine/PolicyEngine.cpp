@@ -34,7 +34,10 @@ int main()
 	}
 
 	// initialize addons
-
+	if (!context.initAddons()) {
+		thlog() << "Failed to init Addons, exiting...";
+		return -1;
+	}
 	// initialize plugins
 	if (!context.initPlugins()) {
 		thlog() << "Failed to init Plugins, exiting...";
@@ -73,10 +76,15 @@ int main()
 	for (int i = 0; i <= context.plugin_count; i++) {
 		plugin_threads[i].join();
 	}
+	
 	delete[] plugin_threads;
 
 	// cleanup communication
 	Communications::cleanup();
+
+	for (int i = 0; i < context.addon_count; i++) {
+		context.addons[i].cleanup();
+	}
 
 	thlog() << "Finished, exiting...\n";
     return 0;

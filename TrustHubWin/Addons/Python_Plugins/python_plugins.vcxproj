@@ -66,7 +66,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;python_plugins_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\tools\openssl-64-debug\lib;..\..\tools\openssl-64-debug\include;..\..\PolicyEngine;..\..\THLogger;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\tools\openssl-64-debug\lib;..\..\tools\openssl-64-debug\include;..\..\PolicyEngine;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

@@ -16,9 +16,9 @@
 extern "C" {  // only need to export C interface if  
 			  // used by C++ source code  
 #endif  
-	__declspec(dllexport) int __cdecl query(query_data_t*);
-	__declspec(dllexport) int __cdecl initialize(init_data_t*);
-	__declspec(dllexport) int __cdecl finalize();
+	__declspec(dllexport) int __stdcall query(query_data_t*);
+	__declspec(dllexport) int __stdcall initialize(init_data_t*);
+	__declspec(dllexport) int __stdcall finalize();
 #ifdef __cplusplus
 }
 #endif  
@@ -29,7 +29,7 @@ int(*plog)(thlog_level_t level, const char* format, ...);
 
 static time_t ASN1_GetTimeT(ASN1_TIME* time);
 
-__declspec(dllexport) int __cdecl initialize(init_data_t* idata) {
+__declspec(dllexport) int __stdcall initialize(init_data_t* idata) {
 	const char* plugin_path;
 	int i;
 
@@ -56,7 +56,7 @@ __declspec(dllexport) int __cdecl initialize(init_data_t* idata) {
 	return 0;
 }
 
-__declspec(dllexport) int __cdecl query(query_data_t* data) {
+__declspec(dllexport) int __stdcall query(query_data_t* data) {
 	int rval;
 	unsigned char* hash;
 	unsigned char* stored_hash;
@@ -160,7 +160,7 @@ __declspec(dllexport) int __cdecl query(query_data_t* data) {
 	return rval;
 }
 
-__declspec(dllexport) int __cdecl finalize() {
+__declspec(dllexport) int __stdcall finalize() {
 	if (database_path != NULL) {
 		free(database_path);
 	}

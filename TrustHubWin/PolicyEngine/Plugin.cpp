@@ -21,14 +21,19 @@ Plugin::Plugin(const Plugin & other) {
 	this->version = other.version;
 	this->type = other.type;
 	this->value = other.value;
+	this->handlerType = other.handlerType;
 
 	this->query = other.query;
 	this->initialize = other.initialize;
 	this->finalize = other.finalize;
+
+	this->query_by_addon = other.query_by_addon;
+	this->finalize_by_addon = other.finalize_by_addon;
+
 	this->id = other.id;
 }
 
-Plugin::Plugin(int id, std::string name, std::string path, std::string handler, Plugin::Type type, std::string description, std::string version) {
+Plugin::Plugin(int id, std::string name, std::string path, std::string handler, Plugin::Type type, Plugin::HandlerType handlerType, std::string description, std::string version) {
 	this->name = name;
 	this->path = path;
 	this->handler = handler;
@@ -36,17 +41,31 @@ Plugin::Plugin(int id, std::string name, std::string path, std::string handler, 
 	this->version = version;
 	this->type = type;
 	this->value = Plugin::IGNORED;
+	this->handlerType = handlerType;
 	this->id = id;
 
 	this->query = NULL;
 	this->initialize = NULL;
 	this->finalize = NULL;
+
+	this->query_by_addon = NULL;
+	this->finalize_by_addon = NULL;
 }
 
 Plugin::~Plugin() {
 }
 
-bool Plugin::init() {
+bool Plugin::init(Addon* addons, size_t addon_count) {
+
+	if (this->handlerType == RAW || this->handlerType == OPENSSL) {
+		return init_native();
+	}
+	else{
+		return init_addon(addons, addon_count);
+	}
+}
+
+bool Plugin::init_native() {
 	HINSTANCE hDLL;
 
 	std::wstring wpath = std::wstring(path.begin(), path.end());
@@ -64,7 +83,6 @@ bool Plugin::init() {
 		thlog() << "Could not locate 'query' function for plugin : " << name;
 		return false;
 	}
-
 	initialize = (initialize_func_t)GetProcAddress(hDLL, "initialize");
 	finalize = (finalize_func_t)GetProcAddress(hDLL, "finalize");
 
@@ -80,6 +98,47 @@ bool Plugin::init() {
 
 	return true;
 }
+bool Plugin::init_addon(Addon* addons, size_t addon_count) {
+
+	//find correct Addon
+	Addon* correctAddon = NULL;
+	for (int i = 0; i < addon_count; i++) {
+		if (this->handler.compare(addons[i].getTypeHandled()) == 0) {
+			correctAddon = &addons[i];
+			break;
+		}
+	}
+	if (correctAddon == NULL) {
+		thlog() << "Could not find any matching addons";
+		return false;
+	}
+
+	//found correct Addon
+	//resolve addon function addresses
+	this->handlerType = ADDON;
+	if (this->type == SYNC) {
+		if (correctAddon->loadPlugin(this->id, this->path, 0) == 0) {
+			this->query_by_addon = correctAddon->getQueryFunction();
+		}
+		else {
+			this->query_by_addon = NULL;
+			thlog(LOG_WARNING) << "Could not load plugin "<<this->name;
+		}
+	}
+	else if (this->type == ASYNC) {
+		if (correctAddon->loadPlugin(this->id, this->path, 1) == 0) {
+			this->query_by_addon = correctAddon->getAsyncQueryFunction();
+		}
+		else {
+			this->query_by_addon = NULL;
+			thlog(LOG_WARNING) << "Could not load plugin " << this->name;
+		}
+	}
+	this->finalize_by_addon = correctAddon->getFinalizedFunction();
+
+	return true;
+}
+
 
 bool Plugin::plugin_loop() { //TODO
 	// DEBUG
@@ -103,7 +162,26 @@ bool Plugin::plugin_loop() { //TODO
 		// TODO set default response for this plugin
 
 		// run the query plugin function
-		int response = this->query(&(newquery->data));
+		int response;
+		if (this->handlerType == RAW || this->handlerType == OPENSSL) {
+			thlog() << "Running native query";
+			if (this->query == NULL) {
+				return PLUGIN_RESPONSE_ERROR;
+			}
+			response = this->query(&(newquery->data));
+		}
+		else if (this->handlerType == ADDON) {
+			thlog() << "Running addon query";
+			if (this->query_by_addon == NULL) {
+				return PLUGIN_RESPONSE_ERROR;
+			}
+			response = this->query_by_addon(this->id, &(newquery->data));
+		}
+		else {
+			thlog() << "Plugin " << id << " had unknown handlerType set, skipping...";
+			continue;
+		}
+
 		if (type == Plugin::SYNC) {
 			// set response
 			newquery->setResponse(id, response);
@@ -114,7 +192,19 @@ bool Plugin::plugin_loop() { //TODO
 	
 	// clean up
 	thlog() << "Ending Plugin loop for " << name;
-
+	if (this->handlerType == RAW || this->handlerType == OPENSSL) {
+		thlog() << "Running native finalize";
+		if (this->finalize) {
+			thlog() << "Running native finalize";
+			this->finalize();
+		}
+	}
+	else if (this->handlerType == ADDON) {
+		if (this->query_by_addon) {
+			thlog() << "Running addon finalize";
+			this->finalize_by_addon(this->id);
+		}
+	}
 	return true;
 }
 
@@ -145,7 +235,23 @@ void Plugin::printInfo() {
 	default:
 		thlog() << "\t\t Aggregation Group: None";
 	}
-	thlog() << "\t\t Query Function: 0x" << std::hex << query;
+
+	if (this->handlerType == Plugin::RAW) {
+		thlog() << "\t\t Handler Type: Raw Data";
+		thlog() << "\t\t Query Function: 0x" << std::hex << query;
+
+	}
+	else if (this->handlerType == Plugin::OPENSSL) {
+		thlog() << "\t\t Handler Type: OpenSSL Data";
+		thlog() << "\t\t Query Function: 0x" << std::hex << query;
+
+	}
+	else if (this->handlerType == Plugin::ADDON) {
+		thlog() << "\t\t Handler Type: Addon-handled" << this->handler;
+		thlog() << "\t\t Query_By_Addon Function: 0x" << std::hex << query_by_addon;
+
+	}
+
 	thlog() << "\t },";
 }
 

@@ -34,7 +34,21 @@ typedef struct init_data_t {
 	int(*log)(thlog_level_t level, const char* format, ...);
 } init_data_t;
 
+typedef struct init_addon_data_t {
+	size_t plugin_count;
+	const char* plugin_dir;
+	const char *lib_file;
+	int(*callback)(int plugin_id, int query_id, int plugin_response);
+	int(*log)(thlog_level_t level, const char* format, ...);
+} init_addon_t;
 
 typedef int(__stdcall *query_func_t)(query_data_t*);
 typedef int(__stdcall *initialize_func_t)(init_data_t*);
 typedef int(__stdcall *finalize_func_t)(void);
+
+typedef int(__stdcall *addon_initialize)(init_addon_data_t*);
+typedef int(__stdcall *addon_finalize)(void);
+typedef int(__stdcall *addon_load_plugin)(int, char*, int);
+typedef int(__stdcall *addon_query_plugin)(int, query_data_t*);
+typedef int(__stdcall *addon_async_query_plugin)(int, query_data_t*);
+typedef int(__stdcall *addon_finalize_plugin)(int);
