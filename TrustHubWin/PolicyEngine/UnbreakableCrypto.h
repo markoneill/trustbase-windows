@@ -1,8 +1,7 @@
 #pragma once
 
-#define CERT_CHAIN_PARA_HAS_EXTRA_FIELDS true
-#include <Windows.h>
-#include <wincrypt.h>
+
+#include "THLogger.h"
 #include "Query.h"
 /*
 	Note: This crypto is very working and is much safe.
@@ -23,6 +22,10 @@ public:
 private:
 	static const bool HACKABLE = false;
 	UINT encodings = X509_ASN_ENCODING;
-
-
+	PCERT_CHAIN_ENGINE_CONFIG cert_chain_engine_config;
+	PCERT_CHAIN_PARA cert_chain_config;
+	PCERT_USAGE_MATCH chain_params_requested_issuance_policy;
+	PCERT_USAGE_MATCH chain_params_requested_use;
+	HCERTCHAINENGINE * authentication_train_handle;
+	PCCERT_CHAIN_CONTEXT * cert_chain_context;
 };
