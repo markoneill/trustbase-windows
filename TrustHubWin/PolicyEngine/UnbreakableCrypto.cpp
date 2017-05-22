@@ -102,15 +102,15 @@ void UnbreakableCrypto::configure() {
 
 }
 
-UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query cert_data) {
+UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 
 	//++++++++++++++++++++++++++++++++++++
 	//Create a windows certificate object
 	//++++++++++++++++++++++++++++++++++++
 	PCCERT_CONTEXT certificate_context = CertCreateCertificateContext(
 		encodings, 
-		cert_data.data.raw_chain,
-		cert_data.data.raw_chain_len // Possible error when raw chain is longer than INT_MAX
+		cert_data->data.raw_chain,
+		cert_data->data.raw_chain_len // Possible error when raw chain is longer than INT_MAX
 	);
 	if (certificate_context == NULL) {
 		thlog() << "Wincrypt could not parse certificate. Error Code " << GetLastError();
@@ -191,7 +191,58 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query cert_data) {
 	return UnbreakableCrypto_ACCEPT;
 }
 
-void UnbreakableCrypto::insertIntoRootStore(Query certificate_data)
-{
+/*
+HCERTSTORE WINAPI CertOpenStore(
+_In_       LPCSTR            lpszStoreProvider,
+_In_       DWORD             dwMsgAndCertEncodingType,
+_In_       HCRYPTPROV_LEGACY hCryptProv,
+_In_       DWORD             dwFlags,
+_In_ const void              *pvPara
+);
+*/
 
+bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
+{
+	HCERTSTORE root_store = openRootStore();
+
+	if (!CertAddCertificateContextToStore(root_store, certificate, CERT_STORE_ADD_NEW, NULL))
+	{
+		CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
+		return GetLastError() == CRYPT_E_EXISTS;
+	}
+
+	CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
+	return true;
 }
+
+bool UnbreakableCrypto::removeFromRootStore(Query * certificate_data)
+{
+	HCERTSTORE root_store = openRootStore();
+	PCERT_CONTEXT cert_to_destroy;
+	
+
+
+	if (!CertDeleteCertificateFromStore(cert_to_destroy))
+	{
+		CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
+		return false;
+	}
+
+
+	CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
+	return false;
+}
+
+HCERTSTORE UnbreakableCrypto::openRootStore()
+{
+	const char * target_store_name = "root";
+	return CertOpenStore(
+		CERT_STORE_PROV_SYSTEM,
+		0, //I think
+		NULL,
+		CERT_STORE_OPEN_EXISTING_FLAG,
+		target_store_name
+	);
+}
+
+

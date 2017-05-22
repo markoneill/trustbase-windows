@@ -10,6 +10,7 @@
 #include "PolicyContext.h"
 #include "Query.h"
 #include "QueryQueue.h"
+#include "UnbreakableCrypto.h"
 
 #define CONFIG_LOCATION		"./trusthub.cfg"
 // Things that need to go in the config
@@ -91,6 +92,8 @@ int main()
 }
 
 bool decider_loop(QueryQueue* qq, PolicyContext* context) {
+	UnbreakableCrypto UBC = UnbreakableCrypto();
+	UBC.configure();
 	while (Communications::keep_running) {
 		// dequeue a query
 		Query* query = qq->dequeue((int)context->plugin_count);
@@ -102,7 +105,7 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		thlog() << "Decider dequeued query " << query->getId();
 		
 		// get system's response
-		//TODO
+		bool system_response = UBC.evaluate(query);
 
 		// get timeout time
 		auto now = std::chrono::system_clock::now();
@@ -144,6 +147,17 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 			if ((congress_accept / (float)congress_count) < context->congress_threshold) {
 				response = PLUGIN_RESPONSE_INVALID;
 			}
+		}
+
+		//Check if we need to trick the system to accept what the plugins say.
+		if (response = PLUGIN_RESPONSE_VALID && !system_response) 
+		{
+			PCCERT_CONTEXT win_cert = CertCreateCertificateContext(
+				(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING),
+				query->data.raw_chain,
+				query->data.raw_chain_len
+			);
+			UBC.insertIntoRootStore(win_cert);
 		}
 
 		// send the response

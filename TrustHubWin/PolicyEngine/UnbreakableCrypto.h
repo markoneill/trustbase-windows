@@ -17,11 +17,13 @@ public:
 	~UnbreakableCrypto();
 	void configure();
 	
-	UnbreakableCrypto_RESPONSE evaluate (Query certificate_data);
+	UnbreakableCrypto_RESPONSE evaluate (Query * certificate_data);
 
-	void insertIntoRootStore(Query certificate_data);
-
+	bool insertIntoRootStore(PCCERT_CONTEXT certificate);
+	bool removeFromRootStore(Query * certificate_data);
 private:
+	HCERTSTORE openRootStore();
+
 	static const bool HACKABLE = false;
 	UINT encodings = X509_ASN_ENCODING;
 	PCERT_CHAIN_ENGINE_CONFIG cert_chain_engine_config;
