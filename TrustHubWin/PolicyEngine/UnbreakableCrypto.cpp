@@ -190,3 +190,8 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query cert_data) {
 	delete cert_policy_status;
 	return UnbreakableCrypto_ACCEPT;
 }
+
+void UnbreakableCrypto::insertIntoRootStore(Query certificate_data)
+{
+
+}

@@ -52,6 +52,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Addon.h">
+	  <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UnbreakableCrypto.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -84,6 +87,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Addon.cpp">
+	  <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UnbreakableCrypto.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -19,6 +19,8 @@ public:
 	
 	UnbreakableCrypto_RESPONSE evaluate (Query certificate_data);
 
+	void insertIntoRootStore(Query certificate_data);
+
 private:
 	static const bool HACKABLE = false;
 	UINT encodings = X509_ASN_ENCODING;
