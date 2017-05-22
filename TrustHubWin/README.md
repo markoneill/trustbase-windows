@@ -1,4 +1,4 @@
-﻿# Trusthub for Windows
+# Trusthub for Windows
 
 [TOC]
 
@@ -104,6 +104,12 @@ All of Trusthub on Windows is contained in a single Visual Studio solution.
 
 The Policy Engine can be tested on it's own if `COMMUNICATIONS_DEBUG_MODE` in communications.h is set to true, and `COMMUNICATIONS_DEBUG_QUERY` is the path to a binary file containing a query message formatted as a message from the Kernel Driver.
 
+To set up the Policy Engine, the project for both the Policy Engine and libconfig++ must be set to a x64 build mode, and the Policy Engine must have it's project search for includes in libconfig's file. This applies to both Debug and Release modes.
+
+The Policy Engine also currently expects the "trusthub.cfg" file to be in the same folder as the executable. 
+
+The Policy Engine also has a hardcoded path for the debug query in 'communications.h'.
+
 #### Plugins
 
 Plugins must be compiled to a 'DLL'. 
@@ -161,7 +167,7 @@ The Kernel Driver development setup is the most complex. It involves two Windows
 
 ##### Kernel Driver
 
-- [ ] Add shim to Outbound IP layer, parse destination IP and port
+- [ ] Pass IP and Port to Policy Engine
 - [ ] Unload driver properly
 - [ ] Remove connections from the queue to be validated if the flow is deleted
 

@@ -9,7 +9,7 @@
 
 #define TRUSTHUBKERN	L"\\\\.\\TrustHub"
 #define INITIALBUFSIZE	16384
-#define COMMUNICATIONS_DEBUG_MODE	true
+#define COMMUNICATIONS_DEBUG_MODE	false
 #define COMMUNICATIONS_DEBUG_QUERY	"C:/Users/ilab/Source/Repos/TrustKern/TrustHubWin/PolicyEngine/example_query.bin"
 
 namespace Communications {

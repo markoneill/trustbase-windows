@@ -146,7 +146,7 @@ void Plugin::printInfo() {
 	thlog() << "\t },";
 }
 
-int Plugin::async_callback(int plugin_id, int query_id, int result) { //TODO
+int Plugin::async_callback(int plugin_id, int query_id, int result) {
 	// add our response
 	// set response
 	Query* foundquery = qq->find_linked(query_id);

@@ -11,7 +11,7 @@
 #include "Query.h"
 #include "QueryQueue.h"
 
-#define CONFIG_LOCATION		"C:/Users/ilab/Source/Repos/TrustKern/TrustHubWin/PolicyEngine/trusthub.cfg"
+#define CONFIG_LOCATION		"./trusthub.cfg"
 // Things that need to go in the config
 #define TIMEOUT_TIME		15000
 
@@ -123,7 +123,7 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 				response = PLUGIN_RESPONSE_INVALID;
 				break;
 			}
-			if (context->plugins[i].getValue == Plugin::CONGRESS) {
+			if (context->plugins[i].getValue() == Plugin::CONGRESS) {
 				congress_count += 1;
 				if (resp == PLUGIN_RESPONSE_VALID) {
 					congress_accept += 1.0f;
