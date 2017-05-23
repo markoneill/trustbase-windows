@@ -142,6 +142,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\tools\openssl-64\lib;..\tools\openssl-64\include;..\libconfig;</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4996;</DisableSpecificWarnings>
+    </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
