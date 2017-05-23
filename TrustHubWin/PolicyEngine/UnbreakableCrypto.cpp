@@ -49,7 +49,7 @@ void UnbreakableCrypto::configure() {
 
 	CERT_ENHKEY_USAGE * empty_enhkey = new CERT_ENHKEY_USAGE;
 	empty_enhkey->cUsageIdentifier = 0; //EMPTY
-	*empty_enhkey->rgpszUsageIdentifier = NULL; //NO LIST
+	empty_enhkey->rgpszUsageIdentifier = NULL; //NO LIST
 
 	chain_params_requested_use = new CERT_USAGE_MATCH;
 	chain_params_requested_use->dwType = USAGE_MATCH_TYPE_AND; //No Idea
@@ -103,6 +103,11 @@ void UnbreakableCrypto::configure() {
 }
 
 UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
+
+	if (!isConfigured()) {
+		thlog() << "WARNING! Using UnbreakableCrypto without configuring.";
+		return UnbreakableCrypto_ERROR;
+	}
 
 	//++++++++++++++++++++++++++++++++++++
 	//Create a windows certificate object
@@ -215,10 +220,10 @@ bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
 	return true;
 }
 
-bool UnbreakableCrypto::removeFromRootStore(Query * certificate_data)
+bool UnbreakableCrypto::removeFromRootStore(Query * query)
 {
 	HCERTSTORE root_store = openRootStore();
-	PCERT_CONTEXT cert_to_destroy;
+	PCCERT_CONTEXT cert_to_destroy = CertCreateCertificateContext(encodings, query->data.raw_chain, query->data.raw_chain_len);
 	
 
 
@@ -231,6 +236,25 @@ bool UnbreakableCrypto::removeFromRootStore(Query * certificate_data)
 
 	CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
 	return false;
+}
+
+bool UnbreakableCrypto::isConfigured()
+{
+	bool looks_good = true;
+	if (encodings != X509_ASN_ENCODING  && encodings != (X509_ASN_ENCODING | PKCS_7_ASN_ENCODING)) {
+		looks_good = false;
+	}
+	looks_good = looks_good &&
+		cert_chain_engine_config != NULL &&
+		cert_chain_config != NULL &&
+		chain_params_requested_issuance_policy != NULL &&
+		chain_params_requested_use != NULL &&
+		authentication_train_handle != NULL &&
+		(*authentication_train_handle) != NULL &&
+		cert_chain_context != NULL &&
+		(*cert_chain_context) != NULL;
+
+	return looks_good;
 }
 
 HCERTSTORE UnbreakableCrypto::openRootStore()

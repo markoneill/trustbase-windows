@@ -1,6 +1,5 @@
 // PolicyEngine.cpp : Defines the entry point for the console application.
 //
-
 #include "stdafx.h"
 #include <Windows.h>
 #include <thread>
@@ -11,6 +10,7 @@
 #include "Query.h"
 #include "QueryQueue.h"
 #include "UnbreakableCrypto.h"
+#include "TestUnbreakableCrypto.h"
 
 #define CONFIG_LOCATION		"./trusthub.cfg"
 // Things that need to go in the config
@@ -20,6 +20,10 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context);
 
 int main()
 {
+	//Uncomment below to test UnbreakableCrypto
+	TestUnbreakableCrypto TUBC = TestUnbreakableCrypto();
+	return TUBC.Test();
+
 	std::thread* plugin_threads;
 	// Start Logging
 

@@ -9,7 +9,7 @@
 
 
 
-enum UnbreakableCrypto_RESPONSE { UnbreakableCrypto_ACCEPT, UnbreakableCrypto_REJECT};
+enum UnbreakableCrypto_RESPONSE { UnbreakableCrypto_ACCEPT, UnbreakableCrypto_REJECT, UnbreakableCrypto_ERROR};
 
 class UnbreakableCrypto {
 public:
@@ -21,15 +21,18 @@ public:
 
 	bool insertIntoRootStore(PCCERT_CONTEXT certificate);
 	bool removeFromRootStore(Query * certificate_data);
+
+	bool isConfigured();
+
 private:
 	HCERTSTORE openRootStore();
 
 	static const bool HACKABLE = false;
 	UINT encodings = X509_ASN_ENCODING;
-	PCERT_CHAIN_ENGINE_CONFIG cert_chain_engine_config;
-	PCERT_CHAIN_PARA cert_chain_config;
-	PCERT_USAGE_MATCH chain_params_requested_issuance_policy;
-	PCERT_USAGE_MATCH chain_params_requested_use;
-	HCERTCHAINENGINE * authentication_train_handle;
-	PCCERT_CHAIN_CONTEXT * cert_chain_context;
+	PCERT_CHAIN_ENGINE_CONFIG cert_chain_engine_config = NULL;
+	PCERT_CHAIN_PARA cert_chain_config = NULL;
+	PCERT_USAGE_MATCH chain_params_requested_issuance_policy = NULL;
+	PCERT_USAGE_MATCH chain_params_requested_use = NULL;
+	HCERTCHAINENGINE * authentication_train_handle = NULL;
+	PCCERT_CHAIN_CONTEXT * cert_chain_context = NULL;
 };

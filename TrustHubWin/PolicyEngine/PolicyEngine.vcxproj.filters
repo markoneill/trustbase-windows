@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Source Files\unit tests">
+      <UniqueIdentifier>{76b488b0-574e-404a-a167-cc6c1abfe80d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\unit tests">
+      <UniqueIdentifier>{f149c376-3dcd-41f6-b74b-b7e0e0b28a64}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -57,6 +63,12 @@
     <ClInclude Include="UnbreakableCrypto.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TestUnbreakableCrypto.h">
+      <Filter>Header Files\unit tests</Filter>
+    </ClInclude>
+    <ClInclude Include="QueryFetcher.h">
+      <Filter>Header Files\unit tests</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -91,6 +103,12 @@
     </ClCompile>
     <ClCompile Include="UnbreakableCrypto.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TestUnbreakableCrypto.cpp">
+      <Filter>Source Files\unit tests</Filter>
+    </ClCompile>
+    <ClCompile Include="QueryFetcher.cpp">
+      <Filter>Source Files\unit tests</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
