@@ -247,7 +247,7 @@ void Plugin::printInfo() {
 
 	}
 	else if (this->handlerType == Plugin::ADDON) {
-		thlog() << "\t\t Handler Type: Addon-handled" << this->handler;
+		thlog() << "\t\t Handler Type: Addon-handled " << this->handler;
 		thlog() << "\t\t Query_By_Addon Function: 0x" << std::hex << query_by_addon;
 
 	}

@@ -22,7 +22,6 @@ public:
 	addon_query_plugin getQueryFunction();
 	addon_query_plugin getAsyncQueryFunction();
 	addon_finalize_plugin getFinalizedFunction();
-
 private:
 	int id;
 	std::string name;

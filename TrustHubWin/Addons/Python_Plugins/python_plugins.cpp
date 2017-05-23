@@ -238,7 +238,7 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 
 		//set callback pointer
 		cb_func_ptr = &callback;
-		pValue = PyInt_FromLong((long)(void *)cb_func_ptr);
+		pValue = PyInt_FromSize_t((size_t)(void *)cb_func_ptr);
 		if (pValue == NULL) {
 			if (PyErr_Occurred()) {
 				log_PyErr();
