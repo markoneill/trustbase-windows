@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Fwpsk.h>
+#include "Ndis.h"
 #include "ConnectionContext.h"
 #include "HandshakeTypes.h"
 

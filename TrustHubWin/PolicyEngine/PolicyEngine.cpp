@@ -64,8 +64,8 @@ int main()
 
 	// init things
 	if (!Communications::init_communication(&qq, (int)context.plugin_count)) {
-	thlog() << "Initialization errors, exiting...";
-	return -1;
+		thlog() << "Initialization errors, exiting...";
+		return -1;
 	}
 
 	// loop
@@ -131,7 +131,13 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 				response = PLUGIN_RESPONSE_INVALID;
 				break;
 			}
-			
+			if (context->plugins[i].getValue() == Plugin::CONGRESS) {
+				congress_count += 1;
+				if (resp == PLUGIN_RESPONSE_VALID) {
+					congress_accept += 1.0f;
+				}
+			}
+			// ignore Plugin::IGNORED
 		}
 		if (response == PLUGIN_RESPONSE_VALID && congress_count > 0) {
 			// congress
