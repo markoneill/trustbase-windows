@@ -21,8 +21,8 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context);
 int main()
 {
 	//Uncomment below to test UnbreakableCrypto
-	TestUnbreakableCrypto TUBC = TestUnbreakableCrypto();
-	return TUBC.Test();
+	//TestUnbreakableCrypto TUBC = TestUnbreakableCrypto();
+	//return TUBC.Test();
 
 	std::thread* plugin_threads;
 	// Start Logging

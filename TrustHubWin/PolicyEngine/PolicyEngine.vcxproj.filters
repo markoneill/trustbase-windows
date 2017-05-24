@@ -117,4 +117,21 @@
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="ExpiredCert.cer">
+      <Filter>Resource Files</Filter>
+    </Resource>
+    <Resource Include="NullHostCert.cer">
+      <Filter>Resource Files</Filter>
+    </Resource>
+    <Resource Include="MalformedCert.cer">
+      <Filter>Resource Files</Filter>
+    </Resource>
+    <Resource Include="ValidCert.cer">
+      <Filter>Resource Files</Filter>
+    </Resource>
+    <Resource Include="WrongHostCert.cer">
+      <Filter>Resource Files</Filter>
+    </Resource>
+  </ItemGroup>
 </Project>

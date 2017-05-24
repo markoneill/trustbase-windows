@@ -23,10 +23,7 @@ UnbreakableCrypto::~UnbreakableCrypto() {
 		delete chain_params_requested_use;
 	}
 	if (authentication_train_handle != NULL) {
-		if ((*authentication_train_handle) != NULL) {
-			delete (*authentication_train_handle);
-		}
-		delete authentication_train_handle;
+		CertFreeCertificateChainEngine(authentication_train_handle);
 	}
 	if (cert_chain_context != NULL) {
 		if ((*cert_chain_context) != NULL) {
@@ -47,7 +44,7 @@ void UnbreakableCrypto::configure() {
 	//chain_params_strong_crypto_param->pszOID = ;
 	//chain_params_strong_crypto_param->pvInfo = ;
 
-	CERT_ENHKEY_USAGE * empty_enhkey = new CERT_ENHKEY_USAGE;
+	empty_enhkey = new CERT_ENHKEY_USAGE;
 	empty_enhkey->cUsageIdentifier = 0; //EMPTY
 	empty_enhkey->rgpszUsageIdentifier = NULL; //NO LIST
 
@@ -99,10 +96,9 @@ void UnbreakableCrypto::configure() {
 	cert_chain_engine_config->hExclusiveRoot = NULL;
 	cert_chain_engine_config->hExclusiveTrustedPeople = NULL;
 	cert_chain_engine_config->dwExclusiveFlags = 0x00000000;
-
 }
 
-UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
+UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD cert_len, char * hostname){
 
 	if (!isConfigured()) {
 		thlog() << "WARNING! Using UnbreakableCrypto without configuring.";
@@ -114,8 +110,8 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 	//++++++++++++++++++++++++++++++++++++
 	PCCERT_CONTEXT certificate_context = CertCreateCertificateContext(
 		encodings, 
-		cert_data->data.raw_chain,
-		cert_data->data.raw_chain_len // Possible error when raw chain is longer than INT_MAX
+		cert_data,
+		cert_len // Possible error when raw chain is longer than INT_MAX
 	);
 	if (certificate_context == NULL) {
 		thlog() << "Wincrypt could not parse certificate. Error Code " << GetLastError();
@@ -196,6 +192,14 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 	return UnbreakableCrypto_ACCEPT;
 }
 
+
+UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
+	char * hostname = SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
+	UnbreakableCrypto_RESPONSE answer = evaluate(cert_data->data.raw_chain, cert_data->data.client_hello_len, hostname);
+	delete hostname;
+	return answer;
+}
+
 /*
 HCERTSTORE WINAPI CertOpenStore(
 _In_       LPCSTR            lpszStoreProvider,
@@ -240,21 +244,27 @@ bool UnbreakableCrypto::removeFromRootStore(Query * query)
 
 bool UnbreakableCrypto::isConfigured()
 {
-	bool looks_good = true;
+	bool encoding_valid = true;
 	if (encodings != X509_ASN_ENCODING  && encodings != (X509_ASN_ENCODING | PKCS_7_ASN_ENCODING)) {
-		looks_good = false;
+		thlog() << "Unknown Encoding configured in UnbreakableCrypto";
+		encoding_valid = false;
 	}
-	looks_good = looks_good &&
+	
+	bool configs =
 		cert_chain_engine_config != NULL &&
+		empty_enhkey != NULL &&
 		cert_chain_config != NULL &&
 		chain_params_requested_issuance_policy != NULL &&
-		chain_params_requested_use != NULL &&
-		authentication_train_handle != NULL &&
-		(*authentication_train_handle) != NULL &&
-		cert_chain_context != NULL &&
-		(*cert_chain_context) != NULL;
+		chain_params_requested_use != NULL;
 
-	return looks_good;
+	//bool handles =
+	//	authentication_train_handle != NULL &&
+	//	(*authentication_train_handle) != NULL &&
+	//	cert_chain_context != NULL &&
+	//	(*cert_chain_context) != NULL;
+
+
+	return encoding_valid && configs;
 }
 
 HCERTSTORE UnbreakableCrypto::openRootStore()

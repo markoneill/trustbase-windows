@@ -23,6 +23,8 @@ private:
 	bool Test5(int* warning_count);
 	bool Test6(int* warning_count);
 	bool Test7(int* warning_count);
+	bool Test8(int* warning_count);
+	bool Test9(int* warning_count);
 	Query * BuildValidQuery();
 	Query * BuildInValidQuery();
 	Query * BuildBadHostnameQuery();

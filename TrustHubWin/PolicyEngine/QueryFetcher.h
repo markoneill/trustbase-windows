@@ -1,14 +1,21 @@
 #pragma once
 #include "Query.h"
 #include <Windows.h>
-#include <malloc.h>
-#include <fstream>
-#include <locale>
 #include <string>
-//#include <WinSock2.h>
-//#include <WS2tcpip.h>
+#include <fstream>
+#include <atlstr.h>
+
+enum FetchFileName {
+VALID_CERT_FILENAME,
+INVALID_CERT_FILENAME,
+BAD_HOST_CERT_FILENAME,
+NULL_HOST_CERT_FILENAME,
+MALFORMED_CERT_FILENAME
+};
+
+
 
 class QueryFetcher {
 public:
-	Query * fetch(char* address);
+	Query * fetch(FetchFileName file_selector);
 };
