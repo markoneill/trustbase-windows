@@ -213,6 +213,7 @@
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </Resource>
+    <None Include="example_query_Luke.bin" />
     <None Include="trusthub.cfg" />
     <Resource Include="MalformedCert.cer">
       <FileType>Document</FileType>

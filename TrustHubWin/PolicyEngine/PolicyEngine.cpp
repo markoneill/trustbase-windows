@@ -120,6 +120,7 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		while (query->num_responses < query->num_plugins) {
 			if (query->threshold_met.wait_until(lk, timeout) == std::cv_status::timeout) {
 				thlog() << "One or more plugins timed out!";
+				break;
 			}
 		}
 		lk.unlock();

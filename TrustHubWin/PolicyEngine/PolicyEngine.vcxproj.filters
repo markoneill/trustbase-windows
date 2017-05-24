@@ -58,7 +58,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Addon.h">
-	  <Filter>Header Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UnbreakableCrypto.h">
       <Filter>Header Files</Filter>
@@ -99,7 +99,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Addon.cpp">
-	  <Filter>Source Files</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UnbreakableCrypto.cpp">
       <Filter>Source Files</Filter>
@@ -114,6 +114,9 @@
   <ItemGroup>
     <None Include="trusthub.cfg" />
     <None Include="example_query.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="example_query_Luke.bin">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
