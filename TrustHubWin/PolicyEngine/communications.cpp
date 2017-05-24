@@ -103,10 +103,6 @@ bool Communications::debug_recv_query() {
 		qq->enqueue_and_link(query); // plugin count + 1 for decider thread
 		Sleep(1000);
 	}
-
-	// flip keep running to close the Policy Engine
-	Communications::keep_running = false;
-	qq->enqueue(nullptr);
 	return true;
 }
 
@@ -251,17 +247,25 @@ bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) 
 }
 
 bool Communications::listen_for_queries() {
+	bool success = true;
 	if (COMMUNICATIONS_DEBUG_MODE) {
 		debug_recv_query();
-		return true;
 	}
 
 	while (keep_running) {
 		if (!recv_query()) {
 			thlog() << "Could not handle query";
+			success = false;
+			break;
 		}
 	}
-	return true;
+
+	// flip keep running to close the Policy Engine
+	Communications::keep_running = false;
+	// unlock the plugins so they can close
+	qq->enqueue(nullptr);
+
+	return success;
 }
 
 void Communications::cleanup() {
