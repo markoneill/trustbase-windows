@@ -123,7 +123,6 @@ addon_async_query_plugin Addon::getAsyncQueryFunction()
 addon_finalize_plugin Addon::getFinalizedFunction()
 {
 	return this->finalize_plugin;
-
 }
 
 int Addon::loadPlugin(int pluginId, std::string pluginPath, int isAsync)

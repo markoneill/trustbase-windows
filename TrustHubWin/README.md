@@ -110,12 +110,34 @@ The Policy Engine also currently expects the "trusthub.cfg" file to be in the sa
 
 The Policy Engine also has a hardcoded path for the debug query in 'communications.h'.
 
+A compiled version of Openssl 64 bit with applink enabled needs to be included. This has already been built and is located in the "Tools.zip". This should be unzipped and placed in the Trusthub root folder. This is located in our shared Google Drive at:
+
+  Internet - Security Joint Research - TrustBase - Windows
+
+The tools.zip also include other libs used by various plugins.
+
 #### Plugins
 
 Plugins must be compiled to a 'DLL'. 
 Plugins must export the functions 'query,' 'initialize,' and 'finalize'. 
 
 See 'SamplePlugin1' or 'SamplePlugin2' for examples.
+
+#### Python Addon
+
+Python 2.7.x 64bit needs to be installed. We are using 2.7.13. Python should be installed at c:\Python27
+
+Use pip to install the following libs:
+
+(Required for all plugins) pyOpenSSL 
+
+(Required for Notory Plugins) PySocks
+
+(Required for Notory Plugins) win_inet_pton
+
+(Required for Notory Plugins) twisted 
+
+(Required for Notory Plugins) service_identity
 
 #### Kernel Driver
 
