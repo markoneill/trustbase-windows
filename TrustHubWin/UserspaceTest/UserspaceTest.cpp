@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
 	buf = (UINT8*)malloc(bufsize);
 
 	while (true) {
-		if (ReadFile(file, buf + Read, bufsize - 1 - Read, &readlen, NULL)) {
+		if (ReadFile(file, buf + Read, bufsize - 1 - (DWORD)Read, &readlen, NULL)) {
 			printf("Read %d: Got %d bytes:\r\n", i, readlen);
 			i++;
 			if (toRead == 0 && readlen > sizeof(UINT64)) {
