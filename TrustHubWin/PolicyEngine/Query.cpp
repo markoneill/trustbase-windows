@@ -6,6 +6,12 @@
 
 int Query::next_id;
 
+Query::Query(UINT8 * raw_cert, DWORD cert_len)
+{
+	data.raw_chain = raw_cert;
+	data.raw_chain_len = cert_len;
+}
+
 Query::Query(UINT64 flowHandle, UINT64 processId, char* processPath, UINT8 * raw_certificate, DWORD cert_len, UINT8 * client_hello, DWORD client_hello_len, UINT8 * server_hello, DWORD server_hello_len, int plugin_count) {
 	this->flowHandle = flowHandle;
 	this->processId = processId;

@@ -21,7 +21,7 @@
     <ProjectGuid>{3DCEBBF9-BB99-49F2-B80F-066EC11B391C}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>python_plugins</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
