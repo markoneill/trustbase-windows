@@ -123,21 +123,25 @@ Plugins must export the functions 'query,' 'initialize,' and 'finalize'.
 
 See 'SamplePlugin1' or 'SamplePlugin2' for examples.
 
+To run the Native Plugins, each plugin must be built.
+
 #### Python Addon
 
 Python 2.7.x 64bit needs to be installed. We are using 2.7.13. Python should be installed at c:\Python27
 
 Use pip to install the following libs:
 
-(Required for all plugins) pyOpenSSL 
+  (Required for all plugins) pyOpenSSL 
 
-(Required for Notory Plugins) PySocks
+  (Required for Notory Plugins) PySocks
 
-(Required for Notory Plugins) win_inet_pton
+  (Required for Notory Plugins) win_inet_pton
 
-(Required for Notory Plugins) twisted 
+  (Required for Notory Plugins) twisted 
 
-(Required for Notory Plugins) service_identity
+  (Required for Notory Plugins) service_identity
+
+Python_addon project needs to be built so the python plugins can work.
 
 #### Kernel Driver
 
