@@ -123,11 +123,11 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 	if (!CertCreateCertificateChainEngine(
 				cert_chain_engine_config, 
 				&authentication_train_handle
-			)
+		)
 		) 
 	{
 		thlog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
-		CertFreeCertificateContext(certificate_context);
+		CertFreeCertificateContext(certificate_context); certificate_context = NULL;
 		return UnbreakableCrypto_REJECT;
 	}
 
@@ -166,7 +166,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 	) 
 	{
 		thlog() << "Wincrypt could not policy check the certificate chain. Error Code: " << GetLastError();
-		CertFreeCertificateChain(cert_chain_context);
+		CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
 		CertFreeCertificateContext(certificate_context); certificate_context = NULL;
 		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 		delete cert_policy_status;
@@ -174,14 +174,14 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 	}
 	if (cert_policy_status->dwError != ERROR_SUCCESS) 
 	{
-		CertFreeCertificateChain(cert_chain_context);
+		CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
 		CertFreeCertificateContext(certificate_context); certificate_context = NULL;
 		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 		delete cert_policy_status;
 		return UnbreakableCrypto_REJECT;
 	}
 
-	CertFreeCertificateChain(cert_chain_context);
+	CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
 	CertFreeCertificateContext(certificate_context); certificate_context = NULL;
 	CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 	delete cert_policy_status;

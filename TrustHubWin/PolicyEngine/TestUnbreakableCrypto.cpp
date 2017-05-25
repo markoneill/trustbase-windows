@@ -122,6 +122,24 @@ int TestUnbreakableCrypto::Test() {
 	}
 
 
+	std::cout << std::endl << "TEST 8: UnbreakableCrypto should be able to add a cert to the root store" << std::endl;
+	std::cout << " **SKIPPED**" << std::endl;
+	/*UNCOMMENT AT YOUR OWN RISK. THIS WILL TRY TO ALTER YOUR WINDOWS ROOT CERTIFICATE STORE :)
+	try {
+		if (Test8(&warnings))
+		{
+			std::cout << " **PASS**" << std::endl;
+			passed++;
+		}
+		else {
+			std::cout << " **FAIL**" << std::endl;
+		}
+	}
+	catch (std::exception e) {
+		std::cout << "-! exception in Test 8: " << e.what() << std::endl;
+	}
+	*/
+
 	//Print Summary:
 	std::cout << std::endl << "TEST SUMMARY: " << passed << "/" << total << " tests passed. " << warnings << " warnings." << std::endl << std::endl;
 	std::system("PAUSE");
