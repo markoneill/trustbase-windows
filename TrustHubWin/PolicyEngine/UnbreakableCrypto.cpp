@@ -10,6 +10,7 @@ UnbreakableCrypto::UnbreakableCrypto() {
 
 
 UnbreakableCrypto::~UnbreakableCrypto() {
+
 	if (cert_chain_engine_config != NULL) {
 		delete cert_chain_engine_config;
 	}
@@ -26,12 +27,10 @@ UnbreakableCrypto::~UnbreakableCrypto() {
 		CertFreeCertificateChainEngine(authentication_train_handle);
 	}
 	if (cert_chain_context != NULL) {
-		if ((*cert_chain_context) != NULL) {
-			CertFreeCertificateChain((*cert_chain_context));
-		}
-		delete cert_chain_context;
+		CertFreeCertificateChain(cert_chain_context);
 	}
 }
+	
 
 
 void UnbreakableCrypto::configure() {
@@ -93,8 +92,8 @@ void UnbreakableCrypto::configure() {
 	cert_chain_engine_config->dwUrlRetrievalTimeout = 0;
 	cert_chain_engine_config->MaximumCachedCertificates = 0;
 	cert_chain_engine_config->CycleDetectionModulus = 0;
-	cert_chain_engine_config->hExclusiveRoot = NULL;
-	cert_chain_engine_config->hExclusiveTrustedPeople = NULL;
+	cert_chain_engine_config->hExclusiveRoot = openRootStore();
+	cert_chain_engine_config->hExclusiveTrustedPeople = NULL;//openMyStore();
 	cert_chain_engine_config->dwExclusiveFlags = 0x00000000;
 }
 
@@ -123,7 +122,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 	//++++++++++++++++++++++++++++++++++++++++++++
 	if (!CertCreateCertificateChainEngine(
 				cert_chain_engine_config, 
-				authentication_train_handle
+				&authentication_train_handle
 			)
 		) 
 	{
@@ -143,13 +142,13 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 				cert_chain_config,
 				0x0000000, // No Flags
 				NULL,
-				cert_chain_context
+				&cert_chain_context
 			)
 		) 
 	{
 		thlog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
-		CertFreeCertificateContext(certificate_context);
-		CertFreeCertificateChainEngine(authentication_train_handle);
+		CertFreeCertificateContext(certificate_context); certificate_context = NULL;
+		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 		return UnbreakableCrypto_REJECT;
 	}
 
@@ -160,34 +159,31 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 	PCERT_CHAIN_POLICY_STATUS cert_policy_status = new CERT_CHAIN_POLICY_STATUS;
 	if (!CertVerifyCertificateChainPolicy(
 			CERT_CHAIN_POLICY_NT_AUTH,
-			* cert_chain_context,
+			cert_chain_context,
 			0, //Do not ignore any problems
 			cert_policy_status
 		)
 	) 
 	{
 		thlog() << "Wincrypt could not policy check the certificate chain. Error Code: " << GetLastError();
-		CertFreeCertificateChain(*cert_chain_context);
-		delete cert_chain_context;
-		CertFreeCertificateContext(certificate_context);
-		CertFreeCertificateChainEngine(authentication_train_handle);
+		CertFreeCertificateChain(cert_chain_context);
+		CertFreeCertificateContext(certificate_context); certificate_context = NULL;
+		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 		delete cert_policy_status;
 		return UnbreakableCrypto_REJECT;
 	}
 	if (cert_policy_status->dwError != ERROR_SUCCESS) 
 	{
-		CertFreeCertificateChain(*cert_chain_context);
-		delete cert_chain_context;
-		CertFreeCertificateContext(certificate_context);
-		CertFreeCertificateChainEngine(authentication_train_handle);
+		CertFreeCertificateChain(cert_chain_context);
+		CertFreeCertificateContext(certificate_context); certificate_context = NULL;
+		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 		delete cert_policy_status;
 		return UnbreakableCrypto_REJECT;
 	}
 
-	CertFreeCertificateChain(* cert_chain_context);
-	delete cert_chain_context;
-	CertFreeCertificateContext(certificate_context);
-	CertFreeCertificateChainEngine(authentication_train_handle);
+	CertFreeCertificateChain(cert_chain_context);
+	CertFreeCertificateContext(certificate_context); certificate_context = NULL;
+	CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 	delete cert_policy_status;
 	return UnbreakableCrypto_ACCEPT;
 }
@@ -269,12 +265,24 @@ bool UnbreakableCrypto::isConfigured()
 
 HCERTSTORE UnbreakableCrypto::openRootStore()
 {
-	const char * target_store_name = "root";
+	auto target_store_name = L"Root";
 	return CertOpenStore(
 		CERT_STORE_PROV_SYSTEM,
-		0, //I think
+		0,
 		NULL,
-		CERT_STORE_OPEN_EXISTING_FLAG,
+		CERT_SYSTEM_STORE_CURRENT_USER,
+		target_store_name
+	);
+}
+
+HCERTSTORE UnbreakableCrypto::openMyStore()
+{
+	auto target_store_name = L"MY";
+	return CertOpenStore(
+		CERT_STORE_PROV_SYSTEM,
+		0,
+		NULL,
+		CERT_SYSTEM_STORE_CURRENT_USER,
 		target_store_name
 	);
 }

@@ -20,6 +20,7 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context);
 
 int main()
 {
+
 	//Uncomment below to test UnbreakableCrypto
 	//TestUnbreakableCrypto TUBC = TestUnbreakableCrypto();
 	//return TUBC.Test();
@@ -92,12 +93,16 @@ int main()
 	}
 
 	thlog() << "Finished, exiting...\n";
+
+	std::system("PAUSE");
     return 0;
 }
 
 bool decider_loop(QueryQueue* qq, PolicyContext* context) {
+
 	UnbreakableCrypto UBC = UnbreakableCrypto();
 	UBC.configure();
+
 	while (Communications::keep_running) {
 		// dequeue a query
 		Query* query = qq->dequeue((int)context->plugin_count);
