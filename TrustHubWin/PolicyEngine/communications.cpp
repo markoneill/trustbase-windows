@@ -185,24 +185,21 @@ Query* Communications::parse_query(UINT8* buffer, UINT64 buflen) {
 		memcpy(serverHello, cursor, serverHelloSize);
 		cursor += serverHelloSize;
 
-		certObjectSize = *((UINT32*)cursor);
-		cursor += sizeof(UINT8) + sizeof(UINT16);
-		if ((UINT64)(cursor + certObjectSize - buffer) > buflen) {
-			thlog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << certObjectSize;
-			throw std::runtime_error("");
-		}
-
 		//the cert object follows the following structure:
 		//certObjSize (4 bytes) + certSize (3 bytes) + cert
 		//example: 21 0d 00 00 00 0d 1e ... [start cert]
 		// certObjSize 21 0d 00 00 is read right to left = 3361
 		// certSize 00 0d 1e is read left to right = 3358
-		// in order to simplify implementation, I noticed that certObjSize is always 3 bigger than certSize
-		//so instead of reading the certSize (which is written in reverse compared to the certObjSize),
-		//I just subtracted 3 from the certObjSize and assigned it to the certSize
 
-		certSize = certObjectSize - 3;
+		certObjectSize = *((UINT32*)cursor);
 		cursor += sizeof(UINT32);
+		if ((UINT64)(cursor + certObjectSize - buffer) > buflen) {
+			thlog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << certObjectSize;
+			throw std::runtime_error("");
+		}
+
+		certSize = ntoh24(cursor); 
+		cursor += sizeof(UINT8) + sizeof(UINT16);
 		if ((UINT64)(cursor + certSize - buffer) > buflen) {
 			thlog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << certSize;
 			throw std::runtime_error("");
@@ -234,6 +231,11 @@ Query* Communications::parse_query(UINT8* buffer, UINT64 buflen) {
 	// create a query
 	Query* query = new Query(flowHandle, processId, processPath, cert, certSize, clientHello, clientHelloSize, serverHello, serverHelloSize, plugin_count);
 	return query;
+}
+
+unsigned int Communications::ntoh24(const UINT8* data) {
+	unsigned int ret = (data[0] << 16) | (data[1] << 8) | data[2];
+	return ret;
 }
 
 bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) {

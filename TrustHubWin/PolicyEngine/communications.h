@@ -22,6 +22,7 @@ namespace Communications {
 	bool init_communication(QueryQueue* qq, int plugin_count);
 	bool listen_for_queries();
 	void cleanup();
+	unsigned int ntoh24(const UINT8* data);
 
 	extern std::atomic<bool> keep_running;
 }
