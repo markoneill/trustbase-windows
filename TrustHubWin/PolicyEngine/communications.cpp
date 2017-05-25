@@ -117,6 +117,7 @@ Query* Communications::parse_query(UINT8* buffer, UINT64 buflen) {
 	UINT8* clientHello = NULL;
 	UINT32 serverHelloSize;
 	UINT8* serverHello = NULL;
+	UINT32 certObjectSize;
 	UINT32 certSize;
 	UINT8* cert = NULL;
 
@@ -184,12 +185,29 @@ Query* Communications::parse_query(UINT8* buffer, UINT64 buflen) {
 		memcpy(serverHello, cursor, serverHelloSize);
 		cursor += serverHelloSize;
 
-		certSize = *((UINT32*)cursor);
+		certObjectSize = *((UINT32*)cursor);
+		cursor += sizeof(UINT8) + sizeof(UINT16);
+		if ((UINT64)(cursor + certObjectSize - buffer) > buflen) {
+			thlog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << certObjectSize;
+			throw std::runtime_error("");
+		}
+
+		//the cert object follows the following structure:
+		//certObjSize (4 bytes) + certSize (3 bytes) + cert
+		//example: 21 0d 00 00 00 0d 1e ... [start cert]
+		// certObjSize 21 0d 00 00 is read right to left = 3361
+		// certSize 00 0d 1e is read left to right = 3358
+		// in order to simplify implementation, I noticed that certObjSize is always 3 bigger than certSize
+		//so instead of reading the certSize (which is written in reverse compared to the certObjSize),
+		//I just subtracted 3 from the certObjSize and assigned it to the certSize
+
+		certSize = certObjectSize - 3;
 		cursor += sizeof(UINT32);
 		if ((UINT64)(cursor + certSize - buffer) > buflen) {
 			thlog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << certSize;
 			throw std::runtime_error("");
 		}
+
 		cert = new UINT8[certSize];
 		if (!cert) {
 			thlog() << "Could not allocate " << certSize << " bytes while parsing query";
@@ -237,7 +255,7 @@ bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) 
 	}
 
 	file = CreateFileW(TRUSTHUBKERN, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-	if (file == NULL) {
+	if (file == NULL ||  file == INVALID_HANDLE_VALUE) {
 		thlog() << "Couldn't open trusthub kernel file.";
 		delete[] buf;
 		delete[] response_buf;
