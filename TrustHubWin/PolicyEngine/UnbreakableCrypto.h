@@ -3,6 +3,7 @@
 
 #include "THLogger.h"
 #include "Query.h"
+#include <vector>
 /*
 	Note: This crypto is very working and is much safe.
 */
@@ -18,7 +19,15 @@ public:
 	void configure();
 	
 	UnbreakableCrypto_RESPONSE evaluate (Query * certificate_data);
-	UnbreakableCrypto_RESPONSE evaluate(UINT8* cert_data, DWORD cert_len, char* hostname);
+	UnbreakableCrypto_RESPONSE evaluate (UINT8 * cert_data, DWORD cert_len, LPWSTR hostname);
+
+	/*
+	These 3 hostname validation functions come from John Viega and Matt Messier's <b>Secure Programming Cookbook</b>
+	Published in 2003 by O'Reily and Associates Inc. Edited by Deborah Russell.
+	*/
+	bool UnbreakableCrypto::checkHostname(PCCERT_CONTEXT pCertContext, LPWSTR lpszHostName);
+	//LPWSTR SPC_make_wide(LPCTSTR str);
+	LPWSTR SPC_fold_wide(LPWSTR str);
 
 	bool insertIntoRootStore(PCCERT_CONTEXT certificate);
 	bool removeFromRootStore(Query * certificate_data);

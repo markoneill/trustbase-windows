@@ -24,6 +24,7 @@ UnbreakableCrypto::~UnbreakableCrypto() {
 		delete chain_params_requested_use;
 	}
 	if (authentication_train_handle != NULL) {
+		CertCloseStore(cert_chain_engine_config->hExclusiveRoot, CERT_CLOSE_STORE_CHECK_FLAG);
 		CertFreeCertificateChainEngine(authentication_train_handle);
 	}
 	if (cert_chain_context != NULL) {
@@ -97,7 +98,7 @@ void UnbreakableCrypto::configure() {
 	cert_chain_engine_config->dwExclusiveFlags = 0x00000000;
 }
 
-UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD cert_len, char * hostname){
+UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD cert_len, LPWSTR hostname){
 
 	if (!isConfigured()) {
 		thlog() << "WARNING! Using UnbreakableCrypto without configuring.";
@@ -114,6 +115,11 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 	);
 	if (certificate_context == NULL) {
 		thlog() << "Wincrypt could not parse certificate. Error Code " << GetLastError();
+		return UnbreakableCrypto_REJECT;
+	}
+
+	if (!checkHostname(certificate_context, hostname)) {
+		thlog() << "Invalid Hostname Rejected";
 		return UnbreakableCrypto_REJECT;
 	}
 
@@ -156,12 +162,16 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 	//Validate the certificate Chain
 	//++++++++++++++++++++++++++++++++++
 
-	PCERT_CHAIN_POLICY_STATUS cert_policy_status = new CERT_CHAIN_POLICY_STATUS;
+	CERT_CHAIN_POLICY_PARA chain_policy;
+	chain_policy.cbSize = sizeof(CERT_CHAIN_POLICY_PARA);
+	chain_policy.dwFlags = 0;
+
+	CERT_CHAIN_POLICY_STATUS cert_policy_status;
 	if (!CertVerifyCertificateChainPolicy(
-			CERT_CHAIN_POLICY_NT_AUTH,
+			CERT_CHAIN_POLICY_BASE,
 			cert_chain_context,
-			0, //Do not ignore any problems
-			cert_policy_status
+			&chain_policy, //Do not ignore any problems
+			&cert_policy_status
 		)
 	) 
 	{
@@ -169,28 +179,32 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 		CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
 		CertFreeCertificateContext(certificate_context); certificate_context = NULL;
 		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
-		delete cert_policy_status;
+		//delete cert_policy_status;
 		return UnbreakableCrypto_REJECT;
 	}
-	if (cert_policy_status->dwError != ERROR_SUCCESS) 
+	if (cert_policy_status.dwError != ERROR_SUCCESS) 
 	{
 		CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
 		CertFreeCertificateContext(certificate_context); certificate_context = NULL;
 		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
-		delete cert_policy_status;
+		//delete cert_policy_status;
 		return UnbreakableCrypto_REJECT;
 	}
 
 	CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
 	CertFreeCertificateContext(certificate_context); certificate_context = NULL;
 	CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
-	delete cert_policy_status;
+	//delete cert_policy_status;
 	return UnbreakableCrypto_ACCEPT;
 }
 
 
+
+
+
 UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
-	char * hostname = SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
+	WCHAR * hostname = (WCHAR *) SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
+
 	UnbreakableCrypto_RESPONSE answer = evaluate(cert_data->data.raw_chain, cert_data->data.client_hello_len, hostname);
 	delete hostname;
 	return answer;
@@ -287,4 +301,128 @@ HCERTSTORE UnbreakableCrypto::openMyStore()
 	);
 }
 
+
+/*
+These last 3 hostname validation function are from John Viega and Matt Messier's <b>Secure Programming Cookbook</b>
+Published in 2003 by O'Reily and Associates Inc. Edited by Deborah Russell.
+*/
+bool UnbreakableCrypto::checkHostname(PCCERT_CONTEXT pCertContext, LPWSTR lpszHostName) {
+	BOOL bResult = false;
+	DWORD cbStructInfo, dwCommonNameLength, i;
+	LPSTR szOID;
+	LPVOID pvStructInfo;
+	LPWSTR lpszCommonName, lpszDNSName, lpszTemp;
+	CERT_EXTENSION * pExtension;
+	CERT_ALT_NAME_INFO * pNameInfo;
+
+	//Try SUBJECT_ALT_NAME2 first - it supercedes SUBJECT_ALT_NAME
+	szOID = szOID_SUBJECT_ALT_NAME2;
+	pExtension = CertFindExtension(szOID, pCertContext->pCertInfo->cExtension, pCertContext->pCertInfo->rgExtension);
+
+	if (!pExtension) {
+		szOID = szOID_SUBJECT_ALT_NAME;
+		pExtension = CertFindExtension(szOID, pCertContext->pCertInfo->cExtension, pCertContext->pCertInfo->rgExtension);
+	}
+
+	if (pExtension && CryptDecodeObject(
+							X509_ASN_ENCODING, 
+							szOID,
+							pExtension->Value.pbData, 
+							pExtension->Value.cbData, 
+							0, 
+							0, 
+							&cbStructInfo
+					)
+		) 
+	{
+		if ((pvStructInfo = LocalAlloc(LMEM_FIXED, cbStructInfo)) != 0) 
+		{
+			CryptDecodeObject(
+				X509_ASN_ENCODING, 
+				szOID, pExtension->Value.pbData, 
+				pExtension->Value.cbData, 
+				0, 
+				pvStructInfo, 
+				&cbStructInfo
+			);
+			pNameInfo = (CERT_ALT_NAME_INFO *) pvStructInfo;
+
+			for (i = 0; !bResult && i < pNameInfo->cAltEntry; i++) {
+				if (pNameInfo->rgAltEntry[i].dwAltNameChoice == CERT_ALT_NAME_DNS_NAME) 
+				{
+					if (!(lpszDNSName = SPC_fold_wide(pNameInfo->rgAltEntry[i].pwszDNSName))) 
+					{
+						break;
+					}
+					if (CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE, lpszDNSName, -1, lpszHostName, -1) == CSTR_EQUAL)
+					{
+						bResult = TRUE;
+					}
+					LocalFree(lpszDNSName);
+				}
+			}
+			LocalFree(pvStructInfo);
+			//LocalFree(lpszHostName);
+			return bResult;
+		}
+	}
+
+	/*No Subject AltName Extension -- check CommonName*/
+	dwCommonNameLength = CertGetNameStringW(pCertContext, CERT_NAME_ATTR_TYPE, 0, szOID_COMMON_NAME, 0, 0);
+
+	if (!dwCommonNameLength) {
+		LocalFree(lpszHostName);
+		return FALSE;
+	}
+
+	lpszTemp = (LPWSTR)LocalAlloc(LMEM_FIXED, dwCommonNameLength * sizeof(WCHAR));
+
+	if (lpszTemp) {
+		CertGetNameStringW(pCertContext, CERT_NAME_ATTR_TYPE, 0, szOID_COMMON_NAME, lpszTemp, dwCommonNameLength);
+		if ((lpszCommonName = SPC_fold_wide(lpszTemp)) != 0) {
+			if (CompareStringW(LOCALE_USER_DEFAULT, NORM_IGNORECASE, lpszCommonName, -1, lpszHostName, -1) == CSTR_EQUAL) {
+				bResult = TRUE;
+			}
+			LocalFree(lpszCommonName);
+		}
+		LocalFree(lpszTemp);
+	}
+	LocalFree(lpszHostName);
+	return bResult;
+}
+
+LPWSTR UnbreakableCrypto::SPC_fold_wide(LPWSTR str)
+{
+	int len;
+	LPWSTR wstr;
+
+	if (!(len = FoldStringW(MAP_PRECOMPOSED, str, -1, 0, 0))) return NULL;
+	if (!(wstr = (LPWSTR)LocalAlloc(LMEM_FIXED, len * sizeof(WCHAR)))) return NULL;
+	if (!FoldStringW(MAP_PRECOMPOSED, str, -1, wstr, len)) {
+		LocalFree(wstr);
+		return NULL;
+	}
+
+	return wstr;
+}
+
+
+//LPWSTR UnbreakableCrypto::SPC_make_wide(LPCTSTR str)
+//{
+//#ifndef UNICODE
+//	int len;
+//	LPWSTR wstr;
+//
+//	if (!(len = MultiByteToWideChar(CP_UTF8, 0, str, -1, 0, 0))) return NULL;
+//	if (!(wstr = (LPWSTR)LocalAlloc(LMEM_FIXED, len * sizeof(WCHAR)))) return NULL;
+//	if (!MultiByteToWideChar(CP_UTF8, 0, str, -1, 0, 0)) {
+//		LocalFree(wstr);
+//		return NULL;
+//	}
+//
+//	return wstr;
+//#else
+//	return SPC_fold_wide(str);
+//#endif
+//}
 
