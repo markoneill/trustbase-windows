@@ -22,6 +22,7 @@ Query::Query(UINT64 flowHandle, UINT64 processId, char* processPath, UINT8 * raw
 	data.raw_chain = raw_certificate;
 	data.raw_chain_len = cert_len;
 	data.chain = parse_chain(raw_certificate, cert_len);
+	data.cert_context_chain = parse_cert_context_chain(raw_certificate, cert_len);
 
 	data.client_hello = (char*)client_hello;
 	data.client_hello_len = client_hello_len;
@@ -45,8 +46,11 @@ Query::Query(UINT64 flowHandle, UINT64 processId, char* processPath, UINT8 * raw
 }
 
 Query::~Query() {
+
 	delete[] responses;
 	delete[] processPath;
+	sk_X509_pop_free(data.chain, X509_free);
+	clean_cert_context_chain(data.cert_context_chain);
 	delete[] data.raw_chain;
 	delete[] data.server_hello;
 	delete[] data.client_hello;
@@ -85,6 +89,61 @@ void Query::printQueryInfo() {
 	std::string path(wpath.begin(), wpath.end());
 	thlog() << "\tPath : " << path;
 	thlog() << "\tHostname : " << data.hostname;
+}
+
+std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, UINT64 chain_len)
+{
+	PCERT_CHAIN windows_cert_chain = new CERT_CHAIN;
+	UINT8* cursor = raw_chain;
+
+	UINT8* buffer = raw_chain;
+	UINT64 buflen = chain_len;
+	UINT64 dataRead = 0;
+	std::vector<PCCERT_CONTEXT>* cert_context_vector = new std::vector<PCCERT_CONTEXT>;
+
+	while (dataRead < buflen)
+	{
+		unsigned int cert_length = ntoh24(cursor);
+		cursor += sizeof(UINT8) + sizeof(UINT16);
+		dataRead += sizeof(UINT8) + sizeof(UINT16);
+		if ((UINT64)(cursor + cert_length - buffer) > buflen) {
+			thlog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << cert_length;
+			throw std::runtime_error("");
+		}
+		//UINT8 * cert_raw_chain = new UINT8[cert_length];
+
+		//if (!cert_raw_chain) {
+		///	thlog() << "Could not allocate " << cert_length << " bytes while parsing query";
+		//	throw std::bad_alloc();
+		//}
+
+		//memcpy(cert_raw_chain, cursor, cert_length);
+
+		PCCERT_CONTEXT cert_context = CertCreateCertificateContext(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, cursor, cert_length);
+
+		cursor += cert_length;
+		dataRead += cert_length;
+
+		if (cert_context == NULL) {
+			thlog() << "Wincrypt could not parse certificate. Error Code " << GetLastError();
+			return cert_context_vector;
+		}
+
+		cert_context_vector->push_back(cert_context);
+	}
+
+	return cert_context_vector;
+}
+bool Query::clean_cert_context_chain(std::vector<PCCERT_CONTEXT>* cert_context_chain)
+{
+	for (int i = 0; i < cert_context_chain->size(); i++)
+	{
+		CertFreeCertificateContext(cert_context_chain->at(i));
+		cert_context_chain->at(i) = NULL;
+	}
+	delete cert_context_chain;
+	cert_context_chain = NULL;
+	return true;
 }
 STACK_OF(X509)* Query::parse_chain(unsigned char* data, size_t len) {
 	unsigned char* start_pos;

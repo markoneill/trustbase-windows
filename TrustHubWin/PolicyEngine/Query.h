@@ -7,6 +7,8 @@
 #include <condition_variable>
 #include "THLogger.h"
 #include "SNI_Parser.h"
+#include <vector>
+
 #define CERT_LENGTH_FIELD_SIZE	3
 
 
@@ -39,6 +41,9 @@ private:
 	UINT64 processId;
 	static int next_id;
 	STACK_OF(X509)* parse_chain(unsigned char* data, size_t len);
+	std::vector<PCCERT_CONTEXT>* parse_cert_context_chain(UINT8* raw_chain, UINT64 chain_len);
+	bool clean_cert_context_chain(std::vector<PCCERT_CONTEXT>*);
+
 	unsigned int ntoh24(const unsigned char* data);
 };
 

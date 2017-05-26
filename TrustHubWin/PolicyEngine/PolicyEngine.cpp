@@ -162,12 +162,20 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		//Check if we need to trick the system to accept what the plugins say.
 		if (response = PLUGIN_RESPONSE_VALID && !system_response) 
 		{
-			PCCERT_CONTEXT win_cert = CertCreateCertificateContext(
-				(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING),
-				query->data.raw_chain,
-				query->data.raw_chain_len
-			);
-			UBC.insertIntoRootStore(win_cert);
+			if (query->data.cert_context_chain->size() <= 0) {
+				thlog() << "No PCCERT_CONTEXT in chain";
+				return false;
+			}
+			int leaf_cert_index = 0;
+			PCCERT_CONTEXT leaf_cert_context = query->data.cert_context_chain->at(leaf_cert_index);
+			if (leaf_cert_context == NULL) {
+				thlog() << "cert_context at index " << leaf_cert_index << "is NULL";
+				return UnbreakableCrypto_REJECT;
+			}
+
+			bool insertRootSuccess = UBC.insertIntoRootStore(leaf_cert_context);
+			thlog() << "insertIntoRootStore returned " << insertRootSuccess;
+
 		}
 
 		// send the response

@@ -99,11 +99,6 @@ void UnbreakableCrypto::configure() {
 
 UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD cert_len, char * hostname){
 
-	if (!isConfigured()) {
-		thlog() << "WARNING! Using UnbreakableCrypto without configuring.";
-		return UnbreakableCrypto_ERROR;
-	}
-
 	//++++++++++++++++++++++++++++++++++++
 	//Create a windows certificate object
 	//++++++++++++++++++++++++++++++++++++
@@ -117,17 +112,61 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 		return UnbreakableCrypto_REJECT;
 	}
 
+	UnbreakableCrypto_RESPONSE answer = evaluate(certificate_context, hostname);
+	CertFreeCertificateContext(certificate_context); certificate_context = NULL;
+	return answer;
+
+}
+
+UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
+	char * hostname = SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
+	
+	if (cert_data->data.cert_context_chain->size() <= 0) {
+		thlog() << "No PCCERT_CONTEXT in chain";
+		return UnbreakableCrypto_REJECT;
+	}
+	int left_cert_index = 0;
+	int root_cert_index = cert_data->data.cert_context_chain->size() - 1;
+
+	PCCERT_CONTEXT leaf_cert_context = cert_data->data.cert_context_chain->at(left_cert_index);
+	//PCCERT_CONTEXT root_raw_cert = cert_data->data.cert_context_chain->at(root_cert_index);
+
+	if (leaf_cert_context == NULL) {
+		thlog() << "cert_context at index " << left_cert_index << "is NULL";
+		return UnbreakableCrypto_REJECT;
+	}
+	UnbreakableCrypto_RESPONSE answer = evaluate(leaf_cert_context, hostname);
+	
+	delete hostname;
+	CertFreeCertificateContext(leaf_cert_context); leaf_cert_context = NULL;
+	return answer;
+}
+
+UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(PCCERT_CONTEXT certificate_context, char * hostname) {
+	if (!isConfigured()) {
+		thlog() << "WARNING! Using UnbreakableCrypto without configuring.";
+		return UnbreakableCrypto_ERROR;
+	}
+
+	//++++++++++++++++++++++++++++++++++++
+	//Verify the windows certificate object
+	//++++++++++++++++++++++++++++++++++++
+	
+	if (certificate_context == NULL) {
+		thlog() << "Wincrypt could not parse certificate. Error Code " << GetLastError();
+		return UnbreakableCrypto_REJECT;
+	}
+
 	//++++++++++++++++++++++++++++++++++++++++++++
 	//Create a Windows Certificate Chain Engine
 	//++++++++++++++++++++++++++++++++++++++++++++
 	if (!CertCreateCertificateChainEngine(
-				cert_chain_engine_config, 
-				&authentication_train_handle
+		cert_chain_engine_config,
+		&authentication_train_handle
+	)
 		)
-		) 
 	{
 		thlog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
-		CertFreeCertificateContext(certificate_context); certificate_context = NULL;
 		return UnbreakableCrypto_REJECT;
 	}
 
@@ -135,19 +174,18 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 	//Turn certificate object into a certificate chain object
 	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	if (!CertGetCertificateChain(
-				authentication_train_handle,
-				certificate_context,
-				NULL, //Uses System time by default
-				NULL, //Search no extra certificate stores
-				cert_chain_config,
-				0x0000000, // No Flags
-				NULL,
-				&cert_chain_context
-			)
-		) 
+		authentication_train_handle,
+		certificate_context,
+		NULL, //Uses System time by default
+		NULL, //Search no extra certificate stores
+		cert_chain_config,
+		0x0000000, // No Flags
+		NULL,
+		&cert_chain_context
+	)
+		)
 	{
 		thlog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
-		CertFreeCertificateContext(certificate_context); certificate_context = NULL;
 		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 		return UnbreakableCrypto_REJECT;
 	}
@@ -158,115 +196,33 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 
 	PCERT_CHAIN_POLICY_STATUS cert_policy_status = new CERT_CHAIN_POLICY_STATUS;
 	if (!CertVerifyCertificateChainPolicy(
-			CERT_CHAIN_POLICY_BASE,
-			cert_chain_context,
-			0, //Do not ignore any problems
-			cert_policy_status
+		CERT_CHAIN_POLICY_BASE,
+		cert_chain_context,
+		0, //Do not ignore any problems
+		cert_policy_status
+	)
 		)
-	) 
 	{
 		thlog() << "Wincrypt could not policy check the certificate chain. Error Code: " << GetLastError();
 		CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
-		CertFreeCertificateContext(certificate_context); certificate_context = NULL;
 		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 		delete cert_policy_status;
 		return UnbreakableCrypto_REJECT;
 	}
-	if (cert_policy_status->dwError != ERROR_SUCCESS) 
+	if (cert_policy_status->dwError != ERROR_SUCCESS)
 	{
 		CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
-		CertFreeCertificateContext(certificate_context); certificate_context = NULL;
 		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 		delete cert_policy_status;
 		return UnbreakableCrypto_REJECT;
 	}
 
 	CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
-	CertFreeCertificateContext(certificate_context); certificate_context = NULL;
 	CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 	delete cert_policy_status;
 	return UnbreakableCrypto_ACCEPT;
 }
 
-
-UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
-	char * hostname = SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
-	
-	CERT_CHAIN* cert_chain = CreateCertChain(cert_data->data.raw_chain, cert_data->data.raw_chain_len);
-	
-	UINT8* leaf_raw_cert = cert_chain->certs[0].pbData;
-	UINT64 leaf_cert_len = cert_chain->certs[0].cbData;
-
-	//UINT8* root_raw_cert = cert_chain->certs[cert_chain->cCerts - 1].pbData;
-	//UINT64 root_cert_len = cert_chain->certs[cert_chain->cCerts - 1].cbData;
-
-	UnbreakableCrypto_RESPONSE answer = evaluate(leaf_raw_cert, leaf_cert_len, hostname);
-	delete hostname;
-	CleanCertChain(cert_chain);
-
-	return answer;
-}
-
-CERT_CHAIN* UnbreakableCrypto::CreateCertChain(UINT8* raw_chain, UINT64 chain_len)
-{
-	PCERT_CHAIN windows_cert_chain = new CERT_CHAIN;
-	UINT8* cursor = raw_chain;
-
-	UINT8* buffer = raw_chain;
-	UINT64 buflen = chain_len;
-	UINT64 dataRead = 0;
-	std::vector<CERT_BLOB>* cert_blob_vector = new std::vector<CERT_BLOB>;
-
-	while (dataRead < buflen)
-	{
-		unsigned int cert_length = ntoh24(cursor);
-		cursor += sizeof(UINT8) + sizeof(UINT16);
-		dataRead += sizeof(UINT8) + sizeof(UINT16);
-		if ((UINT64)(cursor + cert_length - buffer) > buflen) {
-			thlog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << cert_length;
-			throw std::runtime_error("");
-		}
-		UINT8 * cert_raw_chain = new UINT8[cert_length];
-
-		if (!cert_raw_chain) {
-			thlog() << "Could not allocate " << cert_length << " bytes while parsing query";
-			throw std::bad_alloc();
-		}
-
-		memcpy(cert_raw_chain, cursor, cert_length);
-		cursor += cert_length;
-		dataRead += cert_length;
-
-		CERT_BLOB cert_blob;
-		cert_blob.cbData = cert_length;
-		cert_blob.pbData = cert_raw_chain;
-
-		cert_blob_vector->push_back(cert_blob);
-	}
-
-	CERT_CHAIN* certChainObj = new CERT_CHAIN;
-	certChainObj->certs = cert_blob_vector->data();
-	certChainObj->cCerts = cert_blob_vector->size();
-	//todo: certChainObj.keyLocatorInfo;  I have no idea what this for
-
-	return certChainObj;
-}
-
-bool UnbreakableCrypto::CleanCertChain(CERT_CHAIN* cert_chain)
-{
-	for (int i = 0; i < cert_chain->cCerts; i++)
-	{
-		delete cert_chain->certs[i].pbData;
-		cert_chain->certs[i].pbData = NULL;
-	}
-	delete cert_chain->certs;
-	cert_chain->certs = NULL;
-
-	delete cert_chain;
-	cert_chain = NULL;
-
-	return true;
-}
 
 unsigned int UnbreakableCrypto::ntoh24(const UINT8* data) {
 	unsigned int ret = (data[0] << 16) | (data[1] << 8) | data[2];

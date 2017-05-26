@@ -19,7 +19,7 @@ public:
 	
 	UnbreakableCrypto_RESPONSE evaluate (Query * certificate_data);
 	UnbreakableCrypto_RESPONSE evaluate(UINT8* cert_data, DWORD cert_len, char* hostname);
-
+	UnbreakableCrypto_RESPONSE evaluate(PCCERT_CONTEXT cert_context, char* hostname);
 	bool insertIntoRootStore(PCCERT_CONTEXT certificate);
 	bool removeFromRootStore(Query * certificate_data);
 
@@ -29,8 +29,6 @@ private:
 	HCERTSTORE openRootStore();
 	HCERTSTORE openMyStore();
 	unsigned int ntoh24(const UINT8* data);
-	CERT_CHAIN* CreateCertChain(UINT8* raw_chain, UINT64 chain_len);
-	bool CleanCertChain(CERT_CHAIN* cert_chain);
 
 	static const bool HACKABLE = false;
 	UINT encodings = X509_ASN_ENCODING;
