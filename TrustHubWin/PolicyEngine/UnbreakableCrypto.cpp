@@ -120,7 +120,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 }
 
 UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
-	char * hostname = SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
+	WCHAR * hostname = (WCHAR*)SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
 	
 	if (cert_data->data.cert_context_chain->size() <= 0) {
 		thlog() << "No PCCERT_CONTEXT in chain";
