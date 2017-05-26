@@ -37,7 +37,9 @@ public:
 private:
 	HCERTSTORE openRootStore();
 	HCERTSTORE openMyStore();
-
+	unsigned int ntoh24(const UINT8* data);
+	CERT_CHAIN* CreateCertChain(UINT8* raw_chain, UINT64 chain_len);
+	bool CleanCertChain(CERT_CHAIN* cert_chain);
 
 	static const bool HACKABLE = false;
 	UINT encodings = X509_ASN_ENCODING;

@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "UnbreakableCrypto.h"
-
+#include <vector>
 
 
 
@@ -204,12 +204,88 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 
 UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 	WCHAR * hostname = (WCHAR *) SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
+	
+	CERT_CHAIN* cert_chain = CreateCertChain(cert_data->data.raw_chain, cert_data->data.raw_chain_len);
+	
+	UINT8* leaf_raw_cert = cert_chain->certs[0].pbData;
+	UINT64 leaf_cert_len = cert_chain->certs[0].cbData;
 
-	UnbreakableCrypto_RESPONSE answer = evaluate(cert_data->data.raw_chain, cert_data->data.client_hello_len, hostname);
+	//UINT8* root_raw_cert = cert_chain->certs[cert_chain->cCerts - 1].pbData;
+	//UINT64 root_cert_len = cert_chain->certs[cert_chain->cCerts - 1].cbData;
+
+	UnbreakableCrypto_RESPONSE answer = evaluate(leaf_raw_cert, leaf_cert_len, hostname);
+
 	delete hostname;
+	CleanCertChain(cert_chain);
+
 	return answer;
 }
 
+CERT_CHAIN* UnbreakableCrypto::CreateCertChain(UINT8* raw_chain, UINT64 chain_len)
+{
+	PCERT_CHAIN windows_cert_chain = new CERT_CHAIN;
+	UINT8* cursor = raw_chain;
+
+	UINT8* buffer = raw_chain;
+	UINT64 buflen = chain_len;
+	UINT64 dataRead = 0;
+	std::vector<CERT_BLOB>* cert_blob_vector = new std::vector<CERT_BLOB>;
+
+	while (dataRead < buflen)
+	{
+		unsigned int cert_length = ntoh24(cursor);
+		cursor += sizeof(UINT8) + sizeof(UINT16);
+		dataRead += sizeof(UINT8) + sizeof(UINT16);
+		if ((UINT64)(cursor + cert_length - buffer) > buflen) {
+			thlog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << cert_length;
+			throw std::runtime_error("");
+		}
+		UINT8 * cert_raw_chain = new UINT8[cert_length];
+
+		if (!cert_raw_chain) {
+			thlog() << "Could not allocate " << cert_length << " bytes while parsing query";
+			throw std::bad_alloc();
+		}
+
+		memcpy(cert_raw_chain, cursor, cert_length);
+		cursor += cert_length;
+		dataRead += cert_length;
+
+		CERT_BLOB cert_blob;
+		cert_blob.cbData = cert_length;
+		cert_blob.pbData = cert_raw_chain;
+
+		cert_blob_vector->push_back(cert_blob);
+	}
+
+	CERT_CHAIN* certChainObj = new CERT_CHAIN;
+	certChainObj->certs = cert_blob_vector->data();
+	certChainObj->cCerts = cert_blob_vector->size();
+	//todo: certChainObj.keyLocatorInfo;  I have no idea what this for
+
+	return certChainObj;
+}
+
+bool UnbreakableCrypto::CleanCertChain(CERT_CHAIN* cert_chain)
+{
+	for (int i = 0; i < cert_chain->cCerts; i++)
+	{
+		delete cert_chain->certs[i].pbData;
+		cert_chain->certs[i].pbData = NULL;
+	}
+	delete cert_chain->certs;
+	cert_chain->certs = NULL;
+
+	delete cert_chain;
+	cert_chain = NULL;
+
+	return true;
+}
+
+unsigned int UnbreakableCrypto::ntoh24(const UINT8* data) {
+	unsigned int ret = (data[0] << 16) | (data[1] << 8) | data[2];
+	return ret;
+}
 /*
 HCERTSTORE WINAPI CertOpenStore(
 _In_       LPCSTR            lpszStoreProvider,

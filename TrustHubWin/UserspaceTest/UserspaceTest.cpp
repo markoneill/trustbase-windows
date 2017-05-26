@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
 	UINT64 flowHandle = 0;
 
 	file = CreateFileW(L"\\\\.\\TrustHub", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-	if (file == NULL) {
+	if (file == NULL || file == INVALID_HANDLE_VALUE) {
 		printf("Couldn't open file\r\n");
 		return -1;
 	}

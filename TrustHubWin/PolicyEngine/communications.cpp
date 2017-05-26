@@ -117,6 +117,7 @@ Query* Communications::parse_query(UINT8* buffer, UINT64 buflen) {
 	UINT8* clientHello = NULL;
 	UINT32 serverHelloSize;
 	UINT8* serverHello = NULL;
+	UINT32 certObjectSize;
 	UINT32 certSize;
 	UINT8* cert = NULL;
 
@@ -184,12 +185,26 @@ Query* Communications::parse_query(UINT8* buffer, UINT64 buflen) {
 		memcpy(serverHello, cursor, serverHelloSize);
 		cursor += serverHelloSize;
 
-		certSize = *((UINT32*)cursor);
+		//the cert object follows the following structure:
+		//certObjSize (4 bytes) + certSize (3 bytes) + cert
+		//example: 21 0d 00 00 00 0d 1e ... [start cert]
+		// certObjSize 21 0d 00 00 is read right to left = 3361
+		// certSize 00 0d 1e is read left to right = 3358
+
+		certObjectSize = *((UINT32*)cursor);
 		cursor += sizeof(UINT32);
+		if ((UINT64)(cursor + certObjectSize - buffer) > buflen) {
+			thlog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << certObjectSize;
+			throw std::runtime_error("");
+		}
+
+		certSize = ntoh24(cursor); 
+		cursor += sizeof(UINT8) + sizeof(UINT16);
 		if ((UINT64)(cursor + certSize - buffer) > buflen) {
 			thlog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << certSize;
 			throw std::runtime_error("");
 		}
+
 		cert = new UINT8[certSize];
 		if (!cert) {
 			thlog() << "Could not allocate " << certSize << " bytes while parsing query";
@@ -218,6 +233,11 @@ Query* Communications::parse_query(UINT8* buffer, UINT64 buflen) {
 	return query;
 }
 
+unsigned int Communications::ntoh24(const UINT8* data) {
+	unsigned int ret = (data[0] << 16) | (data[1] << 8) | data[2];
+	return ret;
+}
+
 bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) {
 	qq = in_qq;
 	plugin_count = in_plugin_count;
@@ -237,7 +257,7 @@ bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) 
 	}
 
 	file = CreateFileW(TRUSTHUBKERN, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-	if (file == NULL) {
+	if (file == NULL ||  file == INVALID_HANDLE_VALUE) {
 		thlog() << "Couldn't open trusthub kernel file.";
 		delete[] buf;
 		delete[] response_buf;
