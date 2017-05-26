@@ -22,8 +22,6 @@ int(*plog)(thlog_level_t level, const char* format, ...);
 //   Configuration Properties->C/C++->General->Additional Include Directories
 __declspec(dllexport) int __stdcall query(query_data_t*) {
 	plog(LOG_DEBUG, "SimplePlugin1: query function ran");
-	plog(LOG_DEBUG, "moo %s", "www");
-
 	
     return PLUGIN_RESPONSE_VALID;
 }

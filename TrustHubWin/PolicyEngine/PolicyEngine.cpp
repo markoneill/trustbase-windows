@@ -11,7 +11,6 @@
 #include "QueryQueue.h"
 #include "UnbreakableCrypto.h"
 #include "TestUnbreakableCrypto.h"
-
 #define CONFIG_LOCATION		"./trusthub.cfg"
 // Things that need to go in the config
 #define TIMEOUT_TIME		15000
@@ -20,6 +19,11 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context);
 
 int main()
 {
+
+	//Store certificates in root store removal
+	UnbreakableCrypto UBC = UnbreakableCrypto();
+	UBC.configure();
+	UBC.removeAllStoredCertsFromRootStore();
 
 	//Uncomment below to test UnbreakableCrypto
 	//TestUnbreakableCrypto TUBC = TestUnbreakableCrypto();
@@ -128,9 +132,9 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 				break;
 			}
 		}
+		query->accepting_responses = false;
 		lk.unlock();
 		thlog() << "Handling query "<< query->getId() << " with " << query->num_responses << " responses";
-		query->accepting_responses = false;
 		// remove the query from the linked list
 		qq->unlink(query->getId());
 

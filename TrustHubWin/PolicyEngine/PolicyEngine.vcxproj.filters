@@ -69,6 +69,12 @@
     <ClInclude Include="QueryFetcher.h">
       <Filter>Header Files\unit tests</Filter>
     </ClInclude>
+    <ClInclude Include="RawCertData.h">
+      <Filter>Header Files\unit tests</Filter>
+    </ClInclude>
+    <ClInclude Include="CertificatesAddedToRootStore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -109,6 +115,12 @@
     </ClCompile>
     <ClCompile Include="QueryFetcher.cpp">
       <Filter>Source Files\unit tests</Filter>
+    </ClCompile>
+    <ClCompile Include="RawCertData.cpp">
+      <Filter>Source Files\unit tests</Filter>
+    </ClCompile>
+    <ClCompile Include="CertificatesAddedToRootStore.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

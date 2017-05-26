@@ -12,7 +12,6 @@
 class thlog {
 public:
 
-
 	thlog();
 	thlog(thlog_level_t);
 

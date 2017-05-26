@@ -2,12 +2,9 @@
 #include "UnbreakableCrypto.h"
 #include <vector>
 
-
-
 UnbreakableCrypto::UnbreakableCrypto() {
 
 }
-
 
 UnbreakableCrypto::~UnbreakableCrypto() {
 
@@ -35,7 +32,7 @@ UnbreakableCrypto::~UnbreakableCrypto() {
 
 
 void UnbreakableCrypto::configure() {
-	encodings = (X509_ASN_ENCODING | PKCS_7_ASN_ENCODING);//No Idea
+	encodings = (X509_ASN_ENCODING);//No Idea
 
 	//PCCERT_STRONG_SIGN_PARA chain_params_strong_crypto_param = new CERT_STRONG_SIGN_PARA;
 	//chain_params_strong_crypto_param->cbSize = sizeof(*chain_params_strong_crypto_param);
@@ -120,8 +117,10 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 }
 
 UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
-	WCHAR * hostname = (WCHAR*)SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
-	
+	char * hostname = SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
+	wchar_t* wHostname = GetWC(hostname);
+	delete hostname;
+
 	if (cert_data->data.cert_context_chain->size() <= 0) {
 		thlog() << "No PCCERT_CONTEXT in chain";
 		return UnbreakableCrypto_REJECT;
@@ -136,10 +135,8 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 		thlog() << "cert_context at index " << left_cert_index << "is NULL";
 		return UnbreakableCrypto_REJECT;
 	}
-	UnbreakableCrypto_RESPONSE answer = evaluate(leaf_cert_context, hostname);
-	
-	delete hostname;
-	CertFreeCertificateContext(leaf_cert_context); leaf_cert_context = NULL;
+	UnbreakableCrypto_RESPONSE answer = evaluate(leaf_cert_context, wHostname);
+	delete wHostname;
 	return answer;
 }
 
@@ -252,34 +249,158 @@ _In_ const void              *pvPara
 
 bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
 {
+	bool successfulAdd= true;
+	bool alreadyExists = false;
+
 	HCERTSTORE root_store = openRootStore();
+
+	LPTSTR certName = getCertName(certificate);
+	std::wstring ws(certName);
+	thlog() << "Attempting to add the following cert to the root store: " << certName;
+	free(certName);
 
 	if (!CertAddCertificateContextToStore(root_store, certificate, CERT_STORE_ADD_NEW, NULL))
 	{
-		CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
-		return GetLastError() == CRYPT_E_EXISTS;
+		successfulAdd = false;
+		alreadyExists = GetLastError() == CRYPT_E_EXISTS;
+		if (!alreadyExists)
+		{
+			thlog(LOG_WARNING) << "Failed adding cert to root store";
+		}
 	}
 
+	if (successfulAdd)
+	{
+		CRYPT_HASH_BLOB* sha1_blob = getSHA1CryptHashBlob(certificate->pbCertEncoded, certificate->cbCertEncoded);
+		std::string thumbprint ((char*)sha1_blob->pbData, sha1_blob->cbData);
+		certsAddedToRootStore.addCertificate(thumbprint);
+	}
+	
 	CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
-	return true;
+	return successfulAdd || alreadyExists;
 }
 
-bool UnbreakableCrypto::removeFromRootStore(Query * query)
+LPTSTR UnbreakableCrypto::getCertName(PCCERT_CONTEXT certificate) {
+	DWORD cbSize = 0;
+
+	//get size
+	cbSize = CertGetNameString(
+		certificate,
+		CERT_NAME_SIMPLE_DISPLAY_TYPE,
+		CERT_NAME_ISSUER_FLAG,
+		NULL,
+		NULL,
+		cbSize);
+
+	LPTSTR pszName = new TCHAR[cbSize];
+	//get name
+	cbSize = CertGetNameString(
+		certificate,
+		CERT_NAME_SIMPLE_DISPLAY_TYPE,
+		CERT_NAME_ISSUER_FLAG,
+		NULL,
+		pszName,
+		cbSize);
+
+	return pszName;
+}
+
+
+bool UnbreakableCrypto::removeAllStoredCertsFromRootStore()
 {
-	HCERTSTORE root_store = openRootStore();
-	PCCERT_CONTEXT cert_to_destroy = CertCreateCertificateContext(encodings, query->data.raw_chain, query->data.raw_chain_len);
-	
-
-
-	if (!CertDeleteCertificateFromStore(cert_to_destroy))
+	bool success = true;
+	while (certsAddedToRootStore.certificates.size() > 0)
 	{
-		CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
-		return false;
+		if (!removeFromRootStore(certsAddedToRootStore.certificates.at(0))) {
+			success = false;
+		}
 	}
 
+	return success;
+}
+
+bool UnbreakableCrypto::removeFromRootStore(std::string thumbprint)
+{
+	//Search for certificates by SHA1 thumbprint (CertFindCertificateInStore w/ CERT_FIND_HASH does this)
+	//then remove any certificates (presumably only 1 cert) with this hash.
+
+	CRYPT_HASH_BLOB* sha1_blob = getSHA1CryptHashBlob(thumbprint);
+	bool success = removeFromRootStore(sha1_blob);
+
+	delete sha1_blob->pbData;
+	delete sha1_blob;
+
+	return success;
+}
+
+bool UnbreakableCrypto::removeFromRootStore(byte* raw_cert, size_t raw_cert_len)
+{
+	//Search for certificates by SHA1 thumbprint (CertFindCertificateInStore w/ CERT_FIND_HASH does this)
+	//then remove any certificates (presumably only 1 cert) with this hash.
+
+	CRYPT_HASH_BLOB* sha1_blob = getSHA1CryptHashBlob(raw_cert, raw_cert_len);
+	bool success = removeFromRootStore(sha1_blob);
+
+	delete sha1_blob->pbData;
+	delete sha1_blob;
+
+	return success;
+}
+
+bool UnbreakableCrypto::removeFromRootStore(CRYPT_HASH_BLOB* sha1_blob)
+{
+	bool success = true;
+	HCERTSTORE root_store = openRootStore();
+	PCCERT_CONTEXT pCertContext = NULL;
+
+	while (pCertContext = CertFindCertificateInStore(root_store, encodings, 0, CERT_FIND_HASH, sha1_blob, pCertContext)) {
+		if (pCertContext != NULL)
+		{
+			thlog() << "Attempting to remove " << pCertContext->pCertInfo->Subject.pbData << " cert from root store";
+
+			if (!CertDeleteCertificateFromStore(
+				CertDuplicateCertificateContext(pCertContext))
+				)
+			{
+				thlog(LOG_WARNING) << "Failed removing cert from root store";
+				success = false;
+			}
+		}
+	}
+	
+	if (success)
+	{
+		std::string thumbprint((char*)sha1_blob->pbData, sha1_blob->cbData);
+		certsAddedToRootStore.removeCertificate(thumbprint);
+	}
 
 	CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
-	return false;
+	return success;
+}
+
+CRYPT_HASH_BLOB* UnbreakableCrypto::getSHA1CryptHashBlob(byte* raw_cert, size_t raw_cert_len)
+{
+	//todo: dont use bad hash like sha1 thumbprint
+	byte* pbComputedHash = new byte[20];
+	DWORD *pcbComputedHash = new DWORD;
+	(*pcbComputedHash) = 20;
+	CryptHashCertificate(NULL, 0, 0, raw_cert, raw_cert_len, pbComputedHash, pcbComputedHash);
+	CRYPT_HASH_BLOB* blob = new CRYPT_HASH_BLOB;
+	blob->pbData = pbComputedHash;
+	blob->cbData = *pcbComputedHash;
+	delete pcbComputedHash;
+	return blob;
+}
+
+CRYPT_HASH_BLOB* UnbreakableCrypto::getSHA1CryptHashBlob(std::string thumbprint)
+{
+	//todo: dont use bad hash like sha1 thumbprint
+	byte* pbComputedHash = new byte[thumbprint.size()];
+	memcpy(pbComputedHash, thumbprint.c_str(), thumbprint.size());
+	CRYPT_HASH_BLOB* blob = new CRYPT_HASH_BLOB;
+	blob->pbData = pbComputedHash;
+	blob->cbData = thumbprint.size();
+	return blob;
 }
 
 bool UnbreakableCrypto::isConfigured()
@@ -435,7 +556,14 @@ LPWSTR UnbreakableCrypto::SPC_fold_wide(LPWSTR str)
 
 	return wstr;
 }
+wchar_t * UnbreakableCrypto::GetWC(const char *c)
+{
+	const size_t cSize = strlen(c) + 1;
+	wchar_t* wc = new wchar_t[cSize];
+	mbstowcs(wc, c, cSize);
 
+	return wc;
+}
 
 //LPWSTR UnbreakableCrypto::SPC_make_wide(LPCTSTR str)
 //{

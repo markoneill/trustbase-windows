@@ -44,7 +44,7 @@ bool Communications::recv_query() {
 
 			Read += readlen;
 		} else {
-			thlog() << "Couldn't read query!";
+			thlog(LOG_WARNING) << "Couldn't read query!";
 			return false;
 		}
 		if (Read >= toRead) {
@@ -270,18 +270,18 @@ bool Communications::listen_for_queries() {
 	bool success = true;
 	if (COMMUNICATIONS_DEBUG_MODE) {
 		debug_recv_query();
+		keep_running = false;
 	}
 
 	while (keep_running) {
 		if (!recv_query()) {
-			thlog() << "Could not handle query";
+			thlog(LOG_WARNING) << "Could not handle query";
 			success = false;
-			break;
+			// flip keep running to close the Policy Engine
+			keep_running = false;
 		}
 	}
 
-	// flip keep running to close the Policy Engine
-	Communications::keep_running = false;
 	// unlock the plugins so they can close
 	qq->enqueue(nullptr);
 

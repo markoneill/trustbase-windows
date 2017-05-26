@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "QueryFetcher.h"
 
-Query * QueryFetcher::fetch(FetchFileName ffn) {
+RawCertData * QueryFetcher::fetch(FetchFileName ffn) {
 
 	LPCWSTR filename;
 
@@ -20,6 +20,9 @@ Query * QueryFetcher::fetch(FetchFileName ffn) {
 			break;
 		case MALFORMED_CERT_FILENAME:
 			filename = TEXT("./MalformedCert.cer");
+			break;
+		case SELF_SIGNED_CERT_FILENAME:
+			filename = TEXT("./SelfSignedCert.cer");
 			break;
 		default:
 			return NULL;
@@ -58,7 +61,7 @@ Query * QueryFetcher::fetch(FetchFileName ffn) {
 		NULL
 	);
 
-	return new Query(
+	return new RawCertData(
 		cert_data, 
 		filesize
 	);

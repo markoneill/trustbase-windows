@@ -2,6 +2,11 @@
 #include <stdint.h>
 #include <openssl/x509v3.h>
 #include "THLogger_Level.h"
+//To get WinCrypt to complile
+#pragma comment(lib, "Crypt32.lib")
+#define CERT_CHAIN_PARA_HAS_EXTRA_FIELDS true
+#include <Windows.h>
+#include <wincrypt.h>
 #include <vector>
 #define PLUGIN_RESPONSE_ERROR	-1
 #define PLUGIN_RESPONSE_VALID	1

@@ -25,9 +25,10 @@ private:
 	bool Test7(int* warning_count);
 	bool Test8(int* warning_count);
 	bool Test9(int* warning_count);
-	Query * BuildValidQuery();
-	Query * BuildInValidQuery();
-	Query * BuildBadHostnameQuery();
-	Query * BuildNullInHostnameQuery();
-	Query * BuildMalformedQuery();
+	RawCertData * BuildValidQuery();
+	RawCertData * BuildInValidQuery();
+	RawCertData * BuildBadHostnameQuery();
+	RawCertData * BuildNullInHostnameQuery();
+	RawCertData * BuildMalformedQuery();
+	RawCertData * BuildSelfSignedQuery();
 };

@@ -1,6 +1,5 @@
 #pragma once
 #include "trusthub_plugin.h"
-#include <Windows.h>
 #include <string>
 #include <mutex>
 #include <atomic>
@@ -14,10 +13,6 @@
 
 class Query {
 public:
-	
-	//FOR TESTING ONLY - DOES NOT FULLY INSTANTIATE THE CLASS
-	Query(UINT8 * raw_cert, DWORD cert_len);
-
 
 	Query(UINT64 flowHandle, UINT64 processId, char* processPath, UINT8 * raw_certificate, DWORD cert_len, UINT8 * client_hello, DWORD client_hello_len, UINT8 * server_hello, DWORD server_hello_len, int plugin_count);
 	~Query();

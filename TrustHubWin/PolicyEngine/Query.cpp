@@ -6,12 +6,6 @@
 
 int Query::next_id;
 
-Query::Query(UINT8 * raw_cert, DWORD cert_len)
-{
-	data.raw_chain = raw_cert;
-	data.raw_chain_len = cert_len;
-}
-
 Query::Query(UINT64 flowHandle, UINT64 processId, char* processPath, UINT8 * raw_certificate, DWORD cert_len, UINT8 * client_hello, DWORD client_hello_len, UINT8 * server_hello, DWORD server_hello_len, int plugin_count) {
 	this->flowHandle = flowHandle;
 	this->processId = processId;
@@ -110,14 +104,6 @@ std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, U
 			thlog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << cert_length;
 			throw std::runtime_error("");
 		}
-		//UINT8 * cert_raw_chain = new UINT8[cert_length];
-
-		//if (!cert_raw_chain) {
-		///	thlog() << "Could not allocate " << cert_length << " bytes while parsing query";
-		//	throw std::bad_alloc();
-		//}
-
-		//memcpy(cert_raw_chain, cursor, cert_length);
 
 		PCCERT_CONTEXT cert_context = CertCreateCertificateContext(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, cursor, cert_length);
 
@@ -136,13 +122,15 @@ std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, U
 }
 bool Query::clean_cert_context_chain(std::vector<PCCERT_CONTEXT>* cert_context_chain)
 {
-	for (int i = 0; i < cert_context_chain->size(); i++)
-	{
-		CertFreeCertificateContext(cert_context_chain->at(i));
-		cert_context_chain->at(i) = NULL;
+	if (cert_context_chain != NULL) {
+		for (int i = 0; i < cert_context_chain->size(); i++)
+		{
+			CertFreeCertificateContext(cert_context_chain->at(i));
+		}
+		cert_context_chain->clear();
+		delete cert_context_chain;
+		cert_context_chain = NULL;
 	}
-	delete cert_context_chain;
-	cert_context_chain = NULL;
 	return true;
 }
 STACK_OF(X509)* Query::parse_chain(unsigned char* data, size_t len) {

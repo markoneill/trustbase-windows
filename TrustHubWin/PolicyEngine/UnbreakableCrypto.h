@@ -4,6 +4,8 @@
 #include "THLogger.h"
 #include "Query.h"
 #include <vector>
+#include "CertificatesAddedToRootStore.h"
+
 /*
 	Note: This crypto is very working and is much safe.
 */
@@ -18,6 +20,8 @@ public:
 	~UnbreakableCrypto();
 	void configure();
 	
+	CertificatesAddedToRootStore certsAddedToRootStore;
+
 	UnbreakableCrypto_RESPONSE evaluate (Query * certificate_data);
 	UnbreakableCrypto_RESPONSE evaluate(PCCERT_CONTEXT cert_context, LPWSTR hostname);
 	UnbreakableCrypto_RESPONSE evaluate (UINT8 * cert_data, DWORD cert_len, LPWSTR hostname);
@@ -31,14 +35,23 @@ public:
 	LPWSTR SPC_fold_wide(LPWSTR str);
 
 	bool insertIntoRootStore(PCCERT_CONTEXT certificate);
-	bool removeFromRootStore(Query * certificate_data);
 
+	bool removeFromRootStore(std::string thumbprint);
+	bool removeFromRootStore(byte* raw_cert, size_t raw_cert_len);
+	bool removeAllStoredCertsFromRootStore();
 	bool isConfigured();
 
 private:
 	HCERTSTORE openRootStore();
 	HCERTSTORE openMyStore();
+
+	bool removeFromRootStore(CRYPT_HASH_BLOB* sha1_blob);
+
 	unsigned int ntoh24(const UINT8* data);
+	CRYPT_HASH_BLOB* getSHA1CryptHashBlob(byte* raw_cert, size_t raw_cert_len);
+	CRYPT_HASH_BLOB* getSHA1CryptHashBlob(std::string thumbprint);
+	LPTSTR getCertName(PCCERT_CONTEXT certificate);
+	wchar_t * GetWC(const char *c);
 
 	static const bool HACKABLE = false;
 	UINT encodings = X509_ASN_ENCODING;
