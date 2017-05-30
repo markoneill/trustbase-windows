@@ -44,6 +44,10 @@ public:
 private:
 	HCERTSTORE openRootStore();
 	HCERTSTORE openMyStore();
+	UnbreakableCrypto_RESPONSE evaluateChain(std::vector<PCCERT_CONTEXT>* cert_context_chain, LPWSTR wHostname);
+	bool CheckAgainstRootStore(PCCERT_CONTEXT cert);
+	bool ValidVouching(PCCERT_CONTEXT claimed_cert, PCCERT_CONTEXT trusted_proof);
+
 
 	bool removeFromRootStore(CRYPT_HASH_BLOB* sha1_blob);
 

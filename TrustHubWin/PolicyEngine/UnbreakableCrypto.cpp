@@ -100,6 +100,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD 
 	//++++++++++++++++++++++++++++++++++++
 	//Create a windows certificate object
 	//++++++++++++++++++++++++++++++++++++
+
 	PCCERT_CONTEXT certificate_context = CertCreateCertificateContext(
 		encodings, 
 		cert_data,
@@ -135,7 +136,8 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 		thlog() << "cert_context at index " << left_cert_index << "is NULL";
 		return UnbreakableCrypto_REJECT;
 	}
-	UnbreakableCrypto_RESPONSE answer = evaluate(leaf_cert_context, wHostname);
+	UnbreakableCrypto_RESPONSE answer = evaluateChain(cert_data->data.cert_context_chain, wHostname);
+	//UnbreakableCrypto_RESPONSE answer = evaluate(leaf_cert_context, wHostname);
 	delete wHostname;
 	return answer;
 }
@@ -450,6 +452,106 @@ HCERTSTORE UnbreakableCrypto::openMyStore()
 		CERT_SYSTEM_STORE_CURRENT_USER,
 		target_store_name
 	);
+}
+
+UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_CONTEXT>* cert_context_chain, LPWSTR wHostname)
+{
+	size_t cert_count;
+	int i;
+	PCCERT_CONTEXT current_cert;
+	PCCERT_CONTEXT proof_cert;
+
+	//Get number of certs in chain
+	cert_count  = cert_context_chain->size();
+
+	//First check hostname on leaf cert
+	if (!checkHostname(cert_context_chain->at(cert_count - 1), wHostname)) {
+		return UnbreakableCrypto_REJECT;
+	}
+
+
+	CERT_REVOCATION_STATUS foo = CERT_REVOCATION_STATUS();
+	foo.cbSize = sizeof(CERT_REVOCATION_STATUS);
+	//Now check all certificates' revocation status
+	if (!CertVerifyRevocation(
+		X509_ASN_ENCODING,
+		CERT_CONTEXT_REVOCATION_TYPE,
+		cert_count,
+		cert_context_chain->_Myfirst,
+		CERT_VERIFY_CACHE_ONLY_BASED_REVOCATION,
+		NULL,
+		&foo
+	)) 
+	{
+		thlog() << "Revoked certificate was encountered";
+		return UnbreakableCrypto_REJECT;
+	}
+
+	//Loop through chain from root to leaf to validate the chain
+	for (i = cert_count - 1; i >= 0; i--) {
+		current_cert = cert_context_chain->at(i);
+
+		if (i == cert_count - 1) {
+			if (!CheckAgainstRootStore(current_cert)) {
+				return UnbreakableCrypto_REJECT;
+			}
+			continue;
+		}
+
+		proof_cert = cert_context_chain->at(i + 1);
+		if (!ValidVouching(current_cert, proof_cert)) {
+
+		}
+	}
+
+	return UnbreakableCrypto_ACCEPT;
+}
+
+/*Checks whether a PCCERT_CONTEXT has an exact match in the root store*/
+bool UnbreakableCrypto::CheckAgainstRootStore(PCCERT_CONTEXT cert)
+{
+	HCERTSTORE root_store;
+	bool answer;
+	//Open Root store
+	root_store = openRootStore();
+
+	//Try to find a match in root store
+	PCCERT_CONTEXT root_cert = CertFindCertificateInStore(
+		root_store,
+		X509_ASN_ENCODING,
+		0,
+		CERT_FIND_EXISTING,
+		cert,
+		NULL
+	);
+
+	answer = (root_cert != NULL);
+	if (answer) {
+		CertFreeCertificateContext(root_cert);
+	}
+
+	answer = answer && (CertVerifyTimeValidity(NULL, cert->pCertInfo) == 0);
+
+	CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
+	return answer;
+}
+
+/*Checks whether a PCCERT_CONTEXT can be trusted based on the previous PCCERT_CONTEXT in the chain*/
+bool UnbreakableCrypto::ValidVouching(PCCERT_CONTEXT claimed_cert, PCCERT_CONTEXT trusted_proof)
+{
+	CRYPT_BIT_BLOB trusted_public_key_blob;
+	CRYPT_BIT_BLOB claimed_signature;
+	if (!(CertVerifyTimeValidity(NULL, claimed_cert->pCertInfo) == 0)) {
+		return false; //This certificate is not valid at this time.
+	}
+
+	DWORD validation_code = CERT_STORE_SIGNATURE_FLAG;
+	CertVerifySubjectCertificateContext(claimed_cert, trusted_proof, &validation_code);
+	if (validation_code != 0) {
+		return false;
+	}
+
+	return true;
 }
 
 
