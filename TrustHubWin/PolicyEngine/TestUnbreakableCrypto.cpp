@@ -166,20 +166,24 @@ bool TestUnbreakableCrypto::Test3(int* warning_count) {
 	bool pass = true;
 	UnbreakableCrypto UBC = UnbreakableCrypto();
 	RawCertData * valid = BuildValidQuery();
+	auto valid_data = valid->getCertInVector();
 	RawCertData * invalid = BuildInValidQuery();
+	auto invalid_data = invalid->getCertInVector();
 	RawCertData * bad_hostname = BuildBadHostnameQuery();
+	auto bad_hostnam_data = bad_hostname->getCertInVector();
+
 	if (valid == NULL || invalid == NULL || bad_hostname == NULL) { throw std::exception("Cert Reading Failed!"); }
-	if (UBC.evaluate(valid->raw_cert, valid->raw_cert_len, L"badssl.com") != UnbreakableCrypto_ERROR) {
+	if (UBC.evaluateChain(&valid_data, L"badssl.com") != UnbreakableCrypto_ERROR) {
 		std::cout << "+Unconfigured UnbreakableCrypto failed to return UnbreakableCrypto_ERROR on a valid certificate" << std::endl;
 		pass = false;
 		(*warning_count)++;
 	}
-	if (UBC.evaluate(invalid->raw_cert, invalid->raw_cert_len, L"badssl.com") != UnbreakableCrypto_ERROR) {
+	if (UBC.evaluateChain(&invalid_data, L"badssl.com") != UnbreakableCrypto_ERROR) {
 		std::cout << "+Unconfigured UnbreakableCrypto failed to return UnbreakableCrypto_ERROR on an invalid certificate" << std::endl;
 		pass = false;
 		(*warning_count)++;
 	}
-	if (UBC.evaluate(bad_hostname->raw_cert, bad_hostname->raw_cert_len, L"badssl.com") != UnbreakableCrypto_ERROR) {
+	if (UBC.evaluateChain(&bad_hostnam_data, L"badssl.com") != UnbreakableCrypto_ERROR) {
 		std::cout << "+Unconfigured UnbreakableCrypto failed to return UnbreakableCrypto_ERROR on a valid certificate with a bad hostname" << std::endl;
 		pass = false;
 		(*warning_count)++;
@@ -205,9 +209,10 @@ bool TestUnbreakableCrypto::Test4(int* warning_count) {
 	UnbreakableCrypto UBC = UnbreakableCrypto();
 	UBC.configure();
 	RawCertData * valid = BuildValidQuery();
+	std::vector<PCCERT_CONTEXT> valid_vector = valid->getCertInVector();
 
-	if (valid == NULL) { throw std::exception("Cert Reading Failed!"); }
-	if (UBC.evaluate(valid->raw_cert, valid->raw_cert_len, L"badssl.com") != UnbreakableCrypto_ACCEPT) {
+	if (valid->raw_cert == NULL) { throw std::exception("Cert Reading Failed!"); }
+	if (UBC.evaluateChain(&valid_vector, L"badssl.com") != UnbreakableCrypto_ACCEPT) {
 		std::cout << "+A valid certificate was rejected by UnbreakableCrypto!" << std::endl;
 		pass = false;
 		(*warning_count)++;
@@ -222,16 +227,19 @@ bool TestUnbreakableCrypto::Test5(int* warning_count) {
 	UnbreakableCrypto UBC = UnbreakableCrypto();
 	UBC.configure();
 	RawCertData * bad_hostname = BuildBadHostnameQuery();
+	std::vector<PCCERT_CONTEXT> bad_host_data = bad_hostname->getCertInVector();
 	RawCertData * null_in_hostname = BuildNullInHostnameQuery();
+	std::vector<PCCERT_CONTEXT> null_in_hostname_data = null_in_hostname->getCertInVector();
+
 
 	if (null_in_hostname == NULL || bad_hostname == NULL) { throw std::exception("Cert Reading Failed!"); }
-	if (UBC.evaluate(bad_hostname->raw_cert, bad_hostname->raw_cert_len, L"wrong.host.badssl.com") != UnbreakableCrypto_REJECT) {
+	if (UBC.evaluateChain(&bad_host_data, L"wrong.host.badssl.com") != UnbreakableCrypto_REJECT) {
 		std::cout << "+A valid certificate with a bad hostname was not rejected by UnbreakableCrypto!" << std::endl;
 		pass = false;
 		(*warning_count)++;
 	}
 
-	if (UBC.evaluate(null_in_hostname->raw_cert, null_in_hostname->raw_cert_len, L"badssl.com") != UnbreakableCrypto_REJECT) {
+	if (UBC.evaluateChain(&null_in_hostname_data, L"badssl.com") != UnbreakableCrypto_REJECT) {
 		std::cout << "+A valid certificate with a null character in the hostname was not rejected by UnbreakableCrypto!" << std::endl;
 		pass = false;
 		(*warning_count)++;
@@ -248,8 +256,10 @@ bool TestUnbreakableCrypto::Test6(int* warning_count) {
 	UnbreakableCrypto UBC = UnbreakableCrypto();
 	UBC.configure();
 	RawCertData * invalid = BuildInValidQuery();
+	std::vector<PCCERT_CONTEXT> invalid_data = invalid->getCertInVector();
+
 	if (invalid == NULL) { throw std::exception("Cert Reading Failed!"); }
-	if (UBC.evaluate(invalid->raw_cert, invalid->raw_cert_len, L"badssl.com") != UnbreakableCrypto_REJECT) {
+	if (UBC.evaluateChain(&invalid_data, L"badssl.com") != UnbreakableCrypto_REJECT) {
 		std::cout << "+An invalid certificate was not rejected by UnbreakableCrypto!" << std::endl;
 		pass = false;
 		(*warning_count)++;
@@ -265,8 +275,10 @@ bool TestUnbreakableCrypto::Test7(int* warning_count) {
 	UnbreakableCrypto UBC = UnbreakableCrypto();
 	UBC.configure();
 	RawCertData * malformed = BuildMalformedQuery();
+	std::vector<PCCERT_CONTEXT> malformed_data = malformed->getCertInVector();
+
 	if (malformed == NULL) { throw std::exception("Cert Reading Failed!"); }
-	if (UBC.evaluate(malformed->raw_cert, malformed->raw_cert_len, L"badssl.com") != UnbreakableCrypto_REJECT) {
+	if (UBC.evaluateChain(&malformed_data, L"badssl.com") != UnbreakableCrypto_REJECT) {
 		std::cout << "+A malformed certificate was not rejected by UnbreakableCrypto!" << std::endl;
 		pass = false;
 		(*warning_count)++;
@@ -284,9 +296,10 @@ bool TestUnbreakableCrypto::Test8(int * warning_count)
 	UBC.configure();
 
 	RawCertData * invalid = BuildSelfSignedQuery();
+	std::vector<PCCERT_CONTEXT> invalid_data = invalid->getCertInVector();
 
 	if (invalid == NULL) { throw std::exception("Cert Reading Failed!"); }
-	if (UBC.evaluate(invalid->raw_cert, invalid->raw_cert_len, L"badssl.com") != UnbreakableCrypto_REJECT) {
+	if (UBC.evaluateChain(&invalid_data, L"badssl.com") != UnbreakableCrypto_REJECT) {
 		std::cout << "+An invalid certificate was not rejected by UnbreakableCrypto!" << std::endl;
 		pass = false;
 		(*warning_count)++;
@@ -307,7 +320,7 @@ bool TestUnbreakableCrypto::Test8(int * warning_count)
 	UnbreakableCrypto UBC2 = UnbreakableCrypto();
 	UBC2.configure();
 
-	if (UBC2.evaluate(invalid->raw_cert, invalid->raw_cert_len, L"badssl.com") != UnbreakableCrypto_ACCEPT) {
+	if (UBC2.evaluateChain(&invalid_data, L"badssl.com") != UnbreakableCrypto_ACCEPT) {
 		std::cout << "+An invalid certificate was not accepted by UnbreakableCrypto after being added to the root store." << std::endl;
 		pass = false;
 		(*warning_count)++;
@@ -318,7 +331,7 @@ bool TestUnbreakableCrypto::Test8(int * warning_count)
 	UnbreakableCrypto UBC3 = UnbreakableCrypto();
 	UBC3.configure();
 
-	if (UBC3.evaluate(invalid->raw_cert, invalid->raw_cert_len, L"badssl.com") != UnbreakableCrypto_REJECT) {
+	if (UBC3.evaluateChain(&invalid_data, L"badssl.com") != UnbreakableCrypto_REJECT) {
 		std::cout << "+An invalid certificate was not rejected by UnbreakableCrypto after being removed from the root store!" << std::endl;
 		pass = false;
 		(*warning_count)++;

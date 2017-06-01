@@ -18,37 +18,31 @@ class UnbreakableCrypto {
 public:
 	UnbreakableCrypto();
 	~UnbreakableCrypto();
+
 	void configure();
+	bool isConfigured();
+
 	
-	CertificatesAddedToRootStore certsAddedToRootStore;
 
 	UnbreakableCrypto_RESPONSE evaluate (Query * certificate_data);
-	UnbreakableCrypto_RESPONSE evaluate(PCCERT_CONTEXT cert_context, LPWSTR hostname);
-	UnbreakableCrypto_RESPONSE evaluate (UINT8 * cert_data, DWORD cert_len, LPWSTR hostname);
-
-	/*
-	These 3 hostname validation functions come from John Viega and Matt Messier's <b>Secure Programming Cookbook</b>
-	Published in 2003 by O'Reily and Associates Inc. Edited by Deborah Russell.
-	*/
-	bool UnbreakableCrypto::checkHostname(PCCERT_CONTEXT pCertContext, LPWSTR lpszHostName);
-	//LPWSTR SPC_make_wide(LPCTSTR str);
-	LPWSTR SPC_fold_wide(LPWSTR str);
 
 	bool insertIntoRootStore(PCCERT_CONTEXT certificate);
 
 	bool removeFromRootStore(std::string thumbprint);
 	bool removeFromRootStore(byte* raw_cert, size_t raw_cert_len);
 	bool removeAllStoredCertsFromRootStore();
-	bool isConfigured();
+	
+	UnbreakableCrypto_RESPONSE evaluateChain(std::vector<PCCERT_CONTEXT>* cert_context_chain, LPWSTR wHostname);
 
 private:
 	HCERTSTORE openRootStore();
 	HCERTSTORE openMyStore();
-	UnbreakableCrypto_RESPONSE evaluateChain(std::vector<PCCERT_CONTEXT>* cert_context_chain, LPWSTR wHostname);
-	bool CheckAgainstRootStore(PCCERT_CONTEXT cert);
+	HCERTSTORE openIntermediateCAStore();
+
+	
+	bool MatchAgainstRootStore(PCCERT_CONTEXT cert);
 	bool ValidVouching(PCCERT_CONTEXT claimed_cert, PCCERT_CONTEXT trusted_proof);
-
-
+	bool ValidateWithRootStore(PCCERT_CONTEXT cert);
 	bool removeFromRootStore(CRYPT_HASH_BLOB* sha1_blob);
 
 	unsigned int ntoh24(const UINT8* data);
@@ -57,6 +51,18 @@ private:
 	LPTSTR getCertName(PCCERT_CONTEXT certificate);
 	wchar_t * GetWC(const char *c);
 
+	/*
+	Security Programming Cookbook for C and C++
+	by: John Viega and Matt Messier
+	Copyright © 2003 O'Reilly Media, Inc.
+	Used with permission
+	*/
+	bool UnbreakableCrypto::checkHostname(PCCERT_CONTEXT pCertContext, LPWSTR lpszHostName);
+	//LPWSTR SPC_make_wide(LPCTSTR str);
+	LPWSTR SPC_fold_wide(LPWSTR str);
+	//END ATTRIBUTED CODE
+
+	CertificatesAddedToRootStore certsAddedToRootStore;
 	static const bool HACKABLE = false;
 	UINT encodings = X509_ASN_ENCODING;
 	CERT_ENHKEY_USAGE * empty_enhkey = NULL;
