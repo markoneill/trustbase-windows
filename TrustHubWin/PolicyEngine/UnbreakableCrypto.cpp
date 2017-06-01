@@ -95,27 +95,6 @@ void UnbreakableCrypto::configure() {
 	cert_chain_engine_config->dwExclusiveFlags = 0x00000000;
 }
 
-UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(UINT8 * cert_data, DWORD cert_len, LPWSTR hostname){
-
-	//++++++++++++++++++++++++++++++++++++
-	//Create a windows certificate object
-	//++++++++++++++++++++++++++++++++++++
-	PCCERT_CONTEXT certificate_context = CertCreateCertificateContext(
-		encodings, 
-		cert_data,
-		cert_len // Possible error when raw chain is longer than INT_MAX
-	);
-	if (certificate_context == NULL) {
-		thlog() << "Wincrypt could not parse certificate. Error Code " << GetLastError();
-		return UnbreakableCrypto_REJECT;
-	}
-
-	UnbreakableCrypto_RESPONSE answer = evaluate(certificate_context, hostname);
-	CertFreeCertificateContext(certificate_context); certificate_context = NULL;
-	return answer;
-
-}
-
 UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 	char * hostname = SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
 	wchar_t* wHostname = GetWC(hostname);
@@ -135,102 +114,11 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 		thlog() << "cert_context at index " << left_cert_index << "is NULL";
 		return UnbreakableCrypto_REJECT;
 	}
-	UnbreakableCrypto_RESPONSE answer = evaluate(leaf_cert_context, wHostname);
+
+	UnbreakableCrypto_RESPONSE answer = evaluateChain(cert_data->data.cert_context_chain, wHostname);
+	//UnbreakableCrypto_RESPONSE answer = evaluate(leaf_cert_context, wHostname);
 	delete wHostname;
 	return answer;
-}
-
-UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(PCCERT_CONTEXT certificate_context, LPWSTR hostname) {
-	if (!isConfigured()) {
-		thlog() << "WARNING! Using UnbreakableCrypto without configuring.";
-		return UnbreakableCrypto_ERROR;
-	}
-
-	//++++++++++++++++++++++++++++++++++++
-	//Verify the windows certificate object
-	//++++++++++++++++++++++++++++++++++++
-	
-	if (certificate_context == NULL) {
-		thlog() << "Wincrypt could not parse certificate. Error Code " << GetLastError();
-		return UnbreakableCrypto_REJECT;
-	}
-	//++++++++++++++++++++++++++++++++++++
-	//Verify the hostname
-	//++++++++++++++++++++++++++++++++++++
-
-	if (!checkHostname(certificate_context, hostname)) {
-		thlog() << "Invalid Hostname Rejected";
-		return UnbreakableCrypto_REJECT;
-	}
-
-	//++++++++++++++++++++++++++++++++++++++++++++
-	//Create a Windows Certificate Chain Engine
-	//++++++++++++++++++++++++++++++++++++++++++++
-	if (!CertCreateCertificateChainEngine(
-		cert_chain_engine_config,
-		&authentication_train_handle
-	)
-		)
-	{
-		thlog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
-		return UnbreakableCrypto_REJECT;
-	}
-
-	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	//Turn certificate object into a certificate chain object
-	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	if (!CertGetCertificateChain(
-		authentication_train_handle,
-		certificate_context,
-		NULL, //Uses System time by default
-		NULL, //Search no extra certificate stores
-		cert_chain_config,
-		0x0000000, // No Flags
-		NULL,
-		&cert_chain_context
-	)
-		)
-	{
-		thlog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
-		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
-		return UnbreakableCrypto_REJECT;
-	}
-
-	//++++++++++++++++++++++++++++++++++
-	//Validate the certificate Chain
-	//++++++++++++++++++++++++++++++++++
-
-	CERT_CHAIN_POLICY_PARA chain_policy;
-	chain_policy.cbSize = sizeof(CERT_CHAIN_POLICY_PARA);
-	chain_policy.dwFlags = 0;
-
-	CERT_CHAIN_POLICY_STATUS cert_policy_status;
-	if (!CertVerifyCertificateChainPolicy(
-			CERT_CHAIN_POLICY_BASE,
-			cert_chain_context,
-			&chain_policy, //Do not ignore any problems
-			&cert_policy_status
-			)
-		)
-	{
-		thlog() << "Wincrypt could not policy check the certificate chain. Error Code: " << GetLastError();
-		CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
-		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
-		//delete cert_policy_status;
-		return UnbreakableCrypto_REJECT;
-	}
-	if (cert_policy_status.dwError != ERROR_SUCCESS) 
-	{
-		CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
-		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
-		//delete cert_policy_status;
-		return UnbreakableCrypto_REJECT;
-	}
-
-	CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
-	CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
-	//delete cert_policy_status;
-	return UnbreakableCrypto_ACCEPT;
 }
 
 unsigned int UnbreakableCrypto::ntoh24(const UINT8* data) {
@@ -452,10 +340,260 @@ HCERTSTORE UnbreakableCrypto::openMyStore()
 	);
 }
 
+HCERTSTORE UnbreakableCrypto::openIntermediateCAStore()
+{
+	auto target_store_name = L"CA";
+	return CertOpenStore(
+		CERT_STORE_PROV_SYSTEM,
+		0,
+		NULL,
+		CERT_SYSTEM_STORE_CURRENT_USER,
+		target_store_name
+	);
+}
+
+UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_CONTEXT>* cert_context_chain, LPWSTR wHostname)
+{
+	size_t cert_count;
+	int i;
+	PCCERT_CONTEXT current_cert;
+	PCCERT_CONTEXT proof_cert;
+
+	//Return Error if not configured
+	if (!isConfigured()) 
+	{ 
+		thlog() << "UnbreakableCrypto was run but not configured";
+		return UnbreakableCrypto_ERROR; 
+	}
+
+	//Get number of certs in chain
+	cert_count  = cert_context_chain->size();
+
+	//Reject Null leaf Certificate
+	if (cert_context_chain->at(cert_count - 1) == NULL) {
+		return UnbreakableCrypto_REJECT;
+	}
+
+	//Reject invalid Hostname
+	if (!checkHostname(cert_context_chain->at(cert_count - 1), wHostname))
+	{
+		return UnbreakableCrypto_REJECT;
+	}
+
+	if (cert_count == 1) {
+		if (ValidateWithRootStore(cert_context_chain->at(0))) {
+			return UnbreakableCrypto_ACCEPT;
+		}
+		else
+		{
+			return UnbreakableCrypto_REJECT;
+		}
+	}
+	/*TODO: Do we want revocation?
+	CERT_REVOCATION_STATUS revocation_status = CERT_REVOCATION_STATUS();
+	revocation_status.cbSize = sizeof(CERT_REVOCATION_STATUS);
+	//Now check all certificates' revocation status
+	if (!CertVerifyRevocation(
+		X509_ASN_ENCODING,
+		CERT_CONTEXT_REVOCATION_TYPE,
+		cert_count,
+		cert_context_chain->_Myfirst,
+		CERT_VERIFY_CACHE_ONLY_BASED_REVOCATION,
+		NULL,
+		&revocation_status
+	)) 
+	{
+		thlog() << "Revoked certificate was encountered";
+		return UnbreakableCrypto_REJECT;
+	}*/
+
+
+	//Loop through chain from root to leaf to validate the chain
+	for (i = cert_count - 1; i >= 0; i--) {
+		//TODO check for duplicates CA's in the chain?
+		current_cert = cert_context_chain->at(i);
+
+		if (current_cert == NULL) {
+			return UnbreakableCrypto_REJECT;
+		}
+
+		if (i != 0) {
+			//Check that the signer is an intermediate CA
+			HCERTSTORE intermediate_store = openIntermediateCAStore();
+
+			if (NULL == CertFindCertificateInStore(
+						intermediate_store,
+						X509_ASN_ENCODING,
+						0,
+						CERT_FIND_EXISTING,
+						current_cert,
+						NULL
+					)
+				
+				) {
+				CertCloseStore(intermediate_store, CERT_CLOSE_STORE_FORCE_FLAG);
+				return UnbreakableCrypto_REJECT;
+			}
+
+			CertCloseStore(intermediate_store, CERT_CLOSE_STORE_FORCE_FLAG);
+		}
+		
+
+
+		proof_cert = cert_context_chain->at(i + 1);
+
+		if (!ValidVouching(current_cert, proof_cert)) {
+			return UnbreakableCrypto_REJECT;
+		}
+	}
+
+	return UnbreakableCrypto_ACCEPT;
+}
+
+/*Checks whether a PCCERT_CONTEXT has an exact match in the root store*/
+bool UnbreakableCrypto::MatchAgainstRootStore(PCCERT_CONTEXT cert)
+{
+	HCERTSTORE root_store;
+	bool answer;
+	//Open Root store
+	root_store = openRootStore();
+
+	//Try to find a match in root store
+	PCCERT_CONTEXT root_cert = CertFindCertificateInStore(
+		root_store,
+		X509_ASN_ENCODING,
+		0,
+		CERT_FIND_EXISTING,
+		cert,
+		NULL
+	);
+
+	answer = (root_cert != NULL);
+	if (answer) 
+	{
+		CertFreeCertificateContext(root_cert);
+	}
+
+	answer = answer && (CertVerifyTimeValidity(NULL, cert->pCertInfo) == 0);
+
+	CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
+	return answer;
+}
+
+/*Checks whether a PCCERT_CONTEXT can be trusted based on the previous PCCERT_CONTEXT in the chain*/
+bool UnbreakableCrypto::ValidVouching(PCCERT_CONTEXT claimed_cert, PCCERT_CONTEXT trusted_proof)
+{
+	DWORD validation_code = CERT_STORE_SIGNATURE_FLAG | CERT_STORE_TIME_VALIDITY_FLAG;
+	CertVerifySubjectCertificateContext(claimed_cert, trusted_proof, &validation_code);
+	if (validation_code != 0) {
+		return false;
+	}
+
+	return true;
+}
+
+bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
+	if (!isConfigured()) {
+		thlog() << "WARNING! Using UnbreakableCrypto without configuring.";
+		return false;
+	}
+
+	//++++++++++++++++++++++++++++++++++++
+	//Verify the windows certificate object
+	//++++++++++++++++++++++++++++++++++++
+
+	if (cert == NULL) {
+		thlog() << "UnbreakableCrypto got a NULL certificate. That should not happen" << GetLastError();
+		return false;
+	}
+
+	//++++++++++++++++++++++++++++++++++++++++++++
+	//Create a Windows Certificate Chain Engine
+	//++++++++++++++++++++++++++++++++++++++++++++
+	if (!CertCreateCertificateChainEngine(
+		cert_chain_engine_config,
+		&authentication_train_handle
+	)
+		)
+	{
+		thlog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
+		return false;
+	}
+
+	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	//Turn certificate object into a certificate chain object
+	//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	if (!CertGetCertificateChain(
+		authentication_train_handle,
+		cert,
+		NULL, //Uses System time by default
+		NULL, //Search no extra certificate stores
+		cert_chain_config,
+		0x0000000, // No Flags
+		NULL,
+		&cert_chain_context
+	)
+		)
+	{
+		thlog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
+		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
+		return false;
+	}
+
+	//++++++++++++++++++++++++++++++++++
+	//Validate the certificate Chain
+	//++++++++++++++++++++++++++++++++++
+
+	CERT_CHAIN_POLICY_PARA chain_policy;
+	chain_policy.cbSize = sizeof(CERT_CHAIN_POLICY_PARA);
+	chain_policy.dwFlags = 0;
+
+	CERT_CHAIN_POLICY_STATUS cert_policy_status;
+	if (!CertVerifyCertificateChainPolicy(
+		CERT_CHAIN_POLICY_BASE,
+		cert_chain_context,
+		&chain_policy, //Do not ignore any problems
+		&cert_policy_status
+	)
+		)
+	{
+		thlog() << "Wincrypt could not policy check the certificate chain. Error Code: " << GetLastError();
+		CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
+		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
+		//delete cert_policy_status;
+		return false;
+	}
+	if (cert_policy_status.dwError != ERROR_SUCCESS)
+	{
+		CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
+		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
+		//delete cert_policy_status;
+		return false;
+	}
+
+	CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
+	CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
+	//delete cert_policy_status;
+	return true;
+
+}
+
+wchar_t * UnbreakableCrypto::GetWC(const char *c)
+{
+	const size_t cSize = strlen(c) + 1;
+	wchar_t* wc = new wchar_t[cSize];
+	mbstowcs(wc, c, cSize);
+
+	return wc;
+}
 
 /*
-These last 3 hostname validation function are from John Viega and Matt Messier's <b>Secure Programming Cookbook</b>
-Published in 2003 by O'Reily and Associates Inc. Edited by Deborah Russell.
+Security Programming Cookbook for C and C++
+by: John Viega and Matt Messier
+Copyright © 2003 O'Reilly Media, Inc.
+Used with permission
+
+Includes everything until the "END ATTRIBUTED CODE" comment
 */
 bool UnbreakableCrypto::checkHostname(PCCERT_CONTEXT pCertContext, LPWSTR lpszHostName) {
 	BOOL bResult = false;
@@ -556,14 +694,7 @@ LPWSTR UnbreakableCrypto::SPC_fold_wide(LPWSTR str)
 
 	return wstr;
 }
-wchar_t * UnbreakableCrypto::GetWC(const char *c)
-{
-	const size_t cSize = strlen(c) + 1;
-	wchar_t* wc = new wchar_t[cSize];
-	mbstowcs(wc, c, cSize);
 
-	return wc;
-}
 
 //LPWSTR UnbreakableCrypto::SPC_make_wide(LPCTSTR str)
 //{
@@ -584,3 +715,4 @@ wchar_t * UnbreakableCrypto::GetWC(const char *c)
 //#endif
 //}
 
+//END ATTRIBUTED CODE

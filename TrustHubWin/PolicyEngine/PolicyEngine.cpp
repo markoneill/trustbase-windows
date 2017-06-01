@@ -21,13 +21,13 @@ int main()
 {
 
 	//Store certificates in root store removal
-	UnbreakableCrypto UBC = UnbreakableCrypto();
-	UBC.configure();
-	UBC.removeAllStoredCertsFromRootStore();
+	//UnbreakableCrypto UBC = UnbreakableCrypto();
+	//UBC.configure();
+	//UBC.removeAllStoredCertsFromRootStore();
 
 	//Uncomment below to test UnbreakableCrypto
-	//TestUnbreakableCrypto TUBC = TestUnbreakableCrypto();
-	//return TUBC.Test();
+	TestUnbreakableCrypto TUBC = TestUnbreakableCrypto();
+	return TUBC.Test();
 
 	std::thread* plugin_threads;
 	// Start Logging

@@ -19,6 +19,12 @@
     <Filter Include="Header Files\unit tests">
       <UniqueIdentifier>{f149c376-3dcd-41f6-b74b-b7e0e0b28a64}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Crypto">
+      <UniqueIdentifier>{d5b80d90-c811-449d-973b-457a5c6bbedf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Crypto">
+      <UniqueIdentifier>{4883d50f-af11-4abd-8857-b066a23c3104}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -48,9 +54,6 @@
     <ClInclude Include="Query.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SNI_Parser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="THLogger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -58,9 +61,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Addon.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UnbreakableCrypto.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TestUnbreakableCrypto.h">
@@ -72,8 +72,14 @@
     <ClInclude Include="RawCertData.h">
       <Filter>Header Files\unit tests</Filter>
     </ClInclude>
+    <ClInclude Include="SNI_Parser.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="UnbreakableCrypto.h">
+      <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
     <ClInclude Include="CertificatesAddedToRootStore.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Crypto</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -98,16 +104,10 @@
     <ClCompile Include="Query.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SNI_Parser.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="THLogger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Addon.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="UnbreakableCrypto.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TestUnbreakableCrypto.cpp">
@@ -119,8 +119,14 @@
     <ClCompile Include="RawCertData.cpp">
       <Filter>Source Files\unit tests</Filter>
     </ClCompile>
+    <ClCompile Include="SNI_Parser.cpp">
+      <Filter>Source Files\Crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="UnbreakableCrypto.cpp">
+      <Filter>Source Files\Crypto</Filter>
+    </ClCompile>
     <ClCompile Include="CertificatesAddedToRootStore.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Crypto</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
