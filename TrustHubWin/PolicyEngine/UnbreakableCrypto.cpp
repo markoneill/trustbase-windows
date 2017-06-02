@@ -406,23 +406,46 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 	{
 		return UnbreakableCrypto_REJECT;
 	}
-
+	
 	//Now check all certificates' revocation status
-	for (int i = 0; i < cert_context_chain->size(); i++) {
 	CERT_REVOCATION_STATUS revocation_status = CERT_REVOCATION_STATUS();
 	revocation_status.cbSize = sizeof(CERT_REVOCATION_STATUS);
-	
+	for (int i = 0; i < cert_context_chain->size(); i++) {
 		if (!CertVerifyRevocation(//TODO Is the return type a good boolean?
 			X509_ASN_ENCODING,
 			CERT_CONTEXT_REVOCATION_TYPE,
-			cert_count,
-			(PVOID*) cert_context_chain->_Myfirst(),
+			1,
+			(PVOID*) &(cert_context_chain->at(i)),
 			CERT_VERIFY_CACHE_ONLY_BASED_REVOCATION,
 			NULL,
 			&revocation_status
 		)) 
 		{
-			thlog() << "Revoked certificate was encountered";
+			const char* reason_text;
+			switch (revocation_status.dwReason) {
+			case CRL_REASON_UNSPECIFIED:
+				reason_text = "The revoking CA gave no explanation. This is discouraged by RFC 2459";
+				break;
+			case CRL_REASON_KEY_COMPROMISE:
+				reason_text = "The CA says their private key was compromised";
+				break;
+			case CRL_REASON_CA_COMPROMISE:
+				reason_text = "The CA says thier own private key was compromised";
+				break;
+			case CRL_REASON_AFFILIATION_CHANGED:
+				reason_text = "The CA says affiliations changed";
+				break;
+			case CRL_REASON_SUPERSEDED:
+				reason_text = "The CA says a new cert supersedes this one";
+				break;
+			case CRL_REASON_CESSATION_OF_OPERATION:
+				reason_text = "The CA says they have shut down operations and can no longer be relied upon";
+				break;
+			case CRL_REASON_CERTIFICATE_HOLD:
+				reason_text = "The CA says this certificate is on hold";
+				break;
+			}
+			thlog() << "Revoked certificate was encountered. reason: " << reason_text;
 			return UnbreakableCrypto_REJECT;
 		}
 	}
@@ -437,13 +460,14 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 		}
 	}
 
-
+	
+	//TODO check for duplicates CA's in the chain?
 
 	//Loop through chain from root to leaf to validate the chain
 	for (i = cert_count - 1; i >= 0; i--) {
 
 
-		//TODO check for duplicates CA's in the chain?
+		
 		current_cert = cert_context_chain->at(i);
 
 		if (current_cert == NULL) {

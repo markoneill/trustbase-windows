@@ -4,6 +4,7 @@
 #include "THLogger.h"
 #include "Query.h"
 #include <vector>
+#include <iostream>
 #include "CertificatesAddedToRootStore.h"
 
 /*
