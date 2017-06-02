@@ -58,7 +58,6 @@ private:
 	//END ATTRIBUTED CODE
 
 	CertificatesAddedToRootStore certsAddedToRootStore;
-	static const bool HACKABLE = false;
 	UINT encodings = X509_ASN_ENCODING;
 	CERT_ENHKEY_USAGE * empty_enhkey = NULL;
 	PCERT_CHAIN_ENGINE_CONFIG cert_chain_engine_config = NULL;
@@ -67,4 +66,5 @@ private:
 	PCERT_USAGE_MATCH chain_params_requested_use = NULL;
 	HCERTCHAINENGINE authentication_train_handle = NULL;
 	PCCERT_CHAIN_CONTEXT cert_chain_context = NULL;
+	static const bool HACKABLE = false;
 };
