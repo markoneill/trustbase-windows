@@ -6,6 +6,9 @@ UnbreakableCrypto::UnbreakableCrypto() {
 
 }
 
+/*
+Free Memory
+*/
 UnbreakableCrypto::~UnbreakableCrypto() {
 
 	if (cert_chain_engine_config != NULL) {
@@ -30,7 +33,13 @@ UnbreakableCrypto::~UnbreakableCrypto() {
 }
 	
 
+/*
+UnbreakableCrypto::configure()
 
+This function may be extended later to use parameters
+to change how these configuration objects are instantiated.
+That is why they are not in the constructor.
+*/
 void UnbreakableCrypto::configure() {
 	encodings = (X509_ASN_ENCODING);//No Idea
 
@@ -95,6 +104,9 @@ void UnbreakableCrypto::configure() {
 	cert_chain_engine_config->dwExclusiveFlags = 0x00000000;
 }
 
+/*
+Evaluates a Query's certificate chain
+*/
 UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 	char * hostname = SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
 	wchar_t* wHostname = GetWC(hostname);
@@ -108,7 +120,6 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 	int root_cert_index = cert_data->data.cert_context_chain->size() - 1;
 
 	PCCERT_CONTEXT leaf_cert_context = cert_data->data.cert_context_chain->at(left_cert_index);
-	//PCCERT_CONTEXT root_raw_cert = cert_data->data.cert_context_chain->at(root_cert_index);
 
 	if (leaf_cert_context == NULL) {
 		thlog() << "cert_context at index " << left_cert_index << "is NULL";
@@ -116,25 +127,13 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 	}
 
 	UnbreakableCrypto_RESPONSE answer = evaluateChain(cert_data->data.cert_context_chain, wHostname);
-	//UnbreakableCrypto_RESPONSE answer = evaluate(leaf_cert_context, wHostname);
 	delete wHostname;
 	return answer;
 }
 
-unsigned int UnbreakableCrypto::ntoh24(const UINT8* data) {
-	unsigned int ret = (data[0] << 16) | (data[1] << 8) | data[2];
-	return ret;
-}
 /*
-HCERTSTORE WINAPI CertOpenStore(
-_In_       LPCSTR            lpszStoreProvider,
-_In_       DWORD             dwMsgAndCertEncodingType,
-_In_       HCRYPTPROV_LEGACY hCryptProv,
-_In_       DWORD             dwFlags,
-_In_ const void              *pvPara
-);
+Attempts to add a certificate to the windows root store
 */
-
 bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
 {
 	bool successfulAdd= true;
@@ -168,6 +167,9 @@ bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
 	return successfulAdd || alreadyExists;
 }
 
+/*
+Gets the name of a certificate as a LPTSTR
+*/
 LPTSTR UnbreakableCrypto::getCertName(PCCERT_CONTEXT certificate) {
 	DWORD cbSize = 0;
 
@@ -193,7 +195,10 @@ LPTSTR UnbreakableCrypto::getCertName(PCCERT_CONTEXT certificate) {
 	return pszName;
 }
 
-
+/*
+Attempts to remove all certificates added to the root store that are remembered in the 
+certsAddedToRootStore method.
+*/
 bool UnbreakableCrypto::removeAllStoredCertsFromRootStore()
 {
 	bool success = true;
@@ -207,11 +212,12 @@ bool UnbreakableCrypto::removeAllStoredCertsFromRootStore()
 	return success;
 }
 
+/*
+//Search for certificates by SHA1 thumbprint (CertFindCertificateInStore w/ CERT_FIND_HASH does this)
+//then remove any certificates (presumably only 1 cert) with this hash.
+*/
 bool UnbreakableCrypto::removeFromRootStore(std::string thumbprint)
 {
-	//Search for certificates by SHA1 thumbprint (CertFindCertificateInStore w/ CERT_FIND_HASH does this)
-	//then remove any certificates (presumably only 1 cert) with this hash.
-
 	CRYPT_HASH_BLOB* sha1_blob = getSHA1CryptHashBlob(thumbprint);
 	bool success = removeFromRootStore(sha1_blob);
 
@@ -221,10 +227,13 @@ bool UnbreakableCrypto::removeFromRootStore(std::string thumbprint)
 	return success;
 }
 
+/*
+//Search for certificates by SHA1 thumbprint (CertFindCertificateInStore w/ CERT_FIND_HASH does this)
+//then remove any certificates (presumably only 1 cert) with this hash.
+*/
 bool UnbreakableCrypto::removeFromRootStore(byte* raw_cert, size_t raw_cert_len)
 {
-	//Search for certificates by SHA1 thumbprint (CertFindCertificateInStore w/ CERT_FIND_HASH does this)
-	//then remove any certificates (presumably only 1 cert) with this hash.
+
 
 	CRYPT_HASH_BLOB* sha1_blob = getSHA1CryptHashBlob(raw_cert, raw_cert_len);
 	bool success = removeFromRootStore(sha1_blob);
@@ -235,6 +244,9 @@ bool UnbreakableCrypto::removeFromRootStore(byte* raw_cert, size_t raw_cert_len)
 	return success;
 }
 
+/*
+Removes a certificate from the Windows root store specified by a sha1 hash
+*/
 bool UnbreakableCrypto::removeFromRootStore(CRYPT_HASH_BLOB* sha1_blob)
 {
 	bool success = true;
@@ -266,6 +278,9 @@ bool UnbreakableCrypto::removeFromRootStore(CRYPT_HASH_BLOB* sha1_blob)
 	return success;
 }
 
+/*
+Calculates a sha1 hash of a certificate
+*/
 CRYPT_HASH_BLOB* UnbreakableCrypto::getSHA1CryptHashBlob(byte* raw_cert, size_t raw_cert_len)
 {
 	//todo: dont use bad hash like sha1 thumbprint
@@ -280,6 +295,9 @@ CRYPT_HASH_BLOB* UnbreakableCrypto::getSHA1CryptHashBlob(byte* raw_cert, size_t 
 	return blob;
 }
 
+/*
+Turn a Sha-1 thumbprint string into a comparable CRYPTO_HASH_BLOB
+*/
 CRYPT_HASH_BLOB* UnbreakableCrypto::getSHA1CryptHashBlob(std::string thumbprint)
 {
 	//todo: dont use bad hash like sha1 thumbprint
@@ -291,6 +309,10 @@ CRYPT_HASH_BLOB* UnbreakableCrypto::getSHA1CryptHashBlob(std::string thumbprint)
 	return blob;
 }
 
+/*
+Allows you to check if configure() has been run on this object yet.
+It must be run at least once or errors will occur.
+*/
 bool UnbreakableCrypto::isConfigured()
 {
 	bool encoding_valid = true;
@@ -306,16 +328,12 @@ bool UnbreakableCrypto::isConfigured()
 		chain_params_requested_issuance_policy != NULL &&
 		chain_params_requested_use != NULL;
 
-	//bool handles =
-	//	authentication_train_handle != NULL &&
-	//	(*authentication_train_handle) != NULL &&
-	//	cert_chain_context != NULL &&
-	//	(*cert_chain_context) != NULL;
-
-
 	return encoding_valid && configs;
 }
 
+/*
+Returns a handle to the root store
+*/
 HCERTSTORE UnbreakableCrypto::openRootStore()
 {
 	auto target_store_name = L"Root";
@@ -328,6 +346,9 @@ HCERTSTORE UnbreakableCrypto::openRootStore()
 	);
 }
 
+/*
+Returns a handle to the Windows MY store
+*/
 HCERTSTORE UnbreakableCrypto::openMyStore()
 {
 	auto target_store_name = L"MY";
@@ -340,6 +361,9 @@ HCERTSTORE UnbreakableCrypto::openMyStore()
 	);
 }
 
+/*
+Returns a handle to the intermediate CA store
+*/
 HCERTSTORE UnbreakableCrypto::openIntermediateCAStore()
 {
 	auto target_store_name = L"CA";
@@ -352,6 +376,9 @@ HCERTSTORE UnbreakableCrypto::openIntermediateCAStore()
 	);
 }
 
+/*
+Evaluates a certificate chain. This function really needs to work correctly.
+*/
 UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_CONTEXT>* cert_context_chain, LPWSTR wHostname)
 {
 	size_t cert_count;
@@ -380,6 +407,26 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 		return UnbreakableCrypto_REJECT;
 	}
 
+	//Now check all certificates' revocation status
+	for (int i = 0; i < cert_context_chain->size(); i++) {
+	CERT_REVOCATION_STATUS revocation_status = CERT_REVOCATION_STATUS();
+	revocation_status.cbSize = sizeof(CERT_REVOCATION_STATUS);
+	
+		if (!CertVerifyRevocation(//TODO Is the return type a good boolean?
+			X509_ASN_ENCODING,
+			CERT_CONTEXT_REVOCATION_TYPE,
+			cert_count,
+			(PVOID*) cert_context_chain->_Myfirst(),
+			CERT_VERIFY_CACHE_ONLY_BASED_REVOCATION,
+			NULL,
+			&revocation_status
+		)) 
+		{
+			thlog() << "Revoked certificate was encountered";
+			return UnbreakableCrypto_REJECT;
+		}
+	}
+
 	if (cert_count == 1) {
 		if (ValidateWithRootStore(cert_context_chain->at(0))) {
 			return UnbreakableCrypto_ACCEPT;
@@ -389,27 +436,13 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 			return UnbreakableCrypto_REJECT;
 		}
 	}
-	/*TODO: Do we want revocation?
-	CERT_REVOCATION_STATUS revocation_status = CERT_REVOCATION_STATUS();
-	revocation_status.cbSize = sizeof(CERT_REVOCATION_STATUS);
-	//Now check all certificates' revocation status
-	if (!CertVerifyRevocation(
-		X509_ASN_ENCODING,
-		CERT_CONTEXT_REVOCATION_TYPE,
-		cert_count,
-		cert_context_chain->_Myfirst,
-		CERT_VERIFY_CACHE_ONLY_BASED_REVOCATION,
-		NULL,
-		&revocation_status
-	)) 
-	{
-		thlog() << "Revoked certificate was encountered";
-		return UnbreakableCrypto_REJECT;
-	}*/
+
 
 
 	//Loop through chain from root to leaf to validate the chain
 	for (i = cert_count - 1; i >= 0; i--) {
+
+
 		//TODO check for duplicates CA's in the chain?
 		current_cert = cert_context_chain->at(i);
 
@@ -417,8 +450,16 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 			return UnbreakableCrypto_REJECT;
 		}
 
+		//The first cert should be signed by a root certificate
+		if (i == cert_count - 1) {
+			if (!ValidateWithRootStore(current_cert)) {
+				return UnbreakableCrypto_REJECT;
+			}
+		}
+
+		//All certs except the leaf should be in the Intermediate CA store
 		if (i != 0) {
-			//Check that the signer is an intermediate CA
+			
 			HCERTSTORE intermediate_store = openIntermediateCAStore();
 
 			if (NULL == CertFindCertificateInStore(
@@ -442,42 +483,13 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 
 		proof_cert = cert_context_chain->at(i + 1);
 
-		if (!ValidVouching(current_cert, proof_cert)) {
+		//Each cert except the one next to the root should be vouched for by the previous cert in the chain
+		if (i != cert_count - 1 && !ValidVouching(current_cert, proof_cert)) {
 			return UnbreakableCrypto_REJECT;
 		}
 	}
 
 	return UnbreakableCrypto_ACCEPT;
-}
-
-/*Checks whether a PCCERT_CONTEXT has an exact match in the root store*/
-bool UnbreakableCrypto::MatchAgainstRootStore(PCCERT_CONTEXT cert)
-{
-	HCERTSTORE root_store;
-	bool answer;
-	//Open Root store
-	root_store = openRootStore();
-
-	//Try to find a match in root store
-	PCCERT_CONTEXT root_cert = CertFindCertificateInStore(
-		root_store,
-		X509_ASN_ENCODING,
-		0,
-		CERT_FIND_EXISTING,
-		cert,
-		NULL
-	);
-
-	answer = (root_cert != NULL);
-	if (answer) 
-	{
-		CertFreeCertificateContext(root_cert);
-	}
-
-	answer = answer && (CertVerifyTimeValidity(NULL, cert->pCertInfo) == 0);
-
-	CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
-	return answer;
 }
 
 /*Checks whether a PCCERT_CONTEXT can be trusted based on the previous PCCERT_CONTEXT in the chain*/
@@ -578,6 +590,9 @@ bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 
 }
 
+/*
+TODO This may not be as awesome as we think
+*/
 wchar_t * UnbreakableCrypto::GetWC(const char *c)
 {
 	const size_t cSize = strlen(c) + 1;

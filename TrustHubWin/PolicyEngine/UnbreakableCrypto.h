@@ -22,8 +22,6 @@ public:
 	void configure();
 	bool isConfigured();
 
-	
-
 	UnbreakableCrypto_RESPONSE evaluate (Query * certificate_data);
 
 	bool insertIntoRootStore(PCCERT_CONTEXT certificate);
@@ -39,13 +37,10 @@ private:
 	HCERTSTORE openMyStore();
 	HCERTSTORE openIntermediateCAStore();
 
-	
-	bool MatchAgainstRootStore(PCCERT_CONTEXT cert);
 	bool ValidVouching(PCCERT_CONTEXT claimed_cert, PCCERT_CONTEXT trusted_proof);
 	bool ValidateWithRootStore(PCCERT_CONTEXT cert);
 	bool removeFromRootStore(CRYPT_HASH_BLOB* sha1_blob);
 
-	unsigned int ntoh24(const UINT8* data);
 	CRYPT_HASH_BLOB* getSHA1CryptHashBlob(byte* raw_cert, size_t raw_cert_len);
 	CRYPT_HASH_BLOB* getSHA1CryptHashBlob(std::string thumbprint);
 	LPTSTR getCertName(PCCERT_CONTEXT certificate);
@@ -58,8 +53,8 @@ private:
 	Used with permission
 	*/
 	bool UnbreakableCrypto::checkHostname(PCCERT_CONTEXT pCertContext, LPWSTR lpszHostName);
-	//LPWSTR SPC_make_wide(LPCTSTR str);
 	LPWSTR SPC_fold_wide(LPWSTR str);
+	//LPWSTR SPC_make_wide(LPCTSTR str);
 	//END ATTRIBUTED CODE
 
 	CertificatesAddedToRootStore certsAddedToRootStore;
