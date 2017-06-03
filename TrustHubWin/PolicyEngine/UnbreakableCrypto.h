@@ -31,7 +31,7 @@ public:
 	bool removeFromRootStore(byte* raw_cert, size_t raw_cert_len);
 	bool removeAllStoredCertsFromRootStore();
 	
-	UnbreakableCrypto_RESPONSE evaluateChain(std::vector<PCCERT_CONTEXT>* cert_context_chain, LPWSTR wHostname);
+	UnbreakableCrypto_RESPONSE evaluateChain(std::vector<PCCERT_CONTEXT>* cert_context_chain, char * hostname);
 
 private:
 	HCERTSTORE openRootStore();
@@ -42,10 +42,11 @@ private:
 	bool ValidateWithRootStore(PCCERT_CONTEXT cert);
 	bool removeFromRootStore(CRYPT_HASH_BLOB* sha1_blob);
 
+	bool checkLocalRevocationLists(std::vector<PCCERT_CONTEXT>* cert_context_chain);
+
 	CRYPT_HASH_BLOB* getSHA1CryptHashBlob(byte* raw_cert, size_t raw_cert_len);
 	CRYPT_HASH_BLOB* getSHA1CryptHashBlob(std::string thumbprint);
 	LPTSTR getCertName(PCCERT_CONTEXT certificate);
-	wchar_t * GetWC(const char *c);
 
 	/*
 	Security Programming Cookbook for C and C++

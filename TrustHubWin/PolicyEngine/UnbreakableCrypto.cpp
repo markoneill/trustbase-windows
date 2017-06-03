@@ -73,7 +73,7 @@ void UnbreakableCrypto::configure() {
 	cert_chain_config->pStrongSignPara = NULL;//Do not specify stong algorithms specifically
 	cert_chain_config->dwStrongSignFlags = 0; //Do not ignore short public key length of last certificate
 
-	cert_chain_engine_config = new CERT_CHAIN_ENGINE_CONFIG;
+	cert_chain_engine_config = new CERT_CHAIN_ENGINE_CONFIG();
 	cert_chain_engine_config->cbSize = sizeof(*cert_chain_engine_config);
 	cert_chain_engine_config->hRestrictedRoot = NULL; //Use the whole root store
 	cert_chain_engine_config->hRestrictedTrust = NULL; //Use the whole trusted store
@@ -81,21 +81,6 @@ void UnbreakableCrypto::configure() {
 	cert_chain_engine_config->cAdditionalStore = 0; // Zero extra certificate stores
 	cert_chain_engine_config->rghAdditionalStore = NULL; //No extra certificate store
 	cert_chain_engine_config->dwFlags = 0x00000000; // No flags
-	cert_chain_engine_config->dwUrlRetrievalTimeout = 0;
-	cert_chain_engine_config->MaximumCachedCertificates = 0;
-	cert_chain_engine_config->CycleDetectionModulus = 0;
-	cert_chain_engine_config->hExclusiveRoot = NULL;
-	cert_chain_engine_config->hExclusiveTrustedPeople = NULL;
-	cert_chain_engine_config->dwExclusiveFlags = 0x00000000;
-
-	cert_chain_engine_config = new CERT_CHAIN_ENGINE_CONFIG();
-	cert_chain_engine_config->cbSize = sizeof(*cert_chain_engine_config);
-	cert_chain_engine_config->hRestrictedRoot = NULL;
-	cert_chain_engine_config->hRestrictedTrust = NULL;
-	cert_chain_engine_config->hRestrictedOther = NULL;
-	cert_chain_engine_config->cAdditionalStore = 0;
-	cert_chain_engine_config->rghAdditionalStore = NULL;
-	cert_chain_engine_config->dwFlags = 0x00000000;
 	cert_chain_engine_config->dwUrlRetrievalTimeout = 0;
 	cert_chain_engine_config->MaximumCachedCertificates = 0;
 	cert_chain_engine_config->CycleDetectionModulus = 0;
@@ -109,8 +94,7 @@ Evaluates a Query's certificate chain
 */
 UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 	char * hostname = SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
-	wchar_t* wHostname = GetWC(hostname);
-	delete hostname;
+	//LPWSTR lHostname = convert_CStr_to_LPWSTR(hostname);
 
 	if (cert_data->data.cert_context_chain->size() <= 0) {
 		thlog() << "No PCCERT_CONTEXT in chain";
@@ -120,14 +104,18 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 	int root_cert_index = cert_data->data.cert_context_chain->size() - 1;
 
 	PCCERT_CONTEXT leaf_cert_context = cert_data->data.cert_context_chain->at(left_cert_index);
+	//LocalFree(lHostname);
 
 	if (leaf_cert_context == NULL) {
 		thlog() << "cert_context at index " << left_cert_index << "is NULL";
+		delete hostname;
 		return UnbreakableCrypto_REJECT;
 	}
+	//delete wHostname;
 
-	UnbreakableCrypto_RESPONSE answer = evaluateChain(cert_data->data.cert_context_chain, wHostname);
-	delete wHostname;
+	UnbreakableCrypto_RESPONSE answer = evaluateChain(cert_data->data.cert_context_chain, hostname);
+	delete hostname;
+
 	return answer;
 }
 
@@ -140,7 +128,7 @@ bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
 	bool alreadyExists = false;
 
 	HCERTSTORE root_store = openRootStore();
-
+	
 	LPTSTR certName = getCertName(certificate);
 	std::wstring ws(certName);
 	thlog() << "Attempting to add the following cert to the root store: " << certName;
@@ -379,7 +367,7 @@ HCERTSTORE UnbreakableCrypto::openIntermediateCAStore()
 /*
 Evaluates a certificate chain. This function really needs to work correctly.
 */
-UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_CONTEXT>* cert_context_chain, LPWSTR wHostname)
+UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_CONTEXT>* cert_context_chain, char * hostname)
 {
 	size_t cert_count;
 	int i;
@@ -397,77 +385,32 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 	cert_count  = cert_context_chain->size();
 
 	//Reject Null leaf Certificate
-	if (cert_context_chain->at(cert_count - 1) == NULL) {
+	if (cert_context_chain->at(0) == NULL) {
 		return UnbreakableCrypto_REJECT;
 	}
 
 	//Reject invalid Hostname
-	if (!checkHostname(cert_context_chain->at(cert_count - 1), wHostname))
+	LPWSTR wHostname = new WCHAR[strlen(hostname) + 1];
+	MultiByteToWideChar(CP_OEMCP, 0, hostname, -1, wHostname, strlen(hostname) + 1);
+	if (!checkHostname(cert_context_chain->at(0), wHostname))
+	{
+		delete wHostname;
+		return UnbreakableCrypto_REJECT;
+	}
+	delete wHostname;
+
+	//Now check all certificates' revocation status except the root in the chain
+	bool passedRevocation = checkLocalRevocationLists(cert_context_chain);
+
+	if (!passedRevocation)
 	{
 		return UnbreakableCrypto_REJECT;
 	}
-	
-	//Now check all certificates' revocation status
-	CERT_REVOCATION_STATUS revocation_status = CERT_REVOCATION_STATUS();
-	revocation_status.cbSize = sizeof(CERT_REVOCATION_STATUS);
-	for (int i = 0; i < cert_context_chain->size(); i++) {
-		if (!CertVerifyRevocation(//TODO Is the return type a good boolean?
-			X509_ASN_ENCODING,
-			CERT_CONTEXT_REVOCATION_TYPE,
-			1,
-			(PVOID*) &(cert_context_chain->at(i)),
-			CERT_VERIFY_CACHE_ONLY_BASED_REVOCATION,
-			NULL,
-			&revocation_status
-		)) 
-		{
-			const char* reason_text;
-			switch (revocation_status.dwReason) {
-			case CRL_REASON_UNSPECIFIED:
-				reason_text = "The revoking CA gave no explanation. This is discouraged by RFC 2459";
-				break;
-			case CRL_REASON_KEY_COMPROMISE:
-				reason_text = "The CA says their private key was compromised";
-				break;
-			case CRL_REASON_CA_COMPROMISE:
-				reason_text = "The CA says thier own private key was compromised";
-				break;
-			case CRL_REASON_AFFILIATION_CHANGED:
-				reason_text = "The CA says affiliations changed";
-				break;
-			case CRL_REASON_SUPERSEDED:
-				reason_text = "The CA says a new cert supersedes this one";
-				break;
-			case CRL_REASON_CESSATION_OF_OPERATION:
-				reason_text = "The CA says they have shut down operations and can no longer be relied upon";
-				break;
-			case CRL_REASON_CERTIFICATE_HOLD:
-				reason_text = "The CA says this certificate is on hold";
-				break;
-			}
-			thlog() << "Revoked certificate was encountered. reason: " << reason_text;
-			return UnbreakableCrypto_REJECT;
-		}
-	}
-
-	if (cert_count == 1) {
-		if (ValidateWithRootStore(cert_context_chain->at(0))) {
-			return UnbreakableCrypto_ACCEPT;
-		}
-		else
-		{
-			return UnbreakableCrypto_REJECT;
-		}
-	}
-
-	
 	//TODO check for duplicates CA's in the chain?
 
 	//Loop through chain from root to leaf to validate the chain
 	for (i = cert_count - 1; i >= 0; i--) {
 
-
-		
 		current_cert = cert_context_chain->at(i);
 
 		if (current_cert == NULL) {
@@ -483,18 +426,18 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 
 		//All certs except the leaf should be in the Intermediate CA store
 		if (i != 0) {
-			
+
 			HCERTSTORE intermediate_store = openIntermediateCAStore();
 
 			if (NULL == CertFindCertificateInStore(
-						intermediate_store,
-						X509_ASN_ENCODING,
-						0,
-						CERT_FIND_EXISTING,
-						current_cert,
-						NULL
-					)
-				
+				intermediate_store,
+				X509_ASN_ENCODING,
+				0,
+				CERT_FIND_EXISTING,
+				current_cert,
+				NULL
+			)
+
 				) {
 				CertCloseStore(intermediate_store, CERT_CLOSE_STORE_FORCE_FLAG);
 				return UnbreakableCrypto_REJECT;
@@ -502,14 +445,15 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 
 			CertCloseStore(intermediate_store, CERT_CLOSE_STORE_FORCE_FLAG);
 		}
-		
 
 
-		proof_cert = cert_context_chain->at(i + 1);
+		if (i < cert_count - 1) {
+			proof_cert = cert_context_chain->at(i + 1);
 
-		//Each cert except the one next to the root should be vouched for by the previous cert in the chain
-		if (i != cert_count - 1 && !ValidVouching(current_cert, proof_cert)) {
-			return UnbreakableCrypto_REJECT;
+			//Each cert except the one next to the root should be vouched for by the previous cert in the chain
+			if (i != cert_count - 1 && !ValidVouching(current_cert, proof_cert)) {
+				return UnbreakableCrypto_REJECT;
+			}
 		}
 	}
 
@@ -614,17 +558,115 @@ bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 
 }
 
+bool UnbreakableCrypto::checkLocalRevocationLists(std::vector<PCCERT_CONTEXT>* cert_context_chain)
+{
+
+	HCERTSTORE rootStore = openRootStore();
+	CERT_REVOCATION_STATUS revocation_status = CERT_REVOCATION_STATUS();
+	bool success = true;
+	revocation_status.cbSize = sizeof(CERT_REVOCATION_STATUS);
+	for (int i = 0; i < cert_context_chain->size() - 1; i++) {
+
+		CERT_REVOCATION_PARA revocation_para;
+		revocation_para.cbSize = sizeof(CERT_REVOCATION_PARA);
+		revocation_para.cCertStore = 0;
+		revocation_para.hCrlStore = rootStore;
+		revocation_para.pftTimeToUse = NULL;
+		revocation_para.pIssuerCert = cert_context_chain->at(i + 1);
+		revocation_para.rgCertStore = NULL;
+
+		if (!CertVerifyRevocation(//TODO Is the return type a good boolean?
+			X509_ASN_ENCODING,
+			CERT_CONTEXT_REVOCATION_TYPE,
+			1,
+			(PVOID*) &(cert_context_chain->at(i)),
+			CERT_VERIFY_CACHE_ONLY_BASED_REVOCATION,
+			&revocation_para,
+			&revocation_status
+		))
+		{
+			thlog() << GetLastError();
+			const char* reason_text;
+
+			switch (revocation_status.dwError) {
+			case CRYPT_E_NO_REVOCATION_CHECK:
+				reason_text = "An installed or registered revocation function was not able to do a revocation check on the context.";
+				break;
+			case CRYPT_E_NO_REVOCATION_DLL:
+				reason_text = "No installed or registered DLL was found that was able to verify revocation.";
+				break;
+			case CRYPT_E_NOT_IN_REVOCATION_DATABASE:
+				reason_text = "The context to be checked was not found in the revocation server's database.";
+				break;
+			case CRYPT_E_REVOCATION_OFFLINE:
+				reason_text = "It was not possible to connect to the revocation server.";
+				break;
+			case CRYPT_E_REVOKED:
+				switch (revocation_status.dwReason) {
+				case CRL_REASON_UNSPECIFIED:
+					reason_text = "The revoking CA gave no explanation. This is discouraged by RFC 2459";
+					break;
+				case CRL_REASON_KEY_COMPROMISE:
+					reason_text = "The CA says their private key was compromised";
+					break;
+				case CRL_REASON_CA_COMPROMISE:
+					reason_text = "The CA says thier own private key was compromised";
+					break;
+				case CRL_REASON_AFFILIATION_CHANGED:
+					reason_text = "The CA says affiliations changed";
+					break;
+				case CRL_REASON_SUPERSEDED:
+					reason_text = "The CA says a new cert supersedes this one";
+					break;
+				case CRL_REASON_CESSATION_OF_OPERATION:
+					reason_text = "The CA says they have shut down operations and can no longer be relied upon";
+					break;
+				case CRL_REASON_CERTIFICATE_HOLD:
+					reason_text = "The CA says this certificate is on hold";
+					break;
+				}
+				thlog() << "Revoked certificate was encountered. reason: " << reason_text;
+				reason_text = "The context was revoked.dwReason in pRevStatus contains the reason for revocation.";
+				break;
+			case ERROR_SUCCESS:
+				reason_text = "The context was good.";
+				break;
+			case E_INVALIDARG:
+				reason_text = "cbSize in pRevStatus is less than sizeof(CERT_REVOCATION_STATUS).Note that dwError in pRevStatus is not updated for this error.";
+				break;
+			}
+
+
+			thlog() << "Revoked certificate was encountered. reason: " << reason_text;
+			success = false;
+			break;
+		}
+	}
+	CertCloseStore(rootStore, CERT_CLOSE_STORE_FORCE_FLAG);
+
+	if (success == false)
+	{
+		return UnbreakableCrypto_REJECT;
+	}
+
+}
+
 /*
 TODO This may not be as awesome as we think
 */
-wchar_t * UnbreakableCrypto::GetWC(const char *c)
-{
-	const size_t cSize = strlen(c) + 1;
-	wchar_t* wc = new wchar_t[cSize];
-	mbstowcs(wc, c, cSize);
-
-	return wc;
-}
+//LPWSTR UnbreakableCrypto::convert_CStr_to_LPWSTR(const char *c)
+//{
+//	const size_t cSize = strlen(c) + 1;
+//	LPWSTR myString;
+//	LPVOID pvStructInfo;
+//	if ((pvStructInfo = LocalAlloc(LMEM_FIXED, cSize)) != 0)
+//	{
+//		myString = (LPWSTR)pvStructInfo;
+//		MultiByteToWideChar(CP_OEMCP, 0, c, -1, myString, cSize);
+//		return myString;
+//	}
+//	return NULL;
+//}
 
 /*
 Security Programming Cookbook for C and C++
@@ -690,6 +732,7 @@ bool UnbreakableCrypto::checkHostname(PCCERT_CONTEXT pCertContext, LPWSTR lpszHo
 				}
 			}
 			LocalFree(pvStructInfo);
+			//We changed this line: we malloc/free lpszHostName outside of this function
 			//LocalFree(lpszHostName);
 			return bResult;
 		}
@@ -699,7 +742,8 @@ bool UnbreakableCrypto::checkHostname(PCCERT_CONTEXT pCertContext, LPWSTR lpszHo
 	dwCommonNameLength = CertGetNameStringW(pCertContext, CERT_NAME_ATTR_TYPE, 0, szOID_COMMON_NAME, 0, 0);
 
 	if (!dwCommonNameLength) {
-		LocalFree(lpszHostName);
+		//We changed this line: we malloc/free lpszHostName outside of this function
+		//LocalFree(lpszHostName);
 		return FALSE;
 	}
 
@@ -715,7 +759,9 @@ bool UnbreakableCrypto::checkHostname(PCCERT_CONTEXT pCertContext, LPWSTR lpszHo
 		}
 		LocalFree(lpszTemp);
 	}
-	LocalFree(lpszHostName);
+	
+	//We changed this line: we malloc/free lpszHostName outside of this function
+	//LocalFree(lpszHostName);
 	return bResult;
 }
 

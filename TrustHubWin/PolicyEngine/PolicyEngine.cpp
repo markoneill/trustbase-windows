@@ -26,8 +26,9 @@ int main()
 	//UBC.removeAllStoredCertsFromRootStore();
 
 	//Uncomment below to test UnbreakableCrypto
-	TestUnbreakableCrypto TUBC = TestUnbreakableCrypto();
-	return TUBC.Test();
+
+	//TestUnbreakableCrypto TUBC = TestUnbreakableCrypto();
+	//return TUBC.Test();
 
 	std::thread* plugin_threads;
 	// Start Logging
@@ -118,7 +119,7 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		thlog() << "Decider dequeued query " << query->getId();
 		
 		// get system's response
-		bool system_response = UBC.evaluate(query);
+		UnbreakableCrypto_RESPONSE system_response = UBC.evaluate(query);
 
 		// get timeout time
 		auto now = std::chrono::system_clock::now();
@@ -164,7 +165,7 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		}
 
 		//Check if we need to trick the system to accept what the plugins say.
-		if (response = PLUGIN_RESPONSE_VALID && !system_response) 
+		if (response == PLUGIN_RESPONSE_VALID && !(system_response==UnbreakableCrypto_ACCEPT))
 		{
 			if (query->data.cert_context_chain->size() <= 0) {
 				thlog() << "No PCCERT_CONTEXT in chain";
