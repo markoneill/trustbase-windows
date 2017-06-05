@@ -393,11 +393,23 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 	//Reject invalid Hostname
 	LPWSTR wHostname = new WCHAR[strlen(hostname) + 1];
 	MultiByteToWideChar(CP_OEMCP, 0, hostname, -1, wHostname, strlen(hostname) + 1);
+
 	if (!checkHostname(cert_context_chain->at(0), wHostname))
 	{
-		delete wHostname;
-		thlog() << "UnbreakableCrypto_REJECT:  Reject invalid Hostname";
-		return UnbreakableCrypto_REJECT;
+		char* wildCardHostname = convertHostnameToWildcard(hostname);
+		LPWSTR w_WildCardHostname = new WCHAR[strlen(wildCardHostname) + 1];
+		MultiByteToWideChar(CP_OEMCP, 0, wildCardHostname, -1, w_WildCardHostname, strlen(wildCardHostname) + 1);
+		delete wildCardHostname;
+
+		if (!checkHostname(cert_context_chain->at(0), w_WildCardHostname))
+		{
+			delete wHostname;
+			delete w_WildCardHostname;
+
+			thlog() << "UnbreakableCrypto_REJECT:  Reject invalid Hostname";
+			return UnbreakableCrypto_REJECT;
+		}
+		delete w_WildCardHostname;
 	}
 	delete wHostname;
 
@@ -465,6 +477,39 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 	}
 
 	return UnbreakableCrypto_ACCEPT;
+}
+
+char* UnbreakableCrypto::convertHostnameToWildcard(char* hostname)
+{
+	//find first dot
+	int index = 0;
+	for (index = 0; index < strlen(hostname); index++)
+	{
+		if (hostname[index] == '.')
+		{
+			break;
+		}
+	}
+
+	if (index == strlen(hostname))
+	{
+		//fail
+		//todo: how to fail nicely
+		char* wildcardHostname = new char[1];
+		wildcardHostname[0] = 0;
+		return wildcardHostname;
+	}
+
+	int count = strlen(hostname) - index;
+	char* wildcardHostname = new char[count+1];
+	wildcardHostname[0] = '*';
+
+	for (int i = 1; i <= count+1; i++)
+	{
+		wildcardHostname[i] = hostname[i + index - 1];
+	}
+
+	return wildcardHostname;
 }
 
 /*Checks whether a PCCERT_CONTEXT can be trusted based on the previous PCCERT_CONTEXT in the chain*/
