@@ -21,9 +21,9 @@ int main()
 {
 
 	//Store certificates in root store removal
-	//UnbreakableCrypto UBC = UnbreakableCrypto();
-	//UBC.configure();
-	//UBC.removeAllStoredCertsFromRootStore();
+	UnbreakableCrypto UBC = UnbreakableCrypto();
+	UBC.configure();
+	UBC.removeAllStoredCertsFromRootStore();
 
 	//Uncomment below to test UnbreakableCrypto
 
@@ -120,6 +120,7 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		
 		// get system's response
 		UnbreakableCrypto_RESPONSE system_response = UBC.evaluate(query);
+		thlog() << "Evaluate says: " << system_response;
 
 		// get timeout time
 		auto now = std::chrono::system_clock::now();

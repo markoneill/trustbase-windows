@@ -386,6 +386,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 
 	//Reject Null leaf Certificate
 	if (cert_context_chain->at(0) == NULL) {
+		thlog() << "UnbreakableCrypto_REJECT:  Reject Null leaf Certificate";
 		return UnbreakableCrypto_REJECT;
 	}
 
@@ -395,6 +396,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 	if (!checkHostname(cert_context_chain->at(0), wHostname))
 	{
 		delete wHostname;
+		thlog() << "UnbreakableCrypto_REJECT:  Reject invalid Hostname";
 		return UnbreakableCrypto_REJECT;
 	}
 	delete wHostname;
@@ -404,6 +406,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 
 	if (!passedRevocation)
 	{
+		thlog() << "UnbreakableCrypto_REJECT:  Found revoked status cashed on computer";
 		return UnbreakableCrypto_REJECT;
 	}
 	//TODO check for duplicates CA's in the chain?
@@ -414,12 +417,14 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 		current_cert = cert_context_chain->at(i);
 
 		if (current_cert == NULL) {
+			thlog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: cert_context_chain->at(" << i <<") = NULL";
 			return UnbreakableCrypto_REJECT;
 		}
 
 		//The first cert should be signed by a root certificate
 		if (i == cert_count - 1) {
 			if (!ValidateWithRootStore(current_cert)) {
+				thlog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: ValidateWithRootStore failed";
 				return UnbreakableCrypto_REJECT;
 			}
 		}
@@ -440,6 +445,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 
 				) {
 				CertCloseStore(intermediate_store, CERT_CLOSE_STORE_FORCE_FLAG);
+				thlog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store: CertFindCertificateInStore = NULL";
 				return UnbreakableCrypto_REJECT;
 			}
 
@@ -452,6 +458,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 
 			//Each cert except the one next to the root should be vouched for by the previous cert in the chain
 			if (i != cert_count - 1 && !ValidVouching(current_cert, proof_cert)) {
+				thlog() << "UnbreakableCrypto_REJECT: Each cert except the one next to the root should be vouched for by the previous cert in the chain : ValidVouching";
 				return UnbreakableCrypto_REJECT;
 			}
 		}
@@ -563,7 +570,6 @@ bool UnbreakableCrypto::checkLocalRevocationLists(std::vector<PCCERT_CONTEXT>* c
 
 	HCERTSTORE rootStore = openRootStore();
 	CERT_REVOCATION_STATUS revocation_status = CERT_REVOCATION_STATUS();
-	bool success = true;
 	revocation_status.cbSize = sizeof(CERT_REVOCATION_STATUS);
 	for (int i = 0; i < cert_context_chain->size() - 1; i++) {
 
@@ -626,7 +632,7 @@ bool UnbreakableCrypto::checkLocalRevocationLists(std::vector<PCCERT_CONTEXT>* c
 					break;
 				}
 				thlog() << "Revoked certificate was encountered. reason: " << reason_text;
-				reason_text = "The context was revoked.dwReason in pRevStatus contains the reason for revocation.";
+				return false;
 				break;
 			case ERROR_SUCCESS:
 				reason_text = "The context was good.";
@@ -636,18 +642,13 @@ bool UnbreakableCrypto::checkLocalRevocationLists(std::vector<PCCERT_CONTEXT>* c
 				break;
 			}
 
-
-			thlog() << "Revoked certificate was encountered. reason: " << reason_text;
-			success = false;
+			thlog() << "Certificate could not be verified as revoked or not. Accepting certificate. reason: " << reason_text;
 			break;
 		}
 	}
 	CertCloseStore(rootStore, CERT_CLOSE_STORE_FORCE_FLAG);
 
-	if (success == false)
-	{
-		return UnbreakableCrypto_REJECT;
-	}
+	return true;
 
 }
 

@@ -13,7 +13,7 @@
 
 
 
-enum UnbreakableCrypto_RESPONSE { UnbreakableCrypto_ACCEPT, UnbreakableCrypto_REJECT, UnbreakableCrypto_ERROR};
+enum UnbreakableCrypto_RESPONSE {UnbreakableCrypto_REJECT=0, UnbreakableCrypto_ACCEPT=1, UnbreakableCrypto_ERROR=2};
 
 class UnbreakableCrypto {
 public:

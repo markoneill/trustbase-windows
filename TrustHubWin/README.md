@@ -199,7 +199,7 @@ The Kernel Driver development setup is the most complex. It involves two Windows
 
 ##### Policy Engine
 
-- [ ] Python Addon Integration
+- [ ] Python Addon Integration```````````````
 - [ ] Proxy/Inserting Certificates into Root Store
 
 #### Testing TODO
@@ -208,8 +208,8 @@ The Kernel Driver development setup is the most complex. It involves two Windows
 
 - [ ] Test Large Client Hello
 - [ ] Large number of synchronous connections (Chrome)
-
-
+- [ ] While Kernel Driver is active, and no policy engine is running, don't crash windows (I think it had to do with a buffer overflow).
+- [ ] Be able to start, stop, then start "net start TrustHubWin"
 ##### Policy Engine
 
 - [ ] Valgrind for leaks
