@@ -14,6 +14,7 @@ namespace Communications {
 }
 
 bool Communications::send_response(int result, UINT64 flowHandle) {
+	
 	((UINT64*)response_buf)[0] = flowHandle;
 	((UINT8*)response_buf)[sizeof(UINT64)] = (UINT8)result;
 
@@ -23,7 +24,14 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 	}
 	else
 	{
-		thlog() << "Responded with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid");
+		if (WriteFile(file, response_buf, 0x10, NULL, NULL)) {
+			thlog() << "Successfully ";
+		}
+		else
+		{
+			thlog() << "Unsuccessfully ";
+		}
+		thlog() << "responded with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid");
 	}
 	return true;
 }

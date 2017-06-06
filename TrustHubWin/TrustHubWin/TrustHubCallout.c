@@ -133,7 +133,7 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 		return;
 	}
 
-	// we are down with this stream and have decided to block it
+	// we are done with this stream and have decided to block it
 	if (requestedAction == RA_BLOCK) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Blocking this stream\r\n");
 		ioPacket->streamAction = FWPS_STREAM_ACTION_DROP_CONNECTION;

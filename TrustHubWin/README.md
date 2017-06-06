@@ -199,7 +199,8 @@ The Kernel Driver development setup is the most complex. It involves two Windows
 
 ##### Policy Engine
 
-- [ ] Python Addon Integration```````````````
+- [x] Python Addon Integration
+- [ ] Python Addons use multiple threads 
 - [ ] Proxy/Inserting Certificates into Root Store
 
 #### Testing TODO
