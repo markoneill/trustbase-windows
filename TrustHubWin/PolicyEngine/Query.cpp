@@ -105,8 +105,7 @@ std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, U
 			throw std::runtime_error("");
 		}
 
-		PCCERT_CONTEXT cert_context = CertCreateCertificateContext(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, cursor, cert_length);
-
+		PCCERT_CONTEXT cert_context = CertCreateCertificateContext(X509_ASN_ENCODING, cursor, cert_length);
 		cursor += cert_length;
 		dataRead += cert_length;
 

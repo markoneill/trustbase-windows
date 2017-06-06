@@ -150,6 +150,8 @@ bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
 		std::string thumbprint((char*)sha1_blob->pbData, sha1_blob->cbData);
 		certsAddedToRootStore.addCertificate(thumbprint);
 	}
+
+	//UNCOMMENT THIS TO HELP CLEAN UP YOUR ROOT STORE
 	//if (alreadyExists)
 	//{
 	//	CRYPT_HASH_BLOB* sha1_blob = getSHA1CryptHashBlob(certificate->pbCertEncoded, certificate->cbCertEncoded);
@@ -443,10 +445,8 @@ bool UnbreakableCrypto::evaluateHostname(std::vector<PCCERT_CONTEXT>* cert_conte
 	delete[] wHostname;
 	return true;
 }
-
 bool UnbreakableCrypto::evaluateLocalRevocation(std::vector<PCCERT_CONTEXT>* cert_context_chain)
 {
-
 	HCERTSTORE rootStore = openRootStore();
 	CERT_REVOCATION_STATUS revocation_status = CERT_REVOCATION_STATUS();
 	revocation_status.cbSize = sizeof(CERT_REVOCATION_STATUS);
@@ -530,7 +530,6 @@ bool UnbreakableCrypto::evaluateLocalRevocation(std::vector<PCCERT_CONTEXT>* cer
 	return false;
 
 }
-
 bool UnbreakableCrypto::evaluateChainVouching(std::vector<PCCERT_CONTEXT>* cert_context_chain)
 {
 	size_t cert_count = cert_context_chain->size();
@@ -625,7 +624,6 @@ bool UnbreakableCrypto::evaluateIsCa(std::vector<PCCERT_CONTEXT>* cert_context_c
 	}
 	return true;
 }
-
 
 char* UnbreakableCrypto::convertHostnameToWildcard(char* hostname)
 {

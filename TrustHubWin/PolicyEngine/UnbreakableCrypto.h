@@ -38,19 +38,17 @@ private:
 	HCERTSTORE openMyStore();
 	HCERTSTORE openIntermediateCAStore();
 
-	bool ValidVouching(PCCERT_CONTEXT claimed_cert, PCCERT_CONTEXT trusted_proof);
 	bool ValidateWithRootStore(PCCERT_CONTEXT cert);
 	bool removeFromRootStore(CRYPT_HASH_BLOB* sha1_blob);
 	
-	bool evaluateNotNull(std::vector<PCCERT_CONTEXT>* cert_context_chain);
-	bool evaluateHostname(std::vector<PCCERT_CONTEXT>* cert_context_chain, hostname);
+	bool evaluateContainsNullCertificates(std::vector<PCCERT_CONTEXT>* cert_context_chain);
+	bool evaluateHostname(std::vector<PCCERT_CONTEXT>* cert_context_chain, char * hostname);
+	bool evaluateLocalRevocation(std::vector<PCCERT_CONTEXT>* cert_context_chain);
 	bool evaluateChainVouching(std::vector<PCCERT_CONTEXT>* cert_context_chain);
 	bool evaluateIsCa(std::vector<PCCERT_CONTEXT>* cert_context_chain);
-	bool evaluateChainVouching2(std::vector<PCCERT_CONTEXT>* cert_context_chain);
 
 
 	char* convertHostnameToWildcard(char* hostname);
-	bool checkLocalRevocationLists(std::vector<PCCERT_CONTEXT>* cert_context_chain);
 
 	CRYPT_HASH_BLOB* getSHA1CryptHashBlob(byte* raw_cert, size_t raw_cert_len);
 	CRYPT_HASH_BLOB* getSHA1CryptHashBlob(std::string thumbprint);
@@ -64,7 +62,6 @@ private:
 	*/
 	bool UnbreakableCrypto::checkHostname(PCCERT_CONTEXT pCertContext, LPWSTR lpszHostName);
 	LPWSTR SPC_fold_wide(LPWSTR str);
-	//LPWSTR SPC_make_wide(LPCTSTR str);
 	//END ATTRIBUTED CODE
 
 	CertificatesAddedToRootStore certsAddedToRootStore;
