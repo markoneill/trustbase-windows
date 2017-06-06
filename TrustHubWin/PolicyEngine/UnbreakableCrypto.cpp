@@ -150,12 +150,12 @@ bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
 		std::string thumbprint((char*)sha1_blob->pbData, sha1_blob->cbData);
 		certsAddedToRootStore.addCertificate(thumbprint);
 	}
-	if (alreadyExists)
-	{
-		CRYPT_HASH_BLOB* sha1_blob = getSHA1CryptHashBlob(certificate->pbCertEncoded, certificate->cbCertEncoded);
-		std::string thumbprint((char*)sha1_blob->pbData, sha1_blob->cbData);
-		removeFromRootStore(thumbprint);
-	}
+	//if (alreadyExists)
+	//{
+	//	CRYPT_HASH_BLOB* sha1_blob = getSHA1CryptHashBlob(certificate->pbCertEncoded, certificate->cbCertEncoded);
+	//	std::string thumbprint((char*)sha1_blob->pbData, sha1_blob->cbData);
+	//	removeFromRootStore(thumbprint);
+	//}
 
 	CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
 	return successfulAdd || alreadyExists;
@@ -386,16 +386,38 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 		thlog() << "UnbreakableCrypto was run but not configured";
 		return UnbreakableCrypto_ERROR;
 	}
-
-	//Get number of certs in chain
-	cert_count = cert_context_chain->size();
-
-	//Reject Null leaf Certificate
-	if (cert_context_chain->at(0) == NULL) {
-		thlog() << "UnbreakableCrypto_REJECT:  Reject Null leaf Certificate";
+	//not null
+	if (evaluateContainsNullCertificates(cert_context_chain))
+	{
+		thlog() << "UnbreakableCrypto_REJECT:  Reject Null Certificates";
 		return UnbreakableCrypto_REJECT;
 	}
 
+	//Start actual tests
+
+	//Reject invalid Hostname
+	bool validHostname = evaluateHostname(cert_context_chain, hostname);
+	//Reject revocation knowleage (looked at cashed information)
+	bool revokedCertificates = evaluateLocalRevocation(cert_context_chain);
+	//leaf cert must be traceable back to a root cert 
+	bool chainValidates = evaluateChainVouching(cert_context_chain);
+	//verify all non-leaf certificates has a CA flag set
+	bool validIsCaFlags = evaluateIsCa(cert_context_chain);
+
+	return validHostname && !revokedCertificates && chainValidates && validIsCaFlags ?UnbreakableCrypto_ACCEPT : UnbreakableCrypto_REJECT;
+}
+bool UnbreakableCrypto::evaluateContainsNullCertificates(std::vector<PCCERT_CONTEXT>* cert_context_chain) {
+	size_t cert_count = cert_context_chain->size();
+	for (int i = cert_count - 1; i >= 0; i--) {
+		PCCERT_CONTEXT current_cert = cert_context_chain->at(i);
+		if (current_cert == NULL) {
+			thlog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: cert_context_chain->at(" << i << ") = NULL";
+			return true;
+		}
+	}
+	return false;
+}
+bool UnbreakableCrypto::evaluateHostname(std::vector<PCCERT_CONTEXT>* cert_context_chain, char *hostname) {
 	//Reject invalid Hostname
 	LPWSTR wHostname = new WCHAR[strlen(hostname) + 1];
 	MultiByteToWideChar(CP_OEMCP, 0, hostname, -1, wHostname, strlen(hostname) + 1);
@@ -413,125 +435,197 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 			delete[] wildCardHostname;
 
 			thlog() << "UnbreakableCrypto_REJECT:  Reject invalid Hostname";
-			return UnbreakableCrypto_REJECT;
+			return false;
 		}
 		delete[] w_WildCardHostname;
 		delete[] wildCardHostname;
 	}
 	delete[] wHostname;
+	return true;
+}
 
-	//Now check all certificates' revocation status except the root in the chain
-	bool passedRevocation = checkLocalRevocationLists(cert_context_chain);
+bool UnbreakableCrypto::evaluateLocalRevocation(std::vector<PCCERT_CONTEXT>* cert_context_chain)
+{
 
-	if (!passedRevocation)
-	{
-		thlog() << "UnbreakableCrypto_REJECT:  Found revoked status cashed on computer";
-		return UnbreakableCrypto_REJECT;
-	}
-	//TODO check for duplicates CA's in the chain?
+	HCERTSTORE rootStore = openRootStore();
+	CERT_REVOCATION_STATUS revocation_status = CERT_REVOCATION_STATUS();
+	revocation_status.cbSize = sizeof(CERT_REVOCATION_STATUS);
+	for (int i = 0; i < cert_context_chain->size() - 1; i++) {
 
-	//Loop through chain from root to leaf to validate the chain
-	for (i = cert_count - 1; i >= 0; i--) {
+		CERT_REVOCATION_PARA revocation_para;
+		revocation_para.cbSize = sizeof(CERT_REVOCATION_PARA);
+		revocation_para.cCertStore = 0;
+		revocation_para.hCrlStore = rootStore;
+		revocation_para.pftTimeToUse = NULL;
+		revocation_para.pIssuerCert = cert_context_chain->at(i + 1);
+		revocation_para.rgCertStore = NULL;
 
-		current_cert = cert_context_chain->at(i);
+		if (!CertVerifyRevocation(//TODO Is the return type a good boolean?
+			X509_ASN_ENCODING,
+			CERT_CONTEXT_REVOCATION_TYPE,
+			1,
+			(PVOID*) &(cert_context_chain->at(i)),
+			CERT_VERIFY_CACHE_ONLY_BASED_REVOCATION,
+			&revocation_para,
+			&revocation_status
+		))
+		{
+			thlog() << GetLastError();
+			const char* reason_text;
 
-		if (current_cert == NULL) {
-			thlog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: cert_context_chain->at(" << i << ") = NULL";
-			return UnbreakableCrypto_REJECT;
+			switch (revocation_status.dwError) {
+			case CRYPT_E_NO_REVOCATION_CHECK:
+				reason_text = "An installed or registered revocation function was not able to do a revocation check on the context.";
+				break;
+			case CRYPT_E_NO_REVOCATION_DLL:
+				reason_text = "No installed or registered DLL was found that was able to verify revocation.";
+				break;
+			case CRYPT_E_NOT_IN_REVOCATION_DATABASE:
+				reason_text = "The context to be checked was not found in the revocation server's database.";
+				break;
+			case CRYPT_E_REVOCATION_OFFLINE:
+				reason_text = "It was not possible to connect to the revocation server.";
+				break;
+			case CRYPT_E_REVOKED:
+				switch (revocation_status.dwReason) {
+				case CRL_REASON_UNSPECIFIED:
+					reason_text = "The revoking CA gave no explanation. This is discouraged by RFC 2459";
+					break;
+				case CRL_REASON_KEY_COMPROMISE:
+					reason_text = "The CA says their private key was compromised";
+					break;
+				case CRL_REASON_CA_COMPROMISE:
+					reason_text = "The CA says thier own private key was compromised";
+					break;
+				case CRL_REASON_AFFILIATION_CHANGED:
+					reason_text = "The CA says affiliations changed";
+					break;
+				case CRL_REASON_SUPERSEDED:
+					reason_text = "The CA says a new cert supersedes this one";
+					break;
+				case CRL_REASON_CESSATION_OF_OPERATION:
+					reason_text = "The CA says they have shut down operations and can no longer be relied upon";
+					break;
+				case CRL_REASON_CERTIFICATE_HOLD:
+					reason_text = "The CA says this certificate is on hold";
+					break;
+				}
+				thlog() << "Revoked certificate was encountered. reason: " << reason_text;
+				return true;
+				break;
+			case ERROR_SUCCESS:
+				reason_text = "The context was good.";
+				break;
+			case E_INVALIDARG:
+				reason_text = "cbSize in pRevStatus is less than sizeof(CERT_REVOCATION_STATUS).Note that dwError in pRevStatus is not updated for this error.";
+				break;
+			}
+
+			thlog() << "Certificate could not be verified as revoked or not. Accepting certificate. reason: " << reason_text;
+			break;
 		}
+	}
+	CertCloseStore(rootStore, CERT_CLOSE_STORE_FORCE_FLAG);
 
+	return false;
+
+}
+
+bool UnbreakableCrypto::evaluateChainVouching(std::vector<PCCERT_CONTEXT>* cert_context_chain)
+{
+	size_t cert_count = cert_context_chain->size();
+	for (int i = cert_count - 1; i >= 0; i--) {
 		//The first cert should be signed by a root certificate
 		if (i == 0) {
+			PCCERT_CONTEXT current_cert = cert_context_chain->at(i);
 			if (!ValidateWithRootStore(current_cert)) {
 				thlog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: ValidateWithRootStore failed";
-				return UnbreakableCrypto_REJECT;
+				return false;
 			}
 		}
+	}
+	return true;
+}
+bool UnbreakableCrypto::evaluateIsCa(std::vector<PCCERT_CONTEXT>* cert_context_chain)
+{
+	size_t cert_count = cert_context_chain->size();
+	for (int i = cert_count - 1; i >= 0; i--) {
+	//All certs except the leaf should be in the Intermediate CA store
+	//check all certs except the leaf
+		if (i == 0) {
+			continue;
+		}
+		PCCERT_CONTEXT current_cert = cert_context_chain->at(i);
 
-		//All certs except the leaf should be in the Intermediate CA store
-		if (i != 0) {
-			bool isCA = false;
-			bool foundConstrant = false;
-			for (int i = 0; i < current_cert->pCertInfo->cExtension; i++)
+		bool isCA = false;
+		bool foundConstrant = false;
+		for (int ext = 0; ext< current_cert->pCertInfo->cExtension; ext++)
+		{
+			//look for CA extension
+			if (!strcmp(current_cert->pCertInfo->rgExtension[ext].pszObjId, szOID_BASIC_CONSTRAINTS))
 			{
-				//look for CA extension
-				if (!strcmp(current_cert->pCertInfo->rgExtension[i].pszObjId, szOID_BASIC_CONSTRAINTS))
+				//NOTE: I have never seen szOID_BASIC_CONSTRAINTS found. It always has been the szOID_BASIC_CONSTRAINTS2 
+				CERT_BASIC_CONSTRAINTS_INFO *basicContraints;
+				DWORD size = sizeof(CERT_BASIC_CONSTRAINTS_INFO);
+
+				CryptDecodeObjectEx(X509_ASN_ENCODING,
+					szOID_BASIC_CONSTRAINTS,
+					current_cert->pCertInfo->rgExtension[ext].Value.pbData,
+					current_cert->pCertInfo->rgExtension[ext].Value.cbData,
+					CRYPT_DECODE_ALLOC_FLAG,
+					NULL,
+					&basicContraints,
+					&size);
+
+				//bool isCA
+				if (basicContraints->SubjectType.cbData > 0)
 				{
-					//NOTE: I have never seen szOID_BASIC_CONSTRAINTS found. It always has been the szOID_BASIC_CONSTRAINTS2 
-					CERT_BASIC_CONSTRAINTS_INFO *basicContraints;
-					DWORD size = sizeof(CERT_BASIC_CONSTRAINTS_INFO);
-
-					CryptDecodeObjectEx(X509_ASN_ENCODING,
-						szOID_BASIC_CONSTRAINTS,
-						current_cert->pCertInfo->rgExtension[i].Value.pbData,
-						current_cert->pCertInfo->rgExtension[i].Value.cbData,
-						CRYPT_DECODE_ALLOC_FLAG,
-						NULL,
-						&basicContraints,
-						&size);
-
-					//bool isCA
-					if (basicContraints->SubjectType.cbData > 0)
-					{
-						foundConstrant = true;
-						isCA = basicContraints->SubjectType.pbData[0] & CERT_CA_SUBJECT_FLAG;
-						LocalFree(basicContraints);
-						break;
-					}
-
-					LocalFree(basicContraints);
-				}
-				if (!strcmp(current_cert->pCertInfo->rgExtension[i].pszObjId, szOID_BASIC_CONSTRAINTS2))
-				{
-					CERT_BASIC_CONSTRAINTS2_INFO *basicContraints;
-					DWORD size = sizeof(CERT_BASIC_CONSTRAINTS2_INFO);
-
-					CryptDecodeObjectEx(X509_ASN_ENCODING,
-						szOID_BASIC_CONSTRAINTS2,
-						current_cert->pCertInfo->rgExtension[i].Value.pbData,
-						current_cert->pCertInfo->rgExtension[i].Value.cbData,
-						CRYPT_DECODE_ALLOC_FLAG,
-						NULL,
-						&basicContraints,
-						&size);
-
-
 					foundConstrant = true;
-
-					//bool fCA
-					isCA = basicContraints->fCA;
+					isCA = basicContraints->SubjectType.pbData[0] & CERT_CA_SUBJECT_FLAG;
 					LocalFree(basicContraints);
 					break;
 				}
-			}
 
-			if (foundConstrant && !isCA)
-			{
-				thlog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store";
-				return UnbreakableCrypto_REJECT;
+				LocalFree(basicContraints);
 			}
-			if (!foundConstrant)
+			if (!strcmp(current_cert->pCertInfo->rgExtension[ext].pszObjId, szOID_BASIC_CONSTRAINTS2))
 			{
-				thlog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store: Cert did not state if it was a CA or not";
-				return UnbreakableCrypto_REJECT;
-			}
+				CERT_BASIC_CONSTRAINTS2_INFO *basicContraints;
+				DWORD size = sizeof(CERT_BASIC_CONSTRAINTS2_INFO);
 
+				CryptDecodeObjectEx(X509_ASN_ENCODING,
+					szOID_BASIC_CONSTRAINTS2,
+					current_cert->pCertInfo->rgExtension[ext].Value.pbData,
+					current_cert->pCertInfo->rgExtension[ext].Value.cbData,
+					CRYPT_DECODE_ALLOC_FLAG,
+					NULL,
+					&basicContraints,
+					&size);
+
+
+				foundConstrant = true;
+
+				//bool fCA
+				isCA = basicContraints->fCA;
+				LocalFree(basicContraints);
+				break;
+			}
 		}
 
-
-		if (i < cert_count - 1) {
-			proof_cert = cert_context_chain->at(i + 1);
-
-			//Each cert except the one next to the root should be vouched for by the previous cert in the chain
-			if (i != cert_count - 1 && !ValidVouching(current_cert, proof_cert)) {
-				thlog() << "UnbreakableCrypto_REJECT: Each cert except the one next to the root should be vouched for by the previous cert in the chain : ValidVouching";
-				return UnbreakableCrypto_REJECT;
-			}
+		if (foundConstrant && !isCA)
+		{
+			thlog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store";
+			return false;
+		}
+		if (!foundConstrant)
+		{
+			thlog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store: Cert did not state if it was a CA or not";
+			return false;
 		}
 	}
-
-	return UnbreakableCrypto_ACCEPT;
+	return true;
 }
+
 
 char* UnbreakableCrypto::convertHostnameToWildcard(char* hostname)
 {
@@ -564,18 +658,6 @@ char* UnbreakableCrypto::convertHostnameToWildcard(char* hostname)
 	}
 
 	return wildcardHostname;
-}
-
-/*Checks whether a PCCERT_CONTEXT can be trusted based on the previous PCCERT_CONTEXT in the chain*/
-bool UnbreakableCrypto::ValidVouching(PCCERT_CONTEXT claimed_cert, PCCERT_CONTEXT trusted_proof)
-{
-	DWORD validation_code = CERT_STORE_SIGNATURE_FLAG | CERT_STORE_TIME_VALIDITY_FLAG;
-	CertVerifySubjectCertificateContext(claimed_cert, trusted_proof, &validation_code);
-	if (validation_code != 0) {
-		return false;
-	}
-
-	return true;
 }
 
 bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
@@ -663,110 +745,6 @@ bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 	return true;
 
 }
-
-bool UnbreakableCrypto::checkLocalRevocationLists(std::vector<PCCERT_CONTEXT>* cert_context_chain)
-{
-
-	HCERTSTORE rootStore = openRootStore();
-	CERT_REVOCATION_STATUS revocation_status = CERT_REVOCATION_STATUS();
-	revocation_status.cbSize = sizeof(CERT_REVOCATION_STATUS);
-	for (int i = 0; i < cert_context_chain->size() - 1; i++) {
-
-		CERT_REVOCATION_PARA revocation_para;
-		revocation_para.cbSize = sizeof(CERT_REVOCATION_PARA);
-		revocation_para.cCertStore = 0;
-		revocation_para.hCrlStore = rootStore;
-		revocation_para.pftTimeToUse = NULL;
-		revocation_para.pIssuerCert = cert_context_chain->at(i + 1);
-		revocation_para.rgCertStore = NULL;
-
-		if (!CertVerifyRevocation(//TODO Is the return type a good boolean?
-			X509_ASN_ENCODING,
-			CERT_CONTEXT_REVOCATION_TYPE,
-			1,
-			(PVOID*) &(cert_context_chain->at(i)),
-			CERT_VERIFY_CACHE_ONLY_BASED_REVOCATION,
-			&revocation_para,
-			&revocation_status
-		))
-		{
-			thlog() << GetLastError();
-			const char* reason_text;
-
-			switch (revocation_status.dwError) {
-			case CRYPT_E_NO_REVOCATION_CHECK:
-				reason_text = "An installed or registered revocation function was not able to do a revocation check on the context.";
-				break;
-			case CRYPT_E_NO_REVOCATION_DLL:
-				reason_text = "No installed or registered DLL was found that was able to verify revocation.";
-				break;
-			case CRYPT_E_NOT_IN_REVOCATION_DATABASE:
-				reason_text = "The context to be checked was not found in the revocation server's database.";
-				break;
-			case CRYPT_E_REVOCATION_OFFLINE:
-				reason_text = "It was not possible to connect to the revocation server.";
-				break;
-			case CRYPT_E_REVOKED:
-				switch (revocation_status.dwReason) {
-				case CRL_REASON_UNSPECIFIED:
-					reason_text = "The revoking CA gave no explanation. This is discouraged by RFC 2459";
-					break;
-				case CRL_REASON_KEY_COMPROMISE:
-					reason_text = "The CA says their private key was compromised";
-					break;
-				case CRL_REASON_CA_COMPROMISE:
-					reason_text = "The CA says thier own private key was compromised";
-					break;
-				case CRL_REASON_AFFILIATION_CHANGED:
-					reason_text = "The CA says affiliations changed";
-					break;
-				case CRL_REASON_SUPERSEDED:
-					reason_text = "The CA says a new cert supersedes this one";
-					break;
-				case CRL_REASON_CESSATION_OF_OPERATION:
-					reason_text = "The CA says they have shut down operations and can no longer be relied upon";
-					break;
-				case CRL_REASON_CERTIFICATE_HOLD:
-					reason_text = "The CA says this certificate is on hold";
-					break;
-				}
-				thlog() << "Revoked certificate was encountered. reason: " << reason_text;
-				return false;
-				break;
-			case ERROR_SUCCESS:
-				reason_text = "The context was good.";
-				break;
-			case E_INVALIDARG:
-				reason_text = "cbSize in pRevStatus is less than sizeof(CERT_REVOCATION_STATUS).Note that dwError in pRevStatus is not updated for this error.";
-				break;
-			}
-
-			thlog() << "Certificate could not be verified as revoked or not. Accepting certificate. reason: " << reason_text;
-			break;
-		}
-	}
-	CertCloseStore(rootStore, CERT_CLOSE_STORE_FORCE_FLAG);
-
-	return true;
-
-}
-
-/*
-TODO This may not be as awesome as we think
-*/
-//LPWSTR UnbreakableCrypto::convert_CStr_to_LPWSTR(const char *c)
-//{
-//	const size_t cSize = strlen(c) + 1;
-//	LPWSTR myString;
-//	LPVOID pvStructInfo;
-//	if ((pvStructInfo = LocalAlloc(LMEM_FIXED, cSize)) != 0)
-//	{
-//		myString = (LPWSTR)pvStructInfo;
-//		MultiByteToWideChar(CP_OEMCP, 0, c, -1, myString, cSize);
-//		return myString;
-//	}
-//	return NULL;
-//}
 
 /*
 Security Programming Cookbook for C and C++
@@ -879,25 +857,5 @@ LPWSTR UnbreakableCrypto::SPC_fold_wide(LPWSTR str)
 
 	return wstr;
 }
-
-
-//LPWSTR UnbreakableCrypto::SPC_make_wide(LPCTSTR str)
-//{
-//#ifndef UNICODE
-//	int len;
-//	LPWSTR wstr;
-//
-//	if (!(len = MultiByteToWideChar(CP_UTF8, 0, str, -1, 0, 0))) return NULL;
-//	if (!(wstr = (LPWSTR)LocalAlloc(LMEM_FIXED, len * sizeof(WCHAR)))) return NULL;
-//	if (!MultiByteToWideChar(CP_UTF8, 0, str, -1, 0, 0)) {
-//		LocalFree(wstr);
-//		return NULL;
-//	}
-//
-//	return wstr;
-//#else
-//	return SPC_fold_wide(str);
-//#endif
-//}
 
 //END ATTRIBUTED CODE
