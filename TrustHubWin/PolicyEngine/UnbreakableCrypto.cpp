@@ -150,6 +150,12 @@ bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
 		std::string thumbprint ((char*)sha1_blob->pbData, sha1_blob->cbData);
 		certsAddedToRootStore.addCertificate(thumbprint);
 	}
+	if (alreadyExists)
+	{
+		CRYPT_HASH_BLOB* sha1_blob = getSHA1CryptHashBlob(certificate->pbCertEncoded, certificate->cbCertEncoded);
+		std::string thumbprint((char*)sha1_blob->pbData, sha1_blob->cbData);
+		removeFromRootStore(thumbprint);
+	}
 	
 	CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
 	return successfulAdd || alreadyExists;
@@ -393,13 +399,26 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 	//Reject invalid Hostname
 	LPWSTR wHostname = new WCHAR[strlen(hostname) + 1];
 	MultiByteToWideChar(CP_OEMCP, 0, hostname, -1, wHostname, strlen(hostname) + 1);
+
 	if (!checkHostname(cert_context_chain->at(0), wHostname))
 	{
-		delete wHostname;
-		thlog() << "UnbreakableCrypto_REJECT:  Reject invalid Hostname";
-		return UnbreakableCrypto_REJECT;
+		char* wildCardHostname = convertHostnameToWildcard(hostname);
+		LPWSTR w_WildCardHostname = new WCHAR[strlen(wildCardHostname) + 1];
+		MultiByteToWideChar(CP_OEMCP, 0, wildCardHostname, -1, w_WildCardHostname, strlen(wildCardHostname) + 1);
+
+		if (!checkHostname(cert_context_chain->at(0), w_WildCardHostname))
+		{
+			delete[] wHostname;
+			delete[] w_WildCardHostname;
+			delete[] wildCardHostname;
+
+			thlog() << "UnbreakableCrypto_REJECT:  Reject invalid Hostname";
+			return UnbreakableCrypto_REJECT;
+		}
+		delete[] w_WildCardHostname;
+		delete[] wildCardHostname;
 	}
-	delete wHostname;
+	delete[] wHostname;
 
 	//Now check all certificates' revocation status except the root in the chain
 	bool passedRevocation = checkLocalRevocationLists(cert_context_chain);
@@ -422,7 +441,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 		}
 
 		//The first cert should be signed by a root certificate
-		if (i == cert_count - 1) {
+		if (i == 0) {
 			if (!ValidateWithRootStore(current_cert)) {
 				thlog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: ValidateWithRootStore failed";
 				return UnbreakableCrypto_REJECT;
@@ -431,25 +450,72 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 
 		//All certs except the leaf should be in the Intermediate CA store
 		if (i != 0) {
+			bool isCA = false;
+			bool foundConstrant = false;
+			for (int i = 0; i < current_cert->pCertInfo->cExtension; i++)
+			{
+				//look for CA extension
+				if (!strcmp(current_cert->pCertInfo->rgExtension[i].pszObjId , szOID_BASIC_CONSTRAINTS))
+				{
+					//NOTE: I have never seen szOID_BASIC_CONSTRAINTS found. It always has been the szOID_BASIC_CONSTRAINTS2 
+					CERT_BASIC_CONSTRAINTS_INFO *basicContraints;
+					DWORD size = sizeof(CERT_BASIC_CONSTRAINTS_INFO);
 
-			HCERTSTORE intermediate_store = openIntermediateCAStore();
+					CryptDecodeObjectEx(X509_ASN_ENCODING,
+						szOID_BASIC_CONSTRAINTS,
+						current_cert->pCertInfo->rgExtension[i].Value.pbData,
+						current_cert->pCertInfo->rgExtension[i].Value.cbData,
+						CRYPT_DECODE_ALLOC_FLAG,
+						NULL,
+						&basicContraints,
+						&size);
 
-			if (NULL == CertFindCertificateInStore(
-				intermediate_store,
-				X509_ASN_ENCODING,
-				0,
-				CERT_FIND_EXISTING,
-				current_cert,
-				NULL
-			)
+					//bool isCA
+					if (basicContraints->SubjectType.cbData > 0)
+					{
+						foundConstrant = true;
+						isCA = basicContraints->SubjectType.pbData[0] & CERT_CA_SUBJECT_FLAG;
+						LocalFree(basicContraints);
+						break;
+					}
 
-				) {
-				CertCloseStore(intermediate_store, CERT_CLOSE_STORE_FORCE_FLAG);
-				thlog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store: CertFindCertificateInStore = NULL";
+					LocalFree(basicContraints);
+				}
+				if (!strcmp(current_cert->pCertInfo->rgExtension[i].pszObjId,szOID_BASIC_CONSTRAINTS2))
+				{
+					CERT_BASIC_CONSTRAINTS2_INFO *basicContraints;
+					DWORD size = sizeof(CERT_BASIC_CONSTRAINTS2_INFO);
+
+					CryptDecodeObjectEx(X509_ASN_ENCODING,
+						szOID_BASIC_CONSTRAINTS2,
+						current_cert->pCertInfo->rgExtension[i].Value.pbData,
+						current_cert->pCertInfo->rgExtension[i].Value.cbData,
+						CRYPT_DECODE_ALLOC_FLAG,
+						NULL,
+						&basicContraints,
+						&size);
+
+
+					foundConstrant = true;
+
+					//bool fCA
+					isCA = basicContraints->fCA;
+					LocalFree(basicContraints);
+					break;
+				}
+			}
+			
+			if (foundConstrant && !isCA)
+			{
+				thlog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store";
 				return UnbreakableCrypto_REJECT;
 			}
-
-			CertCloseStore(intermediate_store, CERT_CLOSE_STORE_FORCE_FLAG);
+			if (!foundConstrant)
+			{
+				thlog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store: Cert did not state if it was a CA or not";
+				return UnbreakableCrypto_REJECT;
+			}
+				
 		}
 
 
@@ -465,6 +531,39 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 	}
 
 	return UnbreakableCrypto_ACCEPT;
+}
+
+char* UnbreakableCrypto::convertHostnameToWildcard(char* hostname)
+{
+	//find first dot
+	int index = 0;
+	for (index = 0; index < strlen(hostname); index++)
+	{
+		if (hostname[index] == '.')
+		{
+			break;
+		}
+	}
+
+	if (index == strlen(hostname))
+	{
+		//fail
+		//todo: how to fail nicely
+		char* wildcardHostname = new char[1];
+		wildcardHostname[0] = 0;
+		return wildcardHostname;
+	}
+
+	int count = strlen(hostname) - index + 1;
+	char* wildcardHostname = new char[count+1];
+	wildcardHostname[0] = '*';
+
+	for (int i = 1; i <= count; i++)
+	{
+		wildcardHostname[i] = hostname[i + index - 1];
+	}
+
+	return wildcardHostname;
 }
 
 /*Checks whether a PCCERT_CONTEXT can be trusted based on the previous PCCERT_CONTEXT in the chain*/
@@ -533,13 +632,13 @@ bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 
 	CERT_CHAIN_POLICY_PARA chain_policy;
 	chain_policy.cbSize = sizeof(CERT_CHAIN_POLICY_PARA);
-	chain_policy.dwFlags = 0;
+	chain_policy.dwFlags = CERT_CHAIN_POLICY_IGNORE_ALL_REV_UNKNOWN_FLAGS;
 
 	CERT_CHAIN_POLICY_STATUS cert_policy_status;
 	if (!CertVerifyCertificateChainPolicy(
 		CERT_CHAIN_POLICY_BASE,
 		cert_chain_context,
-		&chain_policy, //Do not ignore any problems
+		&chain_policy,
 		&cert_policy_status
 	)
 		)

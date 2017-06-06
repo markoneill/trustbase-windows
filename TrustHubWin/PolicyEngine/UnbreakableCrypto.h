@@ -42,6 +42,8 @@ private:
 	bool ValidateWithRootStore(PCCERT_CONTEXT cert);
 	bool removeFromRootStore(CRYPT_HASH_BLOB* sha1_blob);
 
+	char* convertHostnameToWildcard(char* hostname);
+
 	bool checkLocalRevocationLists(std::vector<PCCERT_CONTEXT>* cert_context_chain);
 
 	CRYPT_HASH_BLOB* getSHA1CryptHashBlob(byte* raw_cert, size_t raw_cert_len);
