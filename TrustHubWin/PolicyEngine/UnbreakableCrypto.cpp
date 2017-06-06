@@ -31,7 +31,7 @@ UnbreakableCrypto::~UnbreakableCrypto() {
 		CertFreeCertificateChain(cert_chain_context);
 	}
 }
-	
+
 
 /*
 UnbreakableCrypto::configure()
@@ -43,12 +43,12 @@ That is why they are not in the constructor.
 void UnbreakableCrypto::configure() {
 	encodings = (X509_ASN_ENCODING);//No Idea
 
-	//PCCERT_STRONG_SIGN_PARA chain_params_strong_crypto_param = new CERT_STRONG_SIGN_PARA;
-	//chain_params_strong_crypto_param->cbSize = sizeof(*chain_params_strong_crypto_param);
-	//chain_params_strong_crypto_param->dwInfoChoice = ;
-	//chain_params_strong_crypto_param->pSerializedInfo = ;
-	//chain_params_strong_crypto_param->pszOID = ;
-	//chain_params_strong_crypto_param->pvInfo = ;
+									//PCCERT_STRONG_SIGN_PARA chain_params_strong_crypto_param = new CERT_STRONG_SIGN_PARA;
+									//chain_params_strong_crypto_param->cbSize = sizeof(*chain_params_strong_crypto_param);
+									//chain_params_strong_crypto_param->dwInfoChoice = ;
+									//chain_params_strong_crypto_param->pSerializedInfo = ;
+									//chain_params_strong_crypto_param->pszOID = ;
+									//chain_params_strong_crypto_param->pvInfo = ;
 
 	empty_enhkey = new CERT_ENHKEY_USAGE;
 	empty_enhkey->cUsageIdentifier = 0; //EMPTY
@@ -124,11 +124,11 @@ Attempts to add a certificate to the windows root store
 */
 bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
 {
-	bool successfulAdd= true;
+	bool successfulAdd = true;
 	bool alreadyExists = false;
 
 	HCERTSTORE root_store = openRootStore();
-	
+
 	LPTSTR certName = getCertName(certificate);
 	std::wstring ws(certName);
 	thlog() << "Attempting to add the following cert to the root store: " << certName;
@@ -147,7 +147,7 @@ bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
 	if (successfulAdd)
 	{
 		CRYPT_HASH_BLOB* sha1_blob = getSHA1CryptHashBlob(certificate->pbCertEncoded, certificate->cbCertEncoded);
-		std::string thumbprint ((char*)sha1_blob->pbData, sha1_blob->cbData);
+		std::string thumbprint((char*)sha1_blob->pbData, sha1_blob->cbData);
 		certsAddedToRootStore.addCertificate(thumbprint);
 	}
 	if (alreadyExists)
@@ -156,7 +156,7 @@ bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
 		std::string thumbprint((char*)sha1_blob->pbData, sha1_blob->cbData);
 		removeFromRootStore(thumbprint);
 	}
-	
+
 	CertCloseStore(root_store, CERT_CLOSE_STORE_FORCE_FLAG);
 	return successfulAdd || alreadyExists;
 }
@@ -190,7 +190,7 @@ LPTSTR UnbreakableCrypto::getCertName(PCCERT_CONTEXT certificate) {
 }
 
 /*
-Attempts to remove all certificates added to the root store that are remembered in the 
+Attempts to remove all certificates added to the root store that are remembered in the
 certsAddedToRootStore method.
 */
 bool UnbreakableCrypto::removeAllStoredCertsFromRootStore()
@@ -261,7 +261,7 @@ bool UnbreakableCrypto::removeFromRootStore(CRYPT_HASH_BLOB* sha1_blob)
 			}
 		}
 	}
-	
+
 	if (success)
 	{
 		std::string thumbprint((char*)sha1_blob->pbData, sha1_blob->cbData);
@@ -314,7 +314,7 @@ bool UnbreakableCrypto::isConfigured()
 		thlog() << "Unknown Encoding configured in UnbreakableCrypto";
 		encoding_valid = false;
 	}
-	
+
 	bool configs =
 		cert_chain_engine_config != NULL &&
 		empty_enhkey != NULL &&
@@ -381,14 +381,14 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 	PCCERT_CONTEXT proof_cert;
 
 	//Return Error if not configured
-	if (!isConfigured()) 
-	{ 
+	if (!isConfigured())
+	{
 		thlog() << "UnbreakableCrypto was run but not configured";
-		return UnbreakableCrypto_ERROR; 
+		return UnbreakableCrypto_ERROR;
 	}
 
 	//Get number of certs in chain
-	cert_count  = cert_context_chain->size();
+	cert_count = cert_context_chain->size();
 
 	//Reject Null leaf Certificate
 	if (cert_context_chain->at(0) == NULL) {
@@ -436,7 +436,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 		current_cert = cert_context_chain->at(i);
 
 		if (current_cert == NULL) {
-			thlog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: cert_context_chain->at(" << i <<") = NULL";
+			thlog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: cert_context_chain->at(" << i << ") = NULL";
 			return UnbreakableCrypto_REJECT;
 		}
 
@@ -455,7 +455,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 			for (int i = 0; i < current_cert->pCertInfo->cExtension; i++)
 			{
 				//look for CA extension
-				if (!strcmp(current_cert->pCertInfo->rgExtension[i].pszObjId , szOID_BASIC_CONSTRAINTS))
+				if (!strcmp(current_cert->pCertInfo->rgExtension[i].pszObjId, szOID_BASIC_CONSTRAINTS))
 				{
 					//NOTE: I have never seen szOID_BASIC_CONSTRAINTS found. It always has been the szOID_BASIC_CONSTRAINTS2 
 					CERT_BASIC_CONSTRAINTS_INFO *basicContraints;
@@ -481,7 +481,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 
 					LocalFree(basicContraints);
 				}
-				if (!strcmp(current_cert->pCertInfo->rgExtension[i].pszObjId,szOID_BASIC_CONSTRAINTS2))
+				if (!strcmp(current_cert->pCertInfo->rgExtension[i].pszObjId, szOID_BASIC_CONSTRAINTS2))
 				{
 					CERT_BASIC_CONSTRAINTS2_INFO *basicContraints;
 					DWORD size = sizeof(CERT_BASIC_CONSTRAINTS2_INFO);
@@ -504,7 +504,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 					break;
 				}
 			}
-			
+
 			if (foundConstrant && !isCA)
 			{
 				thlog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store";
@@ -515,7 +515,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 				thlog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store: Cert did not state if it was a CA or not";
 				return UnbreakableCrypto_REJECT;
 			}
-				
+
 		}
 
 
@@ -555,7 +555,7 @@ char* UnbreakableCrypto::convertHostnameToWildcard(char* hostname)
 	}
 
 	int count = strlen(hostname) - index + 1;
-	char* wildcardHostname = new char[count+1];
+	char* wildcardHostname = new char[count + 1];
 	wildcardHostname[0] = '*';
 
 	for (int i = 1; i <= count; i++)
@@ -795,32 +795,32 @@ bool UnbreakableCrypto::checkHostname(PCCERT_CONTEXT pCertContext, LPWSTR lpszHo
 	}
 
 	if (pExtension && CryptDecodeObject(
-							X509_ASN_ENCODING, 
-							szOID,
-							pExtension->Value.pbData, 
-							pExtension->Value.cbData, 
-							0, 
-							0, 
-							&cbStructInfo
-					)
-		) 
+		X509_ASN_ENCODING,
+		szOID,
+		pExtension->Value.pbData,
+		pExtension->Value.cbData,
+		0,
+		0,
+		&cbStructInfo
+	)
+		)
 	{
-		if ((pvStructInfo = LocalAlloc(LMEM_FIXED, cbStructInfo)) != 0) 
+		if ((pvStructInfo = LocalAlloc(LMEM_FIXED, cbStructInfo)) != 0)
 		{
 			CryptDecodeObject(
-				X509_ASN_ENCODING, 
-				szOID, pExtension->Value.pbData, 
-				pExtension->Value.cbData, 
-				0, 
-				pvStructInfo, 
+				X509_ASN_ENCODING,
+				szOID, pExtension->Value.pbData,
+				pExtension->Value.cbData,
+				0,
+				pvStructInfo,
 				&cbStructInfo
 			);
-			pNameInfo = (CERT_ALT_NAME_INFO *) pvStructInfo;
+			pNameInfo = (CERT_ALT_NAME_INFO *)pvStructInfo;
 
 			for (i = 0; !bResult && i < pNameInfo->cAltEntry; i++) {
-				if (pNameInfo->rgAltEntry[i].dwAltNameChoice == CERT_ALT_NAME_DNS_NAME) 
+				if (pNameInfo->rgAltEntry[i].dwAltNameChoice == CERT_ALT_NAME_DNS_NAME)
 				{
-					if (!(lpszDNSName = SPC_fold_wide(pNameInfo->rgAltEntry[i].pwszDNSName))) 
+					if (!(lpszDNSName = SPC_fold_wide(pNameInfo->rgAltEntry[i].pwszDNSName)))
 					{
 						break;
 					}
@@ -859,7 +859,7 @@ bool UnbreakableCrypto::checkHostname(PCCERT_CONTEXT pCertContext, LPWSTR lpszHo
 		}
 		LocalFree(lpszTemp);
 	}
-	
+
 	//We changed this line: we malloc/free lpszHostName outside of this function
 	//LocalFree(lpszHostName);
 	return bResult;
