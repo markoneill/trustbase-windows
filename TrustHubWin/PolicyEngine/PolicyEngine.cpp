@@ -119,7 +119,7 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		thlog() << "Decider dequeued query " << query->getId();
 		
 		// get system's response
-		UnbreakableCrypto_RESPONSE system_response = UBC.evaluate(query);
+		UnbreakableCrypto_RESPONSE system_response = UnbreakableCrypto_ACCEPT;//UBC.evaluate(query);
 		thlog() << "Evaluate says: " << system_response;
 
 		// get timeout time

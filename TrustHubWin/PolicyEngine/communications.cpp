@@ -11,6 +11,11 @@ namespace Communications {
 
 	QueryQueue* qq;
 	int plugin_count;
+	std::mutex readWrite_mux;
+	std::condition_variable canRead_cv;
+	std::condition_variable canWrite_cv;
+
+	bool canReadCantWrite = true;
 }
 
 bool Communications::send_response(int result, UINT64 flowHandle) {
@@ -19,11 +24,20 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 	((UINT8*)response_buf)[sizeof(UINT64)] = (UINT8)result;
 
 	if (COMMUNICATIONS_DEBUG_MODE) {
-		thlog() << "Would have responded " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid");
+		thlog() << "Would have responded " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << flowHandle;
 		return true;
 	}
 	else
 	{
+		thlog() << "****** about to respond with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << flowHandle;
+	
+		//synchronous lock for reading and writing
+		//todo: find a soultion that allows us to quickly read and write without issue (see read)
+		std::unique_lock<std::mutex> lck(readWrite_mux);
+		//wait for write access
+		while (canReadCantWrite == true) {
+			canWrite_cv.wait(lck);
+		}
 		if (WriteFile(file, response_buf, 0x10, NULL, NULL)) {
 			thlog() << "Successfully ";
 		}
@@ -31,7 +45,12 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 		{
 			thlog() << "Unsuccessfully ";
 		}
-		thlog() << "responded with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid");
+		thlog() << "------responded with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << flowHandle;
+		
+		//allow read
+		canRead_cv.notify_one();
+		canReadCantWrite = true;
+		lck.unlock();
 	}
 	return true;
 }
@@ -45,6 +64,24 @@ bool Communications::recv_query() {
 
 	bufcur = buf;
 
+	//synchronous lock for reading and writing
+	//todo: find a soultion that allows us to quickly read and write without issue
+	//With out a synchronous lock, we run into a read blocking problem.
+	//example: the policy engine reads 4 queries before answering
+	//			next, the policy engine blocks on read access.
+	//			then, one of the queries has an anwser. They cannot answer until 
+	//				the read is done blocking or in otherwords, until we receive another message.
+	//			When reads finally do come in, the queries with answers finally get to send their answer, but they are much too late.
+	//			Also, if there are lots of anwsers ready, they will have to wait for another read block to end.
+	//			
+	//			Essentially because in order to write we have to wait for a read, we can only load a page if we try to load like 10 pages.
+	//			Still only the first 1 or 2 will load.
+	std::unique_lock<std::mutex> lck(readWrite_mux);
+
+	//wait for read access
+	while (canReadCantWrite == false) {
+		canRead_cv.wait(lck);
+	}
 	while (true) {
 		// read until we have read a whole query
 		if (ReadFile(file, bufcur, (DWORD)((bufsize - 1) - (bufcur - buf)), &readlen, NULL)) {
@@ -74,7 +111,10 @@ bool Communications::recv_query() {
 			bufcur = buf + Read;
 		}
 	}
-
+	//allow write
+	canWrite_cv.notify_one();
+	canReadCantWrite = false;
+	lck.unlock();
 	// parse the message
 	Query* query = parse_query(buf, Read);
 	if (!query) {
