@@ -29,7 +29,7 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 	}
 	else
 	{
-		thlog() << "****** about to respond with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << flowHandle;
+		thlog() << "about to respond with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << flowHandle;
 	
 		//synchronous lock for reading and writing
 		//todo: find a soultion that allows us to quickly read and write without issue (see read)
@@ -45,7 +45,7 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 		{
 			thlog() << "Unsuccessfully ";
 		}
-		thlog() << "------responded with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << flowHandle;
+		thlog() << "responded with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << flowHandle;
 		
 		//allow read
 		canRead_cv.notify_one();
