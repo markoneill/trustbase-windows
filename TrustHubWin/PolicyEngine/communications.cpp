@@ -308,7 +308,7 @@ bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) 
 		return true;
 	}
 
-	file = CreateFileW(TRUSTHUBKERN, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	file = CreateFileW(TRUSTHUBKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ| FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 	if (file == NULL ||  file == INVALID_HANDLE_VALUE) {
 		thlog(LOG_ERROR) << "Couldn't open trusthub kernel file.";
 		thlog(LOG_ERROR) << GetLastError();
