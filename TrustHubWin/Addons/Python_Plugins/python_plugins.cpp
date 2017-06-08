@@ -2,11 +2,20 @@
 
 #include "python_plugins.h"
 
+enum GIL_State { uninitialized, initialized, finished };
+
+static GIL_State gil_state = uninitialized;
+
+static PyThreadState* mainThreadState;
+
 PyObject **plugin_functions;
 PyObject **plugin_final_functions;
 static int plugin_count;
 static int init_plugin(PyObject* pFunc, int id, int is_async);
 static void log_PyErr(void);
+int unsafe_query_plugin(int id, query_data_t* data);
+int unsafe_query_plugin_async(int id, query_data_t* data);
+int unsafe_finalize_plugin(int id);
 
 // The function name to be called in the python plugin scripts
 const char *plugin_query_func_name = "query";
@@ -21,6 +30,13 @@ int(*plog)(thlog_level_t level, const char* format, ...);
 __declspec(dllexport) int __stdcall initialize(init_addon_data_t* data) {
 	char python_stmt[128];
 	char *argv_path[] = { "" };
+	
+	//always be in the correct gil_state
+	if (gil_state != uninitialized)
+	{
+		return 1;
+	}
+	
 	Py_Initialize();
 	plugin_count = data->plugin_count;
 
@@ -56,6 +72,23 @@ __declspec(dllexport) int __stdcall initialize(init_addon_data_t* data) {
 }
 
 __declspec(dllexport) int __stdcall finalize(void) {
+	
+	//always be in the correct gil_state
+	if (gil_state == uninitialized)
+	{
+		//do nothing extra
+	}
+	else if (gil_state == initialized)
+	{
+		//return the main thread
+		PyEval_RestoreThread(mainThreadState);
+	}
+	else if (gil_state == finished)
+	{
+		//bad
+		return 1;
+	}
+	
 	int i;
 	for (i = 0; i < plugin_count; i++) {
 		if (plugin_functions[i] != NULL) {
@@ -91,6 +124,12 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 	char* module_name;
 	char* dot_ptr;
 	char* slash_ptr;
+
+	//always be in the correct gil_state
+	if (gil_state != uninitialized)
+	{
+		return 1;
+	}
 
 	// Cut off extension .py
 	module_name = path;
@@ -186,6 +225,11 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 	int set_arg;
 	int result;
 
+	//always be in the correct gil_state
+	if (gil_state != uninitialized)
+	{
+		return 1;
+	}
 
 	if (is_async == 1) {
 		pArgs = PyTuple_New(3);
@@ -291,8 +335,32 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 * @param cert_chain A character representation of the certificate chain
 * @param length The length of cert_chain
 */
+ __declspec(dllexport) int __stdcall query_plugin(int id, query_data_t* data) {
+	 int result=-1;
 
-__declspec(dllexport) int __stdcall query_plugin(int id, query_data_t* data) {
+	 //always be in the correct gil_state
+	if (gil_state == uninitialized)
+	{
+		gil_state = initialized;
+		PyEval_InitThreads();
+		mainThreadState = PyEval_SaveThread();
+	}
+	else if (gil_state == initialized)
+	{
+		 //nothing extra
+	}
+	else if (gil_state == finished)
+	{
+		//bad
+		return -1;
+	}
+
+	 PyGILState_STATE state = PyGILState_Ensure();
+	 result=unsafe_query_plugin(id, data);
+	 PyGILState_Release(state);
+	 return result;
+ }
+ int unsafe_query_plugin(int id, query_data_t* data) {
 	int result;
 	int set_arg;
 	PyObject* pFunc;
@@ -418,6 +486,33 @@ __declspec(dllexport) int __stdcall query_plugin(int id, query_data_t* data) {
 * @param length The length of cert_chain
 */
 __declspec(dllexport) int __stdcall query_plugin_async(int id, query_data_t* data) {
+	int result = -1;
+
+	//always be in the correct gil_state
+	if (gil_state == uninitialized)
+	{
+		gil_state = initialized;
+		PyEval_InitThreads();
+		mainThreadState = PyEval_SaveThread();
+	}
+	else if (gil_state == initialized)
+	{
+		//nothing extra
+	}
+	else if (gil_state == finished)
+	{
+		//bad
+		return -1;
+	}
+
+	PyGILState_STATE state = PyGILState_Ensure();
+	result = unsafe_query_plugin_async(id, data);
+	PyGILState_Release(state);
+
+	return result;
+
+}
+int unsafe_query_plugin_async(int id, query_data_t* data) {
 	int result;
 	int set_arg;
 	PyObject* pFunc;
@@ -558,10 +653,53 @@ int callback(int result, int plugin_id, int query_id) {
 	async_callback(plugin_id, query_id, result);
 	return 0;
 }
-
 __declspec(dllexport) int __stdcall finalize_plugin(int id) {
+	int result = -1;
+
+	//always be in the correct gil_state
+	if (gil_state == uninitialized)
+	{
+		gil_state = initialized;
+		PyEval_InitThreads();
+		mainThreadState = PyEval_SaveThread();
+	}
+	else if (gil_state == initialized)
+	{
+		//nothing extra
+	}
+	else if (gil_state == finished)
+	{
+		//bad
+		return -1;
+	}
+
+	PyGILState_STATE state = PyGILState_Ensure();
+	result = unsafe_finalize_plugin(id);
+	PyGILState_Release(state);
+
+	return result;
+}
+int unsafe_finalize_plugin(int id) {
 	PyObject* pValue;
 	PyObject* pFunc;
+
+	//always be in the correct gil_state
+	if (gil_state == uninitialized)
+	{
+		gil_state = initialized;
+		PyEval_InitThreads();
+		mainThreadState = PyEval_SaveThread();
+	}
+	else if (gil_state == initialized)
+	{
+		//nothing extra
+	}
+	else if (gil_state == finished)
+	{
+		//bad
+		return -1;
+	}
+
 	// Call finalize functions
 	pFunc = plugin_final_functions[id];
 	if (pFunc == NULL) {
