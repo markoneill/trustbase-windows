@@ -11,11 +11,6 @@ namespace Communications {
 
 	QueryQueue* qq;
 	int plugin_count;
-	std::mutex readWrite_mux;
-	std::condition_variable canRead_cv;
-	std::condition_variable canWrite_cv;
-
-	bool canReadCantWrite = true;
 }
 
 bool Communications::send_response(int result, UINT64 flowHandle) {
@@ -30,27 +25,66 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 	else
 	{
 		thlog() << "about to respond with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << flowHandle;
-	
-		//synchronous lock for reading and writing
-		//todo: find a soultion that allows us to quickly read and write without issue (see read)
-		std::unique_lock<std::mutex> lck(readWrite_mux);
-		//wait for write access
-		while (canReadCantWrite == true) {
-			canWrite_cv.wait(lck);
+
+
+		//Using Overlapped to allow async read/write. We only allow upto a single read and single write at the same time. 
+		//This allows the ReadFile call to block on its own  thread, without also blocking the WriteFile function. 
+		OVERLAPPED overlappedWrite = { 0 };
+		overlappedWrite.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+		DWORD dwBytesWritten = 0;
+
+		if (!overlappedWrite.hEvent)
+		{
+			//bad
+			thlog() << "CreateEvent failed";
+			return false;
 		}
-		if (WriteFile(file, response_buf, 0x10, NULL, NULL)) {
+		overlappedWrite.Offset = 0;
+
+		bool writeFileSuccessful = WriteFile(file, response_buf, 0x10, NULL, &overlappedWrite);
+		DWORD dwWaitRes = WaitForSingleObject(overlappedWrite.hEvent, INFINITE);
+		if (dwWaitRes == WAIT_FAILED)
+		{
+			//bad
+			thlog() << "WAIT_FAILED";
+			thlog() << "quitting write function";
+			return false;
+		}
+		//is write done? if not, we need to wait for overlapped async write
+		if(writeFileSuccessful){
+			//no action needed
+		}
+		else
+		{
+
+			if (GetLastError() != ERROR_IO_PENDING)
+			{
+				thlog() << "Unsuccessfully ";
+				thlog() << "NOT ERROR_IOPENDING ";
+				thlog() << "quitting write function";
+				return false;
+			}
+			else
+			{
+				writeFileSuccessful = GetOverlappedResult(file, &overlappedWrite, &dwBytesWritten, true);
+			}
+		}
+
+		//async write is over
+		if (writeFileSuccessful) {
 			thlog() << "Successfully ";
 		}
 		else
 		{
 			thlog() << "Unsuccessfully ";
 		}
+
+		if (overlappedWrite.hEvent)
+		{
+			CloseHandle(overlappedWrite.hEvent);
+		}
+
 		thlog() << "responded with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << flowHandle;
-		
-		//allow read
-		canRead_cv.notify_one();
-		canReadCantWrite = true;
-		lck.unlock();
 	}
 	return true;
 }
@@ -64,40 +98,74 @@ bool Communications::recv_query() {
 
 	bufcur = buf;
 
-	//synchronous lock for reading and writing
-	//todo: find a soultion that allows us to quickly read and write without issue
-	//With out a synchronous lock, we run into a read blocking problem.
-	//example: the policy engine reads 4 queries before answering
-	//			next, the policy engine blocks on read access.
-	//			then, one of the queries has an anwser. They cannot answer until 
-	//				the read is done blocking or in otherwords, until we receive another message.
-	//			When reads finally do come in, the queries with answers finally get to send their answer, but they are much too late.
-	//			Also, if there are lots of anwsers ready, they will have to wait for another read block to end.
-	//			
-	//			Essentially because in order to write we have to wait for a read, we can only load a page if we try to load like 10 pages.
-	//			Still only the first 1 or 2 will load.
-	std::unique_lock<std::mutex> lck(readWrite_mux);
-
-	//wait for read access
-	while (canReadCantWrite == false) {
-		canRead_cv.wait(lck);
-	}
 	while (true) {
 		// read until we have read a whole query
-		if (ReadFile(file, bufcur, (DWORD)((bufsize - 1) - (bufcur - buf)), &readlen, NULL)) {
+
+		//Using Overlapped to allow async read/write. We only allow upto a single read and single write at the same time. 
+		//This allows the ReadFile call to block on its own  thread, without also blocking the WriteFile function. 
+		OVERLAPPED overlappedRead = { 0 };
+		overlappedRead.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+		DWORD dwBytesRead = 0;
+		if (!overlappedRead.hEvent)
+		{
+			//bad
+			return false;
+		}
+		overlappedRead.Offset = 0;
+		bool readFileSuccessful = ReadFile(file, bufcur, (DWORD)((bufsize - 1) - (bufcur - buf)), NULL, &overlappedRead);
+		DWORD dwWaitRes = WaitForSingleObject(overlappedRead.hEvent, INFINITE);
+		if (dwWaitRes == WAIT_FAILED)
+		{
+			//bad
+			if (overlappedRead.hEvent)
+			{
+				CloseHandle(overlappedRead.hEvent);
+			}
+			return false;
+		}
+		//is read done? if not, we need to wait for overlapped async read
+		if (readFileSuccessful)
+		{
+			//no action needed
+		}
+		else
+		{
+			if (GetLastError() != ERROR_IO_PENDING)
+			{
+				if (overlappedRead.hEvent)
+				{
+					CloseHandle(overlappedRead.hEvent);
+				}
+				thlog(LOG_WARNING) << "Couldn't read query!";
+				return false;
+			}
+			readFileSuccessful = GetOverlappedResult(file, &overlappedRead, &dwBytesRead, true);
+		}
+
+		//async read is over
+		if(readFileSuccessful){
 			if (toRead == 0) {
 				toRead = ((UINT64*)buf)[0];
 				flowHandle = ((UINT64*)buf)[1];
 				thlog() << "Got a query of " << toRead << " bytes, with flow handle " << flowHandle;
 			}
-
+			readlen = overlappedRead.InternalHigh - overlappedRead.Offset;
 			Read += readlen;
 		} else {
+			if (overlappedRead.hEvent)
+			{
+				CloseHandle(overlappedRead.hEvent);
+			}
 			thlog(LOG_WARNING) << "Couldn't read query!";
 			return false;
 		}
+
 		if (Read >= toRead) {
 			buf = bufcur;
+			if (overlappedRead.hEvent)
+			{
+				CloseHandle(overlappedRead.hEvent);
+			}
 			break;
 		} else if (2 * Read < bufsize) {
 			// we need to double our buffer, copy our buf, drop it, and point bufcur to the end of the data
@@ -110,11 +178,12 @@ bool Communications::recv_query() {
 			buf = bufcur;
 			bufcur = buf + Read;
 		}
+		if (overlappedRead.hEvent)
+		{
+			CloseHandle(overlappedRead.hEvent);
+		}
 	}
-	//allow write
-	canWrite_cv.notify_one();
-	canReadCantWrite = false;
-	lck.unlock();
+
 	// parse the message
 	Query* query = parse_query(buf, Read);
 	if (!query) {
@@ -307,8 +376,8 @@ bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) 
 		thlog() << "STARTING COMMUNICATIONS IN DEBUG MODE";
 		return true;
 	}
-
-	file = CreateFileW(TRUSTHUBKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ| FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+	//FILE_SHARE_READ| FILE_SHARE_WRITE
+	file = CreateFileW(TRUSTHUBKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
 	if (file == NULL ||  file == INVALID_HANDLE_VALUE) {
 		thlog(LOG_ERROR) << "Couldn't open trusthub kernel file.";
 		thlog(LOG_ERROR) << GetLastError();
