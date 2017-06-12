@@ -1,7 +1,7 @@
 #pragma once
 #include <libconfig.h++>
 #include <string>
-#include "THLogger.h"
+#include "TBLogger.h"
 #include "Plugin.h"
 #include "Addon.h"
 

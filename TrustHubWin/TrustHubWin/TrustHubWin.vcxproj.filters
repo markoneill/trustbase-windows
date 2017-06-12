@@ -22,21 +22,10 @@
     <None Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Inf Include="TrustHubWin.inf">
-      <Filter>Driver Files</Filter>
-    </Inf>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="Driver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Public.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TrustHubGuid.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TrustHubCallout.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="HandshakeHandler.h">
@@ -48,18 +37,21 @@
     <ClInclude Include="HandshakeTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TrustHubCommunication.h">
+    <ClInclude Include="TrustBaseMessage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TrustHubMessage.h">
+    <ClInclude Include="TrustBaseGuid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TrustBaseCommunication.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TrustBaseCallout.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Driver.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TrustHubCallout.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ConnectionContext.c">
@@ -68,11 +60,19 @@
     <ClCompile Include="HandshakeHandler.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TrustHubCommunication.c">
+    <ClCompile Include="TrustBaseMessage.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TrustHubMessage.c">
+    <ClCompile Include="TrustBaseCommunication.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TrustBaseCallout.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Inf Include="TrustBaseWin.inf">
+      <Filter>Driver Files</Filter>
+    </Inf>
   </ItemGroup>
 </Project>

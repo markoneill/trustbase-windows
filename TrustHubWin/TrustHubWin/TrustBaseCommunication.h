@@ -12,29 +12,28 @@
 #pragma warning(pop)			// Re-enable "Nameless struct/union" compiler warning
 #include <fwpvi.h>
 #include <fwpmk.h>				// Functions used for managing IKE and AuthIP main mode (MM) policy and security associations
-#include "TrustHubMessage.h"
-#include "TrustHubGuid.h"
-
+#include "TrustBaseMessage.h"
+#include "TrustBaseGuid.h"
 
 // global IO queues
-WDFQUEUE THReadQueue;
-WDFQUEUE THWriteQueue;
+WDFQUEUE TBReadQueue;
+WDFQUEUE TBWriteQueue;
 
 // global workitems
-WDFWORKITEM  THReadyReadItem;
+WDFWORKITEM  TBReadyReadItem;
 
 //global message queues
-THMessageQueue THOutputQueue;
-THResponseTable THResponses;
+TBMessageQueue TBOutputQueue;
+TBResponseTable TBResponses;
 
-NTSTATUS ThInitQueues(IN WDFDEVICE device);
-NTSTATUS ThInitWorkItems(IN WDFDEVICE device);
+NTSTATUS TbInitQueues(IN WDFDEVICE device);
+NTSTATUS TbInitWorkItems(IN WDFDEVICE device);
 
 // Called when the framework receives IRP_MJ_READ requests
-VOID ThIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length);
+VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length);
 	
 // Called when the framework receives IRP_MJ_WRITE
-VOID ThIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length);
+VOID TbIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length);
 
 // Called when we have recieved a certificate, and can enable the read queue
-VOID THReadyRead(IN WDFWORKITEM WorkItem);
+VOID TBReadyRead(IN WDFWORKITEM WorkItem);

@@ -1,10 +1,10 @@
 #pragma once
-#include "trusthub_plugin.h"
+#include "trustbase_plugin.h"
 #include <string>
 #include <mutex>
 #include <atomic>
 #include <condition_variable>
-#include "THLogger.h"
+#include "TBLogger.h"
 #include "SNI_Parser.h"
 #include <vector>
 

@@ -97,7 +97,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 	//LPWSTR lHostname = convert_CStr_to_LPWSTR(hostname);
 
 	if (cert_data->data.cert_context_chain->size() <= 0) {
-		thlog() << "No PCCERT_CONTEXT in chain";
+		tblog() << "No PCCERT_CONTEXT in chain";
 		return UnbreakableCrypto_REJECT;
 	}
 	int left_cert_index = 0;
@@ -107,7 +107,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
 	//LocalFree(lHostname);
 
 	if (leaf_cert_context == NULL) {
-		thlog() << "cert_context at index " << left_cert_index << "is NULL";
+		tblog() << "cert_context at index " << left_cert_index << "is NULL";
 		delete hostname;
 		return UnbreakableCrypto_REJECT;
 	}
@@ -131,7 +131,7 @@ bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
 
 	LPTSTR certName = getCertName(certificate);
 	std::wstring ws(certName);
-	thlog() << "Attempting to add the following cert to the root store: " << certName;
+	tblog() << "Attempting to add the following cert to the root store: " << certName;
 	free(certName);
 
 	if (!CertAddCertificateContextToStore(root_store, certificate, CERT_STORE_ADD_NEW, NULL))
@@ -140,7 +140,7 @@ bool UnbreakableCrypto::insertIntoRootStore(PCCERT_CONTEXT certificate)
 		alreadyExists = GetLastError() == CRYPT_E_EXISTS;
 		if (!alreadyExists)
 		{
-			thlog(LOG_WARNING) << "Failed adding cert to root store";
+			tblog(LOG_WARNING) << "Failed adding cert to root store";
 		}
 	}
 
@@ -252,13 +252,13 @@ bool UnbreakableCrypto::removeFromRootStore(CRYPT_HASH_BLOB* sha1_blob)
 	while (pCertContext = CertFindCertificateInStore(root_store, encodings, 0, CERT_FIND_HASH, sha1_blob, pCertContext)) {
 		if (pCertContext != NULL)
 		{
-			thlog() << "Attempting to remove " << pCertContext->pCertInfo->Subject.pbData << " cert from root store";
+			tblog() << "Attempting to remove " << pCertContext->pCertInfo->Subject.pbData << " cert from root store";
 
 			if (!CertDeleteCertificateFromStore(
 				CertDuplicateCertificateContext(pCertContext))
 				)
 			{
-				thlog(LOG_WARNING) << "Failed removing cert from root store";
+				tblog(LOG_WARNING) << "Failed removing cert from root store";
 				success = false;
 			}
 		}
@@ -313,7 +313,7 @@ bool UnbreakableCrypto::isConfigured()
 {
 	bool encoding_valid = true;
 	if (encodings != X509_ASN_ENCODING  && encodings != (X509_ASN_ENCODING | PKCS_7_ASN_ENCODING)) {
-		thlog() << "Unknown Encoding configured in UnbreakableCrypto";
+		tblog() << "Unknown Encoding configured in UnbreakableCrypto";
 		encoding_valid = false;
 	}
 
@@ -385,13 +385,13 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 	//Return Error if not configured
 	if (!isConfigured())
 	{
-		thlog() << "UnbreakableCrypto was run but not configured";
+		tblog() << "UnbreakableCrypto was run but not configured";
 		return UnbreakableCrypto_ERROR;
 	}
 	//not null
 	if (evaluateContainsNullCertificates(cert_context_chain))
 	{
-		thlog() << "UnbreakableCrypto_REJECT:  Reject Null Certificates";
+		tblog() << "UnbreakableCrypto_REJECT:  Reject Null Certificates";
 		return UnbreakableCrypto_REJECT;
 	}
 
@@ -413,7 +413,7 @@ bool UnbreakableCrypto::evaluateContainsNullCertificates(std::vector<PCCERT_CONT
 	for (int i = cert_count - 1; i >= 0; i--) {
 		PCCERT_CONTEXT current_cert = cert_context_chain->at(i);
 		if (current_cert == NULL) {
-			thlog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: cert_context_chain->at(" << i << ") = NULL";
+			tblog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: cert_context_chain->at(" << i << ") = NULL";
 			return true;
 		}
 	}
@@ -436,7 +436,7 @@ bool UnbreakableCrypto::evaluateHostname(std::vector<PCCERT_CONTEXT>* cert_conte
 			delete[] w_WildCardHostname;
 			delete[] wildCardHostname;
 
-			thlog() << "UnbreakableCrypto_REJECT:  Reject invalid Hostname";
+			tblog() << "UnbreakableCrypto_REJECT:  Reject invalid Hostname";
 			return false;
 		}
 		delete[] w_WildCardHostname;
@@ -470,7 +470,7 @@ bool UnbreakableCrypto::evaluateLocalRevocation(std::vector<PCCERT_CONTEXT>* cer
 			&revocation_status
 		))
 		{
-			thlog() << GetLastError();
+			tblog() << GetLastError();
 			const char* reason_text;
 
 			switch (revocation_status.dwError) {
@@ -510,7 +510,7 @@ bool UnbreakableCrypto::evaluateLocalRevocation(std::vector<PCCERT_CONTEXT>* cer
 					reason_text = "The CA says this certificate is on hold";
 					break;
 				}
-				thlog() << "Revoked certificate was encountered. reason: " << reason_text;
+				tblog() << "Revoked certificate was encountered. reason: " << reason_text;
 				return true;
 				break;
 			case ERROR_SUCCESS:
@@ -521,7 +521,7 @@ bool UnbreakableCrypto::evaluateLocalRevocation(std::vector<PCCERT_CONTEXT>* cer
 				break;
 			}
 
-			thlog() << "Certificate could not be verified as revoked or not. Accepting certificate. reason: " << reason_text;
+			tblog() << "Certificate could not be verified as revoked or not. Accepting certificate. reason: " << reason_text;
 			break;
 		}
 	}
@@ -538,7 +538,7 @@ bool UnbreakableCrypto::evaluateChainVouching(std::vector<PCCERT_CONTEXT>* cert_
 		if (i == 0) {
 			PCCERT_CONTEXT current_cert = cert_context_chain->at(i);
 			if (!ValidateWithRootStore(current_cert)) {
-				thlog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: ValidateWithRootStore failed";
+				tblog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: ValidateWithRootStore failed";
 				return false;
 			}
 		}
@@ -613,12 +613,12 @@ bool UnbreakableCrypto::evaluateIsCa(std::vector<PCCERT_CONTEXT>* cert_context_c
 
 		if (foundConstrant && !isCA)
 		{
-			thlog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store";
+			tblog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store";
 			return false;
 		}
 		if (!foundConstrant)
 		{
-			thlog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store: Cert did not state if it was a CA or not";
+			tblog() << "UnbreakableCrypto_REJECT: All certs except the leaf should be in the Intermediate CA store: Cert did not state if it was a CA or not";
 			return false;
 		}
 	}
@@ -660,7 +660,7 @@ char* UnbreakableCrypto::convertHostnameToWildcard(char* hostname)
 
 bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 	if (!isConfigured()) {
-		thlog() << "WARNING! Using UnbreakableCrypto without configuring.";
+		tblog() << "WARNING! Using UnbreakableCrypto without configuring.";
 		return false;
 	}
 
@@ -669,7 +669,7 @@ bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 	//++++++++++++++++++++++++++++++++++++
 
 	if (cert == NULL) {
-		thlog() << "UnbreakableCrypto got a NULL certificate. That should not happen" << GetLastError();
+		tblog() << "UnbreakableCrypto got a NULL certificate. That should not happen" << GetLastError();
 		return false;
 	}
 
@@ -682,7 +682,7 @@ bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 	)
 		)
 	{
-		thlog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
+		tblog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
 		return false;
 	}
 
@@ -701,7 +701,7 @@ bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 	)
 		)
 	{
-		thlog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
+		tblog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
 		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 		return false;
 	}
@@ -723,7 +723,7 @@ bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 	)
 		)
 	{
-		thlog() << "Wincrypt could not policy check the certificate chain. Error Code: " << GetLastError();
+		tblog() << "Wincrypt could not policy check the certificate chain. Error Code: " << GetLastError();
 		CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
 		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 		//delete cert_policy_status;

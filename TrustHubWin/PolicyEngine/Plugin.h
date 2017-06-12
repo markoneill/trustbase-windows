@@ -2,8 +2,8 @@
 #include <Windows.h>
 #include <string>
 #include <LibLoaderAPI.h>
-#include "THLogger.h"
-#include "trusthub_plugin.h"
+#include "TBLogger.h"
+#include "trustbase_plugin.h"
 #include "communications.h"
 #include "QueryQueue.h"
 #include "Query.h"

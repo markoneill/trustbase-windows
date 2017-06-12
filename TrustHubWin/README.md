@@ -141,6 +141,8 @@ Use pip to install the following libs:
 
   (Required for Notory Plugins) service_identity
 
+For CRLSet plugin to work, download the pre-built files located at Internet - Security Joint Research - TrustBase - Windows. Unzip crlset.zip into the pythonpluginfiles folder
+
 Python_addon project needs to be built so the python plugins can work.
 
 #### Kernel Driver

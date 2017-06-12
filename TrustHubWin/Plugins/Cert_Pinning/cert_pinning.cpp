@@ -9,7 +9,7 @@
 #include <openssl/x509v3.h>
 #include <openssl/sha.h>
 #include <openssl/asn1.h>
-#include "trusthub_plugin.h"
+#include "trustbase_plugin.h"
 #define PINNING_DATABASE "pinned_certs.db"
 
 #ifdef __cplusplus
@@ -25,7 +25,7 @@ extern "C" {  // only need to export C interface if
 
 char* database_path;
 
-int(*plog)(thlog_level_t level, const char* format, ...);
+int(*plog)(tblog_level_t level, const char* format, ...);
 
 static time_t ASN1_GetTimeT(ASN1_TIME* time);
 

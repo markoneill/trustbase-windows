@@ -1,6 +1,6 @@
-#include "TrustHubMessage.h"
+#include "TrustBaseMessage.h"
 
-NTSTATUS ThInitMessageQueue(OUT THMessageQueue* queue) {
+NTSTATUS TbInitMessageQueue(OUT TBMessageQueue* queue) {
 	NTSTATUS status = STATUS_SUCCESS;
 
 	KeInitializeSpinLock(&(queue->lock));
@@ -9,18 +9,18 @@ NTSTATUS ThInitMessageQueue(OUT THMessageQueue* queue) {
 	return status;
 }
 
-NTSTATUS ThMakeMessage(OUT THMessage** msg, IN UINT64 flowHandle, IN UINT64 processID, IN FWP_BYTE_BLOB processPath) {
+NTSTATUS TbMakeMessage(OUT TBMessage** msg, IN UINT64 flowHandle, IN UINT64 processID, IN FWP_BYTE_BLOB processPath) {
 
 	// Allocate space
-	(*msg) = (THMessage*)ExAllocatePoolWithTag(NonPagedPool, sizeof(THMessage), TH_POOL_TAG);
-	RtlZeroMemory((*msg), sizeof(THMessage));
+	(*msg) = (TBMessage*)ExAllocatePoolWithTag(NonPagedPool, sizeof(TBMessage), TB_POOL_TAG);
+	RtlZeroMemory((*msg), sizeof(TBMessage));
 
 	// Fill it
 	(*msg)->flowHandle = flowHandle;
 	(*msg)->processID = processID;
 	(*msg)->bytesWritten = 0;
 	(*msg)->processPathSize = processPath.size;
-	(*msg)->processPath = (UINT8*)ExAllocatePoolWithTag(NonPagedPool, sizeof(UINT8) * processPath.size, TH_POOL_TAG);
+	(*msg)->processPath = (UINT8*)ExAllocatePoolWithTag(NonPagedPool, sizeof(UINT8) * processPath.size, TB_POOL_TAG);
 	RtlCopyMemory((*msg)->processPath, processPath.data, processPath.size);
 
 	return STATUS_SUCCESS;
@@ -28,7 +28,7 @@ NTSTATUS ThMakeMessage(OUT THMessage** msg, IN UINT64 flowHandle, IN UINT64 proc
 
 
 
-NTSTATUS ThAddMessage(IN THMessageQueue* queue, IN THMessage* msg) {
+NTSTATUS TbAddMessage(IN TBMessageQueue* queue, IN TBMessage* msg) {
 	KIRQL irql;
 
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Before adding message, list is %sempty\r\n", ((IsListEmpty(&(queue->ListHead))) ? "" : "not "));
@@ -40,9 +40,9 @@ NTSTATUS ThAddMessage(IN THMessageQueue* queue, IN THMessage* msg) {
 	return STATUS_SUCCESS;
 }
 
-NTSTATUS ThSizeNextMessage(IN THMessageQueue* queue, OUT size_t* len) {
+NTSTATUS TbSizeNextMessage(IN TBMessageQueue* queue, OUT size_t* len) {
 	NTSTATUS status = STATUS_SUCCESS;
-	THMessage* message;
+	TBMessage* message;
 	LIST_ENTRY* entry;
 
 	if (IsListEmpty(&(queue->ListHead))) {
@@ -50,13 +50,13 @@ NTSTATUS ThSizeNextMessage(IN THMessageQueue* queue, OUT size_t* len) {
 		return STATUS_NOT_FOUND;
 	}
 	entry = queue->ListHead.Flink;
-	message = (THMessage*)CONTAINING_RECORD(entry, THMessage, ListEntry);
+	message = (TBMessage*)CONTAINING_RECORD(entry, TBMessage, ListEntry);
 
-	ThSizeMessage(message, len);
+	TbSizeMessage(message, len);
 	return status;
 }
 
-VOID ThSizeMessage(IN THMessage* message, OUT size_t* len) {
+VOID TbSizeMessage(IN TBMessage* message, OUT size_t* len) {
 	*len = 0;
 	*len += sizeof(UINT64); // total size
 	*len += sizeof message->flowHandle;
@@ -71,8 +71,8 @@ VOID ThSizeMessage(IN THMessage* message, OUT size_t* len) {
 	*len += message->dataSize;
 }
 
-// messages popped must later be freed with ThFreeMessage
-NTSTATUS ThPopMessage(IN THMessageQueue* queue, OUT THMessage** message) {
+// messages popped must later be freed with TbFreeMessage
+NTSTATUS TbPopMessage(IN TBMessageQueue* queue, OUT TBMessage** message) {
 	NTSTATUS status = STATUS_SUCCESS;
 	KIRQL irql;
 	//PLIST_ENTRY mentry = ExInterlockedRemoveHeadList(&(queue.ListHead), &(queue.lock));
@@ -84,12 +84,12 @@ NTSTATUS ThPopMessage(IN THMessageQueue* queue, OUT THMessage** message) {
 		return STATUS_NOT_FOUND;
 	}
 
-	*message = (THMessage*)CONTAINING_RECORD(mentry, THMessage, ListEntry);
+	*message = (TBMessage*)CONTAINING_RECORD(mentry, TBMessage, ListEntry);
 	return status;
 }
 
 // doesn't pop the message, so it must be removed afterward
-NTSTATUS ThGetMessage(IN THMessageQueue* queue, OUT THMessage** message) {
+NTSTATUS TbGetMessage(IN TBMessageQueue* queue, OUT TBMessage** message) {
 	NTSTATUS status = STATUS_SUCCESS;
 	LIST_ENTRY* entry;
 	KIRQL irql;
@@ -100,14 +100,14 @@ NTSTATUS ThGetMessage(IN THMessageQueue* queue, OUT THMessage** message) {
 		return STATUS_NOT_FOUND;
 	}
 	entry = queue->ListHead.Flink;
-	*message = (THMessage*)CONTAINING_RECORD(entry, THMessage, ListEntry);
+	*message = (TBMessage*)CONTAINING_RECORD(entry, TBMessage, ListEntry);
 	KeReleaseSpinLock(&(queue->lock), irql);
 	return status;
 }
 
 // pop and free
-NTSTATUS ThRemMessage(IN THMessageQueue* queue) {
-	THMessage* message;
+NTSTATUS TbRemMessage(IN TBMessageQueue* queue) {
+	TBMessage* message;
 	NTSTATUS status = STATUS_SUCCESS;
 	KIRQL irql;
 
@@ -127,32 +127,32 @@ NTSTATUS ThRemMessage(IN THMessageQueue* queue) {
 		return STATUS_NOT_FOUND;
 	}
 
-	message = (THMessage*)CONTAINING_RECORD(mentry, THMessage, ListEntry);
+	message = (TBMessage*)CONTAINING_RECORD(mentry, TBMessage, ListEntry);
 
-	ThFreeMessage(message);
+	TbFreeMessage(message);
 	return status;
 }
 
-NTSTATUS ThFreeMessage(IN THMessage* message) {
+NTSTATUS TbFreeMessage(IN TBMessage* message) {
 	if (message) {
 		if (message->serverHello) {
-			ExFreePoolWithTag(message->serverHello, TH_POOL_TAG);
+			ExFreePoolWithTag(message->serverHello, TB_POOL_TAG);
 		}
 		if (message->clientHello) {
-			ExFreePoolWithTag(message->clientHello, TH_POOL_TAG);
+			ExFreePoolWithTag(message->clientHello, TB_POOL_TAG);
 		}
 		if (message->data) {
-			ExFreePoolWithTag(message->data, TH_POOL_TAG);
+			ExFreePoolWithTag(message->data, TB_POOL_TAG);
 		}
 		if (message->processPath) {
-			ExFreePoolWithTag(message->processPath, TH_POOL_TAG);
+			ExFreePoolWithTag(message->processPath, TB_POOL_TAG);
 		}
-		ExFreePoolWithTag(message, TH_POOL_TAG);
+		ExFreePoolWithTag(message, TB_POOL_TAG);
 	}
 	return STATUS_SUCCESS;
 }
 
-NTSTATUS ThCopyMessage(IN UINT8* buffer, size_t bufsize, THMessage* message, size_t* bytesWritten) {
+NTSTATUS TbCopyMessage(IN UINT8* buffer, size_t bufsize, TBMessage* message, size_t* bytesWritten) {
 	NTSTATUS status = STATUS_SUCCESS;
 	size_t len, offset;
 	UINT8* cursor;
@@ -164,7 +164,7 @@ NTSTATUS ThCopyMessage(IN UINT8* buffer, size_t bufsize, THMessage* message, siz
 	UINT32 loc_datasize;
 	UINT32 loc_data;
 
-	ThSizeMessage(message, &len);
+	TbSizeMessage(message, &len);
 
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Copying message:\r\n");
 	
@@ -172,31 +172,31 @@ NTSTATUS ThCopyMessage(IN UINT8* buffer, size_t bufsize, THMessage* message, siz
 	bufend = buffer + bufsize;
 
 	switch (message->bytesWritten) {
-	case THMESSAGE_OFFSET_LEN:
+	case TBMESSAGE_OFFSET_LEN:
 		if (cursor + sizeof(UINT64) > bufend) break;
 		*(UINT64 UNALIGNED *)cursor = (UINT64)(len);
 		cursor += sizeof(UINT64);
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Len:%x\r\n", len);
 
-	case THMESSAGE_OFFSET_FLOWHANDLE:
+	case TBMESSAGE_OFFSET_FLOWHANDLE:
 		if (cursor + sizeof(UINT64) > bufend) break;
 		*(UINT64 UNALIGNED *)cursor = message->flowHandle;
 		cursor += sizeof(UINT64);
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "flowHandle:%x\r\n", message->flowHandle);
 
-	case THMESSAGE_OFFSET_PROCESSID:
+	case TBMESSAGE_OFFSET_PROCESSID:
 		if (cursor + sizeof(UINT64) > bufend) break;
 		*(UINT64 UNALIGNED *)cursor = message->processID;
 		cursor += sizeof(UINT64);
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "PID:%x\r\n", message->processID);
 
-	case THMESSAGE_OFFSET_PROCESSPATHSIZE:
+	case TBMESSAGE_OFFSET_PROCESSPATHSIZE:
 		if (cursor + sizeof(UINT32) > bufend) break;
 		*(UINT32 UNALIGNED *)cursor = message->processPathSize;
 		cursor += sizeof(UINT32);
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "PathSize:%x\r\n", message->processPathSize);
 
-	case THMESSAGE_OFFSET_PROCESSPATH:
+	case TBMESSAGE_OFFSET_PROCESSPATH:
 		if (cursor + message->processPathSize > bufend) {
 			// here we could copy over a portion, but our min buffer is bigger than MAX_PATH
 			break;
@@ -206,7 +206,7 @@ NTSTATUS ThCopyMessage(IN UINT8* buffer, size_t bufsize, THMessage* message, siz
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Path:%S\r\n", message->processPath);
 
 	default:
-		loc_clienthellosize = THMESSAGE_OFFSET_PROCESSPATH + message->processPathSize;
+		loc_clienthellosize = TBMESSAGE_OFFSET_PROCESSPATH + message->processPathSize;
 		loc_clienthello = loc_clienthellosize + sizeof(UINT32);
 		loc_serverhellosize = loc_clienthello + message->clientHelloSize;
 		loc_serverhello = loc_serverhellosize + sizeof(UINT32);
@@ -299,7 +299,7 @@ NTSTATUS ThCopyMessage(IN UINT8* buffer, size_t bufsize, THMessage* message, siz
 
 		/*
 		// find where we are
-		if (message->bytesWritten + (cursor - buffer) == message->processPathSize + THMESSAGE_OFFSET_PROCESSPATH) {
+		if (message->bytesWritten + (cursor - buffer) == message->processPathSize + TBMessage_OFFSET_PROCESSPATH) {
 			if (cursor + sizeof(UINT32) > bufend) break;
 			*(UINT32 UNALIGNED *)cursor = message->dataSize;
 			cursor += sizeof(UINT32);
@@ -308,7 +308,7 @@ NTSTATUS ThCopyMessage(IN UINT8* buffer, size_t bufsize, THMessage* message, siz
 
 		// offset in the buffer is the amount we have written - the size of bytes before data
 		// (bytes_written_in_prev_reads + bytes_written_this_read) - (offset_to_path + size_of_process_path + size_of_data_size_field)
-		offset = (message->bytesWritten + (cursor - buffer)) - (THMESSAGE_OFFSET_PROCESSPATH + message->processPathSize + sizeof(UINT32));
+		offset = (message->bytesWritten + (cursor - buffer)) - (TBMessage_OFFSET_PROCESSPATH + message->processPathSize + sizeof(UINT32));
 		// len is now the amount we have left to written
 		len = message->dataSize - offset;
 		if (len > (bufsize - (cursor - buffer))) {
@@ -328,10 +328,10 @@ NTSTATUS ThCopyMessage(IN UINT8* buffer, size_t bufsize, THMessage* message, siz
 	return status;
 }
 
-NTSTATUS ThFinishedMessage(IN THMessage* message) {
+NTSTATUS TbFinishedMessage(IN TBMessage* message) {
 	NTSTATUS status = STATUS_SUCCESS;
 	size_t len;
-	ThSizeMessage(message, &len);
+	TbSizeMessage(message, &len);
 	
 	if (message->bytesWritten < len) {
 		return STATUS_PARTIAL_COPY;
@@ -339,7 +339,7 @@ NTSTATUS ThFinishedMessage(IN THMessage* message) {
 	return status;
 }
 
-VOID ThPrintMessage(IN THMessage * message) {
+VOID TbPrintMessage(IN TBMessage * message) {
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Message:\r\n\tFlow %x\r\n\tID %x\r\n\tPath %S\r\n", message->flowHandle, message->processID, message->processPath);
 	if (message->clientHello) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "\tClient Hello:\r\n\t%02x %02x %02x ... %02x %02x\r\n", message->clientHello[0], message->clientHello[1], message->clientHello[2], message->clientHello[message->clientHelloSize-2], message->clientHello[message->clientHelloSize-1]);
@@ -354,15 +354,15 @@ VOID ThPrintMessage(IN THMessage * message) {
 	return;
 }
 
-NTSTATUS ThInitResponseTable(IN THResponseTable* table) {
+NTSTATUS TbInitResponseTable(IN TBResponseTable* table) {
 	NTSTATUS status = STATUS_SUCCESS;
-	RtlInitializeGenericTableAvl((PRTL_AVL_TABLE)table, (PRTL_AVL_COMPARE_ROUTINE)ThResponseCompare, (PRTL_AVL_ALLOCATE_ROUTINE)ThResponseAllocate, (PRTL_AVL_FREE_ROUTINE)ThResponseFree, NULL);
+	RtlInitializeGenericTableAvl((PRTL_AVL_TABLE)table, (PRTL_AVL_COMPARE_ROUTINE)TbResponseCompare, (PRTL_AVL_ALLOCATE_ROUTINE)TbResponseAllocate, (PRTL_AVL_FREE_ROUTINE)TbResponseFree, NULL);
 	return status;
 }
 
-NTSTATUS ThAddResponse(IN THResponseTable* table, IN UINT64 flowHandle, IN UINT16 layerId, IN UINT32 streamFlags) {
+NTSTATUS TbAddResponse(IN TBResponseTable* table, IN UINT64 flowHandle, IN UINT16 layerId, IN UINT32 streamFlags) {
 	NTSTATUS status = STATUS_SUCCESS;
-	THResponse response;
+	TBResponse response;
 	boolean success;
 
 	response.flowHandle = flowHandle;
@@ -370,7 +370,7 @@ NTSTATUS ThAddResponse(IN THResponseTable* table, IN UINT64 flowHandle, IN UINT1
 	response.streamFlags = streamFlags;
 	response.response = WAITING_ON_RESPONSE;
 
-	RtlInsertElementGenericTableAvl(table, (PVOID)&response, (CLONG)sizeof(THResponse), &success);
+	RtlInsertElementGenericTableAvl(table, (PVOID)&response, (CLONG)sizeof(TBResponse), &success);
 
 	if (!success) {
 		status = STATUS_UNSUCCESSFUL;
@@ -380,13 +380,13 @@ NTSTATUS ThAddResponse(IN THResponseTable* table, IN UINT64 flowHandle, IN UINT1
 	return status;
 }
 
-NTSTATUS ThHandleResponse(IN THResponseTable* table, IN UINT64 flowHandle, IN THResponseType answer) {
+NTSTATUS TbHandleResponse(IN TBResponseTable* table, IN UINT64 flowHandle, IN TBResponseType answer) {
 	NTSTATUS status = STATUS_SUCCESS;
-	THResponse* response;
-	THResponse lookup_response;
+	TBResponse* response;
+	TBResponse lookup_response;
 	lookup_response.flowHandle = flowHandle;
 	// find the response, add the answer, and call FwpsStreamContinue0
-	response = (THResponse*)RtlLookupElementGenericTableAvl(table, (PVOID)&lookup_response);
+	response = (TBResponse*)RtlLookupElementGenericTableAvl(table, (PVOID)&lookup_response);
 	if (response == NULL) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not find the response we want to handle\r\n");
 		return STATUS_NOT_FOUND;
@@ -394,17 +394,17 @@ NTSTATUS ThHandleResponse(IN THResponseTable* table, IN UINT64 flowHandle, IN TH
 
 	response->response = answer;
 
-	status = FwpsStreamContinue(flowHandle, TrustHub_callout_id, response->layerId, response->streamFlags);
+	status = FwpsStreamContinue(flowHandle, TrustBase_callout_id, response->layerId, response->streamFlags);
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Continuing stream for flow handle %x\r\n", flowHandle);
 	return status;
 }
 
-NTSTATUS ThPopResponse(IN THResponseTable* table, IN UINT64 flowHandle, OUT THResponseType* answer) {
+NTSTATUS TbPopResponse(IN TBResponseTable* table, IN UINT64 flowHandle, OUT TBResponseType* answer) {
 	NTSTATUS status = STATUS_SUCCESS;
-	THResponse* response;
-	THResponse lookup_response;
+	TBResponse* response;
+	TBResponse lookup_response;
 	lookup_response.flowHandle = flowHandle;
-	response = (THResponse*)RtlLookupElementGenericTableAvl(table, (PVOID)&lookup_response);
+	response = (TBResponse*)RtlLookupElementGenericTableAvl(table, (PVOID)&lookup_response);
 	if (response == NULL) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not find the response to handle");
 		return STATUS_NOT_FOUND;
@@ -412,7 +412,7 @@ NTSTATUS ThPopResponse(IN THResponseTable* table, IN UINT64 flowHandle, OUT THRe
 
 	*answer = response->response;
 	if (response->response == WAITING_ON_RESPONSE) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error! ThPopResponse was called too soon");
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error! TbPopResponse was called too soon");
 		return STATUS_WAIT_0;
 	}
 
@@ -425,12 +425,12 @@ NTSTATUS ThPopResponse(IN THResponseTable* table, IN UINT64 flowHandle, OUT THRe
 	return status;
 }
 
-RTL_GENERIC_COMPARE_RESULTS ThResponseCompare(IN THResponseTable* table, IN PVOID firstStruct, IN PVOID secondStruct) {
+RTL_GENERIC_COMPARE_RESULTS TbResponseCompare(IN TBResponseTable* table, IN PVOID firstStruct, IN PVOID secondStruct) {
 	UNREFERENCED_PARAMETER(table);
-	THResponse* response1;
-	THResponse* response2;
-	response1 = (THResponse*)firstStruct;
-	response2 = (THResponse*)secondStruct;
+	TBResponse* response1;
+	TBResponse* response2;
+	response1 = (TBResponse*)firstStruct;
+	response2 = (TBResponse*)secondStruct;
 	if (response1->flowHandle > response2->flowHandle) {
 		return GenericGreaterThan;
 	} else if (response1->flowHandle < response2->flowHandle) {
@@ -439,14 +439,14 @@ RTL_GENERIC_COMPARE_RESULTS ThResponseCompare(IN THResponseTable* table, IN PVOI
 	return GenericEqual;
 }
 
-PVOID ThResponseAllocate(IN THResponseTable* table, IN CLONG byteSize) {
+PVOID TbResponseAllocate(IN TBResponseTable* table, IN CLONG byteSize) {
 	UNREFERENCED_PARAMETER(table);
 	PVOID response;
-	response = ExAllocatePoolWithTag(NonPagedPool, byteSize, TH_POOL_TAG);
+	response = ExAllocatePoolWithTag(NonPagedPool, byteSize, TB_POOL_TAG);
 	return response;
 }
 
-VOID ThResponseFree(IN THResponseTable table, IN PVOID buffer) {
+VOID TbResponseFree(IN TBResponseTable table, IN PVOID buffer) {
 	UNREFERENCED_PARAMETER(table);
-	ExFreePoolWithTag(buffer, TH_POOL_TAG);
+	ExFreePoolWithTag(buffer, TB_POOL_TAG);
 }

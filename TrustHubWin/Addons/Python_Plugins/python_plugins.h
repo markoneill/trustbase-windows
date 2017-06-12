@@ -2,7 +2,7 @@
 #define PYTHON_PLUGINS_H_
 
 #include <stddef.h>
-#include "trusthub_plugin.h"
+#include "trustbase_plugin.h"
 
 /*
 *	Begin using this library with the initialize() function.

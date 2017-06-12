@@ -45,19 +45,10 @@
     <ClInclude Include="Plugin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="trusthub_plugin.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="QueryQueue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Query.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="THLogger.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="THLogger_Level.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Addon.h">
@@ -80,6 +71,15 @@
     </ClInclude>
     <ClInclude Include="CertificatesAddedToRootStore.h">
       <Filter>Header Files\Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="trustbase_plugin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TBLogger_Level.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TBLogger.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -104,9 +104,6 @@
     <ClCompile Include="Query.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="THLogger.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Addon.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -128,15 +125,18 @@
     <ClCompile Include="CertificatesAddedToRootStore.cpp">
       <Filter>Source Files\Crypto</Filter>
     </ClCompile>
+    <ClCompile Include="TBLogger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="trusthub.cfg" />
     <None Include="example_query.bin">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="example_query_Luke.bin">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="trustbase.cfg" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="ExpiredCert.cer">

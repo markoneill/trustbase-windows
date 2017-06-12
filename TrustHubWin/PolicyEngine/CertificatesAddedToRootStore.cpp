@@ -55,17 +55,17 @@ bool CertificatesAddedToRootStore::removeCertificate(std::string thumbPrint)
 {
 	bool success = false;
 	if (this->certificates.size() > 0) {
-		thlog() << "attempting to remove certificate with thumbprint of " << this->certificates.at(0);
+		tblog() << "attempting to remove certificate with thumbprint of " << this->certificates.at(0);
 		this->certificates.erase(std::remove(this->certificates.begin(), this->certificates.end(), thumbPrint), certificates.end());
 		success = saveAllCertificatesToFile();
 		if (success == false)
 		{
-			thlog(LOG_ERROR) << "Failed to remove certificate";
+			tblog(LOG_ERROR) << "Failed to remove certificate";
 		}
 	}
 	else
 	{
-		thlog() << "No certs to remove from storedCerts file";
+		tblog() << "No certs to remove from storedCerts file";
 	}
 	return success;
 }

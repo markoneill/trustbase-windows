@@ -61,7 +61,7 @@ void Query::setResponse(int plugin_id, int response) {
 			lck.unlock();
 		}
 	}
-	thlog() << "Set response called, " << num_responses << "/" << num_plugins;
+	tblog() << "Set response called, " << num_responses << "/" << num_plugins;
 }
 
 int Query::getResponse(int plugin_id) {
@@ -77,12 +77,12 @@ UINT64 Query::getFlow() {
 }
 
 void Query::printQueryInfo() {
-	thlog() << "Query :";
-	thlog() << "\tFlow : " << std::hex << flowHandle;
+	tblog() << "Query :";
+	tblog() << "\tFlow : " << std::hex << flowHandle;
 	std::wstring wpath((wchar_t*)processPath);
 	std::string path(wpath.begin(), wpath.end());
-	thlog() << "\tPath : " << path;
-	thlog() << "\tHostname : " << data.hostname;
+	tblog() << "\tPath : " << path;
+	tblog() << "\tHostname : " << data.hostname;
 }
 
 std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, UINT64 chain_len)
@@ -101,7 +101,7 @@ std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, U
 		cursor += sizeof(UINT8) + sizeof(UINT16);
 		dataRead += sizeof(UINT8) + sizeof(UINT16);
 		if ((UINT64)(cursor + cert_length - buffer) > buflen) {
-			thlog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << cert_length;
+			tblog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << cert_length;
 			throw std::runtime_error("");
 		}
 
@@ -110,7 +110,7 @@ std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, U
 		dataRead += cert_length;
 
 		if (cert_context == NULL) {
-			thlog() << "Wincrypt could not parse certificate. Error Code " << GetLastError();
+			tblog() << "Wincrypt could not parse certificate. Error Code " << GetLastError();
 			return cert_context_vector;
 		}
 
@@ -149,10 +149,10 @@ STACK_OF(X509)* Query::parse_chain(unsigned char* data, size_t len) {
 		cert_ptr = current_pos;
 		cert = d2i_X509(NULL, &cert_ptr, cert_len);
 		if (!cert) {
-			thlog() << "unable to parse certificate";
+			tblog() << "unable to parse certificate";
 			return NULL;
 		}
-		//thlog_cert(cert);
+		//tblog_cert(cert);
 
 		sk_X509_push(chain, cert);
 		current_pos += cert_len;

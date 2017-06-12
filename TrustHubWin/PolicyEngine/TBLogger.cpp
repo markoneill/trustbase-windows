@@ -1,20 +1,20 @@
 #include "stdafx.h"
-#include "THLogger.h"
+#include "TBLogger.h"
 #include <stdarg.h>
 
 // define statics
-std::ofstream thlog::log_file;
-bool thlog::also_cout = false;
-std::mutex thlog::mtx;
-thlog_level_t thlog::minimum_level = LOG_DEBUG;
-thlog::thlog() : thlog(LOG_DEBUG) {}
-thlog::thlog(thlog_level_t log_level) {
+std::ofstream tblog::log_file;
+bool tblog::also_cout = false;
+std::mutex tblog::mtx;
+tblog_level_t tblog::minimum_level = LOG_DEBUG;
+tblog::tblog() : tblog(LOG_DEBUG) {}
+tblog::tblog(tblog_level_t log_level) {
 	level = log_level;
 	// lock the mutex
-	thlog::mtx.lock();
+	tblog::mtx.lock();
 }
 
-thlog::~thlog() {
+tblog::~tblog() {
 		// when we are destructed, we write out
 		// this can help prevent threading issues
 
@@ -50,15 +50,15 @@ thlog::~thlog() {
 		}
 
 		// release the mutex
-		thlog::mtx.unlock();
+		tblog::mtx.unlock();
 }
 
-bool thlog::setMinimumLevel(thlog_level_t min_level) {
+bool tblog::setMinimumLevel(tblog_level_t min_level) {
 	minimum_level = min_level;
 	return true;
 }
 
-bool thlog::setFile(const char * path, bool also_stdout) {
+bool tblog::setFile(const char * path, bool also_stdout) {
 	if (log_file.is_open()) {
 		log_file.close();
 	}
@@ -68,23 +68,19 @@ bool thlog::setFile(const char * path, bool also_stdout) {
 	return true;
 }
 
-bool thlog::close() {
+bool tblog::close() {
 	log_file.close();
 	return true;
 }
-int thlog::pluginTHLog(thlog_level_t level, const char* format, ...)
+int tblog::pluginTBLog(tblog_level_t level, const char* format, ...)
 {
-	//todo: figure out why it crashes when we use the correct data
 	va_list args;
 	// Parse the args
 	va_start(args, format);
-	int count2 = strlen(format);
 	int count = _vscprintf(format, args);
 	char* buffer = (char*)malloc(count + 1);
 	vsprintf(buffer, format, args);
-	int count3 = strlen(buffer);
-	thlog(level) << buffer;
-	//thlog(level) << format;
+	tblog(level) << buffer;
 
 	va_end(args);
 	free(buffer);

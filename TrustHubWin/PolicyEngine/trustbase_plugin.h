@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <openssl/x509v3.h>
-#include "THLogger_Level.h"
+#include "TBLogger_Level.h"
 //To get WinCrypt to complile
 #pragma comment(lib, "Crypt32.lib")
 #define CERT_CHAIN_PARA_HAS_EXTRA_FIELDS true
@@ -37,7 +37,7 @@ typedef struct init_data_t {
 	int plugin_id;
 	const char* plugin_path;
 	int (*callback)(int plugin_id, int query_id, int plugin_response);
-	int(*log)(thlog_level_t level, const char* format, ...);
+	int(*log)(tblog_level_t level, const char* format, ...);
 } init_data_t;
 
 typedef struct init_addon_data_t {
@@ -45,7 +45,7 @@ typedef struct init_addon_data_t {
 	const char* plugin_dir;
 	const char *lib_file;
 	int(*callback)(int plugin_id, int query_id, int plugin_response);
-	int(*log)(thlog_level_t level, const char* format, ...);
+	int(*log)(tblog_level_t level, const char* format, ...);
 } init_addon_t;
 
 typedef int(__stdcall *query_func_t)(query_data_t*);

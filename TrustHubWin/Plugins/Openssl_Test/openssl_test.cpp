@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include "trusthub_plugin.h"
+#include "trustbase_plugin.h"
 #include <openssl/x509.h>
 
 #define MAX_LENGTH	1024
@@ -17,7 +17,7 @@ extern "C" {  // only need to export C interface if
 #ifdef __cplusplus
 }
 #endif  
-int(*plog)(thlog_level_t level, const char* format, ...);
+int(*plog)(tblog_level_t level, const char* format, ...);
 
 void print_certificate(X509* cert);
 
@@ -30,7 +30,7 @@ void print_certificate(X509* cert) {
 	plog(LOG_DEBUG, "issuer: %s\n", issuer);
 }
 // Plugins must have an exported "query" function that takes a query_data_t* argument
-// Plugins must include the "trusthub_plugin.h" header
+// Plugins must include the "trustbase_plugin.h" header
 // In visual studio, add the path to the Policy engine code under:
 //   Configuration Properties->C/C++->General->Additional Include Directories
 __declspec(dllexport) int __stdcall query(query_data_t* data) {

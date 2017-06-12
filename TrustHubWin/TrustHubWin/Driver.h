@@ -13,8 +13,8 @@ Environment:
     Kernel-mode Driver Framework
 
 --*/
-#ifndef TRUSTHUBDRIVER_H
-#define TRUSTHUBDRIVER_H
+#ifndef TRUSTBASEDRIVER_H
+#define TRUSTBASEDRIVER_H
 
 #define NDIS61 1
 
@@ -34,9 +34,9 @@ Environment:
 #include <guiddef.h>			// Used to define GUID's
 #include <initguid.h>			// Used to define GUID's
 
-#include "TrustHubGuid.h"
-#include "TrustHubCallout.h" 
-#include "TrustHubCommunication.h"
+#include "TrustBaseGuid.h"
+#include "TrustBaseCallout.h" 
+#include "TrustBaseCommunication.h"
 
 #define INITGUID
 #include <guiddef.h>
@@ -54,4 +54,4 @@ EVT_WDF_DRIVER_UNLOAD empty_evt_unload;
 
 EXTERN_C_END
 
-#endif // TRUSTHUBDRIVER_H
+#endif // TRUSTBASEDRIVER_H

@@ -1,5 +1,5 @@
-#ifndef TRUSTHUBCALLOUT_H
-#define TRUSTHUBCALLOUT_H
+#ifndef TRUSTBASECALLOUT_H
+#define TRUSTBASECALLOUT_H
 
 #ifndef _HRESULT_DEFINED
 #define _HRESULT_DEFINED
@@ -35,7 +35,7 @@ ULongLongToULongPtr(
 #pragma warning(pop)			// Re-enable "Nameless struct/union" compiler warning
 
 // STREAM Callouts
-void NTAPI trusthubCalloutClassify(
+void NTAPI trustbaseCalloutClassify(
 	const FWPS_INCOMING_VALUES * inFixedValues,
 	const FWPS_INCOMING_METADATA_VALUES * inMetaValues,
 	void * layerData,
@@ -44,18 +44,18 @@ void NTAPI trusthubCalloutClassify(
 	UINT64 flowContext,
 	FWPS_CLASSIFY_OUT * classifyOut);
 
-NTSTATUS NTAPI trusthubCalloutNotify(
+NTSTATUS NTAPI trustbaseCalloutNotify(
 	FWPS_CALLOUT_NOTIFY_TYPE notifyType,
 	const GUID * filterKey,
 	const FWPS_FILTER * filter);
 
-void NTAPI trusthubCalloutFlowDelete(
+void NTAPI trustbaseCalloutFlowDelete(
 	UINT16 layerId,
 	UINT32 calloutId,
 	UINT64 flowContext);
 
 // ALE Callouts
-void NTAPI trusthubALECalloutClassify(
+void NTAPI trustbaseALECalloutClassify(
 	const FWPS_INCOMING_VALUES * inFixedValues,
 	const FWPS_INCOMING_METADATA_VALUES * inMetaValues,
 	void * layerData,
@@ -64,14 +64,14 @@ void NTAPI trusthubALECalloutClassify(
 	UINT64 flowContext,
 	FWPS_CLASSIFY_OUT * classifyOut);
 
-NTSTATUS NTAPI trusthubALECalloutNotify(
+NTSTATUS NTAPI trustbaseALECalloutNotify(
 	FWPS_CALLOUT_NOTIFY_TYPE notifyType,
 	const GUID * filterKey,
 	const FWPS_FILTER * filter);
 
-void NTAPI trusthubALECalloutFlowDelete(
+void NTAPI trustbaseALECalloutFlowDelete(
 	UINT16 layerId,
 	UINT32 calloutId,
 	UINT64 flowContext);
 
-#endif // TRUSTHUBCALLOUT_H
+#endif // TRUSTBASECALLOUT_H

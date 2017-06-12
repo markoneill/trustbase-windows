@@ -19,17 +19,17 @@ bool PolicyContext::loadConfig(const char* path) {
 	libconfig::Config cfg;
 	int count;
 
-	thlog() << "Loading configuration at " << path;
+	tblog() << "Loading configuration at " << path;
 	try {
 		cfg.readFile(path);
 	}
 	catch (const libconfig::FileIOException &fioex) {
 		(void)fioex;
-		thlog() << "I/O error while reading file " << path;
+		tblog() << "I/O error while reading file " << path;
 		return false;
 	}
 	catch (const libconfig::ParseException &pex) {
-		thlog() << "Parse error at " << pex.getFile() << ":" << pex.getLine() << " - " << pex.getError();
+		tblog() << "Parse error at " << pex.getFile() << ":" << pex.getLine() << " - " << pex.getError();
 		return false;
 	}
 
@@ -48,7 +48,7 @@ bool PolicyContext::loadConfig(const char* path) {
 			std::string addonpath;
 
 			if (!addons_group[i].lookupValue("name", name)) {
-				thlog() << "Could not parse name of addon " << i;
+				tblog() << "Could not parse name of addon " << i;
 				continue;
 			}
 
@@ -56,12 +56,12 @@ bool PolicyContext::loadConfig(const char* path) {
 			addons_group[i].lookupValue("version", version);
 
 			if (!addons_group[i].lookupValue("type", type)) {
-				thlog() << "Could not parse type of addon " << name;
+				tblog() << "Could not parse type of addon " << name;
 				continue;
 			}
 
 			if (!addons_group[i].lookupValue("path", addonpath)) {
-				thlog() << "Could not parse path of addon " << name;
+				tblog() << "Could not parse path of addon " << name;
 				continue;
 			}
 
@@ -86,15 +86,15 @@ bool PolicyContext::loadConfig(const char* path) {
 			std::string type = "";
 			int openssl = 0;
 			if (!plugin_group[i].lookupValue("name", name)) {
-				thlog() << "Could not parse name of plugin " << i;
+				tblog() << "Could not parse name of plugin " << i;
 				continue;
 			}
 			if (!plugin_group[i].lookupValue("path", ppath)) {
-				thlog() << "Could not parse path of plugin " << name;
+				tblog() << "Could not parse path of plugin " << name;
 				continue;
 			}
 			if (!plugin_group[i].lookupValue("handler", handler)) {
-				thlog() << "Could not parse handler of plugin " << name;
+				tblog() << "Could not parse handler of plugin " << name;
 				continue;
 			}
 			plugin_group[i].lookupValue("description", description);
@@ -126,7 +126,7 @@ bool PolicyContext::loadConfig(const char* path) {
 		const libconfig::Setting& ag_group = cfg.lookup("aggregation");
 
 		if (!ag_group.lookupValue("congress_threshold", congress_threshold)) {
-			thlog() << "Could not parse the congress threshold";
+			tblog() << "Could not parse the congress threshold";
 			return false;
 		}
 
@@ -149,10 +149,10 @@ bool PolicyContext::loadConfig(const char* path) {
 		}
 
 	} catch (const libconfig::SettingNotFoundException &nfex) {
-		thlog() << "Could not find setting " << nfex.getPath();
+		tblog() << "Could not find setting " << nfex.getPath();
 		return false;
 	} catch (...) {
-		thlog() << "Incorrectly formed config file " << path;
+		tblog() << "Incorrectly formed config file " << path;
 		return false;
 	}
 
@@ -174,7 +174,7 @@ Plugin * PolicyContext::getPlugin(const char * name) {
 			return &(plugins[i]);
 		}
 	}
-	thlog() << "Could not find plugin " << name;
+	tblog() << "Could not find plugin " << name;
 	throw std::out_of_range("Invalid name index for plugins");
 	return nullptr;
 }
@@ -190,10 +190,10 @@ bool PolicyContext::initPlugins() {
 
 void PolicyContext::printWelcome() {
 
-	thlog() << "\n[#][#] Starting Trusthub [#][#]";
-	thlog() << "Loaded plugins: [";
+	tblog() << "\n[#][#] Starting Trustbase [#][#]";
+	tblog() << "Loaded plugins: [";
 	for (int i = 0; i < plugin_count; i++) {
 		plugins[i].printInfo();
 	}
-	thlog() << "]\n";
+	tblog() << "]\n";
 }

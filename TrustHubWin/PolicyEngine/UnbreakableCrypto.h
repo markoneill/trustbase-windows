@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "THLogger.h"
+#include "TBLogger.h"
 #include "Query.h"
 #include <vector>
 #include <iostream>

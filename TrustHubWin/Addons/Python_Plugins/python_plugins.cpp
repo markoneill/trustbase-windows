@@ -25,7 +25,7 @@ const char *plugin_final_func_name = "finalize";
 const char *this_file = "python_plugins.dll";
 
 int(*async_callback)(int, int, int);
-int(*plog)(thlog_level_t level, const char* format, ...);
+int(*plog)(tblog_level_t level, const char* format, ...);
 
 __declspec(dllexport) int __stdcall initialize(init_addon_data_t* data) {
 	char python_stmt[128];

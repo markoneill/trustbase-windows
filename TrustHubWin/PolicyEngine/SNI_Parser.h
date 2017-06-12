@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "THLogger.h"
+#include "TBLogger.h"
 #include <stdint.h>
 #include <string>
 

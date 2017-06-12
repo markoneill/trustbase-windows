@@ -4,7 +4,7 @@
 
 #include <libconfig.h++>
 //#include <libgen.h>
-#include "trusthub_plugin.h"
+#include "trustbase_plugin.h"
 
 #define CONFIG_FILE "/plugin-config/cipher_suite.cfg"
 #define PLUGIN_INIT_ERROR -1
@@ -31,7 +31,7 @@ extern "C" {  // only need to export C interface if
 #ifdef __cplusplus
 }
 #endif  
-int(*plog)(thlog_level_t level, const char* format, ...);
+int(*plog)(tblog_level_t level, const char* format, ...);
 
 static void hexdump(char* data, size_t len);
 static bool loadconfig(const char* config_path);

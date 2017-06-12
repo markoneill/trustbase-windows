@@ -7,7 +7,7 @@
 #include <openssl/evp.h>
 #include "dirent.h"
 //#include <libgen.h>
-#include "trusthub_plugin.h"
+#include "trustbase_plugin.h"
 
 #include <openssl/pem.h>
 extern "C"
@@ -22,7 +22,7 @@ extern "C"
 
 #define MAX_LENGTH	1024
 
-int(*plog)(thlog_level_t level, const char* format, ...);
+int(*plog)(tblog_level_t level, const char* format, ...);
 const char * plugin_path;
 
 #ifdef __cplusplus

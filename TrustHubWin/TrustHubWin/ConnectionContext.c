@@ -1,15 +1,15 @@
 #include "ConnectionContext.h"
-#include "TrustHubGuid.h"
+#include "TrustBaseGuid.h"
 
 static NTSTATUS allocateConnectionFlowContext(OUT ConnectionFlowContext** flowContextOut);
 
 VOID cleanupConnectionFlowContext(IN ConnectionFlowContext* context) {
-	// message should be freed from ThIoRead
+	// message should be freed from TbIoRead
 	context->message = NULL;
 	if (context->processPath.data) {
-		ExFreePoolWithTag(context->processPath.data, TH_POOL_TAG);
+		ExFreePoolWithTag(context->processPath.data, TB_POOL_TAG);
 	}
-	ExFreePoolWithTag(context, TH_POOL_TAG);
+	ExFreePoolWithTag(context, TB_POOL_TAG);
 }
 
 NTSTATUS allocateConnectionFlowContext (OUT ConnectionFlowContext** flowContextOut)
@@ -19,7 +19,7 @@ NTSTATUS allocateConnectionFlowContext (OUT ConnectionFlowContext** flowContextO
 
 	*flowContextOut = NULL;
 
-	flowContext = (ConnectionFlowContext*)ExAllocatePoolWithTag(NonPagedPool, sizeof(ConnectionFlowContext), TH_POOL_TAG);
+	flowContext = (ConnectionFlowContext*)ExAllocatePoolWithTag(NonPagedPool, sizeof(ConnectionFlowContext), TB_POOL_TAG);
 
 	if (!flowContext) {
 		status = STATUS_NO_MEMORY;
@@ -33,7 +33,7 @@ NTSTATUS allocateConnectionFlowContext (OUT ConnectionFlowContext** flowContextO
 	if (!NT_SUCCESS(status)) {
 		if (flowContext)
 		{
-			ExFreePoolWithTag(flowContext, TH_POOL_TAG);
+			ExFreePoolWithTag(flowContext, TB_POOL_TAG);
 		}
 	}
 	return status;
@@ -60,7 +60,7 @@ ConnectionFlowContext* createConnectionFlowContext (
 			inMetaValues->processPath->data;
 			flowContext->processPath.size = inMetaValues->processPath->size;
 			// Allocate the data
-			flowContext->processPath.data = (UINT8*)ExAllocatePoolWithTag(NonPagedPool, inMetaValues->processPath->size, TH_POOL_TAG);
+			flowContext->processPath.data = (UINT8*)ExAllocatePoolWithTag(NonPagedPool, inMetaValues->processPath->size, TB_POOL_TAG);
 			// copy the data
 			RtlCopyMemory(flowContext->processPath.data, inMetaValues->processPath->data, inMetaValues->processPath->size);
 		} else {
@@ -73,7 +73,7 @@ ConnectionFlowContext* createConnectionFlowContext (
 			flowContext->processId = 0;
 		}
 		// Message
-		if (!NT_SUCCESS(ThMakeMessage(&(flowContext->message), inMetaValues->flowHandle, inMetaValues->processId, flowContext->processPath))) {
+		if (!NT_SUCCESS(TbMakeMessage(&(flowContext->message), inMetaValues->flowHandle, inMetaValues->processId, flowContext->processPath))) {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Couldn't allocate a message in context for flow %x\r\n", inMetaValues->flowHandle);
 		}
 
@@ -83,7 +83,7 @@ ConnectionFlowContext* createConnectionFlowContext (
 	}
 
 	if (flowContext) {
-		NTSTATUS addStatus = FwpsFlowAssociateContext(inMetaValues->flowHandle, FWPS_LAYER_STREAM_V4, TrustHub_callout_id, (UINT64)flowContext);
+		NTSTATUS addStatus = FwpsFlowAssociateContext(inMetaValues->flowHandle, FWPS_LAYER_STREAM_V4, TrustBase_callout_id, (UINT64)flowContext);
 		if (NT_SUCCESS(addStatus)) {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added a flow context to flow %x\r\n", inMetaValues->flowHandle);
 		} else {

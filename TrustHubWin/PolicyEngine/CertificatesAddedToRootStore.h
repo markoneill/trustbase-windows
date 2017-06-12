@@ -6,7 +6,7 @@
 #include <fstream>
 #include <algorithm>
 #include <string>
-#include "THLogger.h"
+#include "TBLogger.h"
 #define STORED_CERT_FILE "storedCerts.bin"
 
 class CertificatesAddedToRootStore {

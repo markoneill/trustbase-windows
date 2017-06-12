@@ -2,15 +2,15 @@
 #include <Ntstrsafe.h>
 #include "HandshakeHandler.h"
 #include "ConnectionContext.h"
-#include "TrustHubCallout.h"
-#include "TrustHubCommunication.h"
-#include "TrustHubMessage.h"
+#include "TrustBaseCallout.h"
+#include "TrustBaseCommunication.h"
+#include "TrustBaseMessage.h"
 
 // static helper functions
 static void NTAPI debugReadStreamFlags(FWPS_STREAM_DATA *dataStream, FWPS_CLASSIFY_OUT *classifyOut);
 static NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext* context, IN UINT64 flowHandle, IN UINT16 layerId);
 
-void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, const FWPS_INCOMING_METADATA_VALUES * inMetaValues, void * layerData, const void * classifyContext, const FWPS_FILTER * filter, UINT64 flowContext, FWPS_CLASSIFY_OUT * classifyOut) {
+void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, const FWPS_INCOMING_METADATA_VALUES * inMetaValues, void * layerData, const void * classifyContext, const FWPS_FILTER * filter, UINT64 flowContext, FWPS_CLASSIFY_OUT * classifyOut) {
 	FWPS_STREAM_CALLOUT_IO_PACKET *ioPacket;
 	FWPS_STREAM_DATA *dataStream;
 	REQUESTED_ACTION requestedAction;
@@ -62,7 +62,7 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got called for PS_DONE\r\n", inMetaValues->processId);
 		// find the response in the table
 		if (context->answer == WAITING_ON_RESPONSE) {
-			if (!NT_SUCCESS(ThPopResponse(&THResponses, inMetaValues->flowHandle, &(context->answer)))) {
+			if (!NT_SUCCESS(TbPopResponse(&TBResponses, inMetaValues->flowHandle, &(context->answer)))) {
 				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error! Could not pop the response");
 				context->answer = RESPONSE_ALLOW; // Default to allow on error
 			}
@@ -162,14 +162,14 @@ void NTAPI trusthubCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, c
 	}
 }
 
-NTSTATUS NTAPI trusthubCalloutNotify(FWPS_CALLOUT_NOTIFY_TYPE notifyType, const GUID * filterKey, const FWPS_FILTER * filter) {
+NTSTATUS NTAPI trustbaseCalloutNotify(FWPS_CALLOUT_NOTIFY_TYPE notifyType, const GUID * filterKey, const FWPS_FILTER * filter) {
 	UNREFERENCED_PARAMETER(filterKey);
 	UNREFERENCED_PARAMETER(filter);
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Stream Notify Called : Notify Type = %s\r\n", (notifyType==FWPS_CALLOUT_NOTIFY_ADD_FILTER)?"Filter Add":(notifyType==FWPS_CALLOUT_NOTIFY_DELETE_FILTER)?"Filter Delete":"Other");
 	return STATUS_SUCCESS;
 }
 
-void NTAPI trusthubCalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64 flowContext) {
+void NTAPI trustbaseCalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64 flowContext) {
 	UNREFERENCED_PARAMETER(layerId);
 	UNREFERENCED_PARAMETER(calloutId);
 	UNREFERENCED_PARAMETER(flowContext);
@@ -180,7 +180,7 @@ void NTAPI trusthubCalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64 fl
 
 // ALE Callouts
 
-void NTAPI trusthubALECalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, const FWPS_INCOMING_METADATA_VALUES * inMetaValues, void * layerData, const void * classifyContext, const FWPS_FILTER * filter, UINT64 flowContext, FWPS_CLASSIFY_OUT * classifyOut) {
+void NTAPI trustbaseALECalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, const FWPS_INCOMING_METADATA_VALUES * inMetaValues, void * layerData, const void * classifyContext, const FWPS_FILTER * filter, UINT64 flowContext, FWPS_CLASSIFY_OUT * classifyOut) {
 	UNREFERENCED_PARAMETER(classifyContext);
 	UNREFERENCED_PARAMETER(filter);
 	UNREFERENCED_PARAMETER(layerData);
@@ -222,14 +222,14 @@ void NTAPI trusthubALECalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues
 	return;
 }
 
-NTSTATUS NTAPI trusthubALECalloutNotify(FWPS_CALLOUT_NOTIFY_TYPE notifyType, const GUID * filterKey, const FWPS_FILTER * filter) {
+NTSTATUS NTAPI trustbaseALECalloutNotify(FWPS_CALLOUT_NOTIFY_TYPE notifyType, const GUID * filterKey, const FWPS_FILTER * filter) {
 	UNREFERENCED_PARAMETER(filterKey);
 	UNREFERENCED_PARAMETER(filter);
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "ALE Notify Called : Notify Type = %s\r\n", (notifyType == FWPS_CALLOUT_NOTIFY_ADD_FILTER) ? "Filter Add" : (notifyType == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) ? "Filter Delete" : "Other");
 	return STATUS_SUCCESS;
 }
 
-void NTAPI trusthubALECalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64 flowContext) {
+void NTAPI trustbaseALECalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64 flowContext) {
 	UNREFERENCED_PARAMETER(layerId);
 	UNREFERENCED_PARAMETER(calloutId);
 	UNREFERENCED_PARAMETER(flowContext);
@@ -240,13 +240,13 @@ NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowConte
 	NTSTATUS status;
 	status = STATUS_SUCCESS;
 
-	ThPrintMessage(context->message);
+	TbPrintMessage(context->message);
 
-	// create a new THResponse for this
-	ThAddResponse(&THResponses, flowHandle, layerId, dataStream->flags);
+	// create a new TBResponse for this
+	TbAddResponse(&TBResponses, flowHandle, layerId, dataStream->flags);
 
 	// put it all in our outgoing message queue
-	status = ThAddMessage(&THOutputQueue, context->message);
+	status = TbAddMessage(&TBOutputQueue, context->message);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Had a problem adding the certificate to the message queue\r\n");
 		return STATUS_NOT_FOUND;
@@ -256,7 +256,7 @@ NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowConte
 
 	// Use our workitem to open our read queue
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added query message to the message queue, enabling read queue\r\n");
-	WdfWorkItemEnqueue(THReadyReadItem);
+	WdfWorkItemEnqueue(TBReadyReadItem);
 
 	return status;
 }

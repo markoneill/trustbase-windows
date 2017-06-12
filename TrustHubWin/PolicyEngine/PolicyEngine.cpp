@@ -4,14 +4,14 @@
 #include <Windows.h>
 #include <thread>
 #include <chrono>
-#include "THLogger.h"
+#include "TBLogger.h"
 #include "communications.h"
 #include "PolicyContext.h"
 #include "Query.h"
 #include "QueryQueue.h"
 #include "UnbreakableCrypto.h"
 #include "TestUnbreakableCrypto.h"
-#define CONFIG_LOCATION		"./trusthub.cfg"
+#define CONFIG_LOCATION		"./trustbase.cfg"
 // Things that need to go in the config
 #define TIMEOUT_TIME		15000
 
@@ -33,25 +33,25 @@ int main()
 	std::thread* plugin_threads;
 	// Start Logging
 
-	thlog::setFile("./policy_engine.log", true);
-	thlog() << "Starting Policy Engine";
+	tblog::setFile("./policy_engine.log", true);
+	tblog() << "Starting Policy Engine";
 
 	// load configuration
 	PolicyContext context;
 
 	if (!context.loadConfig(CONFIG_LOCATION)) {
-		thlog() << "Failed to load configuration file";
+		tblog() << "Failed to load configuration file";
 		return -1;
 	}
 
 	// initialize addons
 	if (!context.initAddons()) {
-		thlog() << "Failed to init Addons, exiting...";
+		tblog() << "Failed to init Addons, exiting...";
 		return -1;
 	}
 	// initialize plugins
 	if (!context.initPlugins()) {
-		thlog() << "Failed to init Plugins, exiting...";
+		tblog() << "Failed to init Plugins, exiting...";
 		return -1;
 	}
 
@@ -65,17 +65,17 @@ int main()
 
 	// start decider and plugin threads
 	plugin_threads = new std::thread[context.plugin_count + 1];
-	thlog() << "Starting Decider Thread";
+	tblog() << "Starting Decider Thread";
 	plugin_threads[context.plugin_count] = std::thread(decider_loop, &qq, &context);
-	thlog() << "Starting " << context.plugin_count << " plugins...";
+	tblog() << "Starting " << context.plugin_count << " plugins...";
 	for (int i = 0; i < context.plugin_count; i++) {
-		thlog() << "Starting Plugin #" << i << " : " << context.plugins[i].getName();
+		tblog() << "Starting Plugin #" << i << " : " << context.plugins[i].getName();
 		plugin_threads[i] = std::thread(&Plugin::plugin_loop, context.plugins[i]);
 	}
 
 	// init things
 	if (!Communications::init_communication(&qq, (int)context.plugin_count)) {
-		thlog() << "Initialization errors, exiting...";
+		tblog() << "Initialization errors, exiting...";
 		return -1;
 	}
 
@@ -97,7 +97,7 @@ int main()
 		context.addons[i].cleanup();
 	}
 
-	thlog() << "Finished, exiting...\n";
+	tblog() << "Finished, exiting...\n";
 
 	std::system("PAUSE");
     return 0;
@@ -116,11 +116,11 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 			continue;
 		}
 
-		thlog() << "Decider dequeued query " << query->getId();
+		tblog() << "Decider dequeued query " << query->getId();
 		
 		// get system's response
 		UnbreakableCrypto_RESPONSE system_response = UBC.evaluate(query);
-		thlog() << "Evaluate says: " << system_response;
+		tblog() << "Evaluate says: " << system_response;
 
 		// get timeout time
 		auto now = std::chrono::system_clock::now();
@@ -130,13 +130,13 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		std::unique_lock<std::mutex> lk(query->mutex);
 		while (query->num_responses < query->num_plugins) {
 			if (query->threshold_met.wait_until(lk, timeout) == std::cv_status::timeout) {
-				thlog() << "One or more plugins timed out!";
+				tblog() << "One or more plugins timed out!";
 				break;
 			}
 		}
 		query->accepting_responses = false;
 		lk.unlock();
-		thlog() << "Handling query "<< query->getId() << " with " << query->num_responses << " responses";
+		tblog() << "Handling query "<< query->getId() << " with " << query->num_responses << " responses";
 		// remove the query from the linked list
 		qq->unlink(query->getId());
 
@@ -169,18 +169,18 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		if (response == PLUGIN_RESPONSE_VALID && !(system_response==UnbreakableCrypto_ACCEPT))
 		{
 			if (query->data.cert_context_chain->size() <= 0) {
-				thlog() << "No PCCERT_CONTEXT in chain";
+				tblog() << "No PCCERT_CONTEXT in chain";
 				return false;
 			}
 			int leaf_cert_index = 0;
 			PCCERT_CONTEXT leaf_cert_context = query->data.cert_context_chain->at(leaf_cert_index);
 			if (leaf_cert_context == NULL) {
-				thlog() << "cert_context at index " << leaf_cert_index << "is NULL";
+				tblog() << "cert_context at index " << leaf_cert_index << "is NULL";
 				return UnbreakableCrypto_REJECT;
 			}
 
 			bool insertRootSuccess = UBC.insertIntoRootStore(leaf_cert_context);
-			thlog() << "insertIntoRootStore returned " << insertRootSuccess;
+			tblog() << "insertIntoRootStore returned " << insertRootSuccess;
 
 		}
 

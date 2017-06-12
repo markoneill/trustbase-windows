@@ -1,6 +1,6 @@
-#include "TrustHubCommunication.h"
+#include "TrustBaseCommunication.h"
 
-NTSTATUS ThInitQueues(IN WDFDEVICE device) {
+NTSTATUS TbInitQueues(IN WDFDEVICE device) {
 	WDF_IO_QUEUE_CONFIG readIoQueueConfig;
 	WDF_IO_QUEUE_CONFIG writeIoQueueConfig;
 	NTSTATUS status = STATUS_SUCCESS;
@@ -8,60 +8,60 @@ NTSTATUS ThInitQueues(IN WDFDEVICE device) {
 
 	// configure the queues with callbacks
 	WDF_IO_QUEUE_CONFIG_INIT(&readIoQueueConfig, WdfIoQueueDispatchSequential);
-	readIoQueueConfig.EvtIoRead = ThIoRead; // Our callback for writing out to userspace
+	readIoQueueConfig.EvtIoRead = TbIoRead; // Our callback for writing out to userspace
 
 	WDF_IO_QUEUE_CONFIG_INIT(&writeIoQueueConfig, WdfIoQueueDispatchSequential);
-	writeIoQueueConfig.EvtIoWrite = ThIoWrite; // Our callback for getting a response from userspace
+	writeIoQueueConfig.EvtIoWrite = TbIoWrite; // Our callback for getting a response from userspace
 
 	// create the queues
-	status = WdfIoQueueCreate(device, &readIoQueueConfig, WDF_NO_OBJECT_ATTRIBUTES, &THReadQueue);
+	status = WdfIoQueueCreate(device, &readIoQueueConfig, WDF_NO_OBJECT_ATTRIBUTES, &TBReadQueue);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create a read queue\r\n");
 		return status;
 	}
-	status = WdfIoQueueCreate(device, &writeIoQueueConfig, WDF_NO_OBJECT_ATTRIBUTES, &THWriteQueue);
+	status = WdfIoQueueCreate(device, &writeIoQueueConfig, WDF_NO_OBJECT_ATTRIBUTES, &TBWriteQueue);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create a write queue\r\n");
 		return status;
 	}
 
 	// Stop the read queue, so we only get the callback if we are ready
-	WdfIoQueueStop(THReadQueue, NULL, NULL);
+	WdfIoQueueStop(TBReadQueue, NULL, NULL);
 
 	// Configure the dispatching
-	status = WdfDeviceConfigureRequestDispatching(device, THReadQueue, WdfRequestTypeRead);
+	status = WdfDeviceConfigureRequestDispatching(device, TBReadQueue, WdfRequestTypeRead);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could configure the device to use our read queue\r\n");
 		return status;
 	}
-	status = WdfDeviceConfigureRequestDispatching(device, THWriteQueue, WdfRequestTypeWrite);
+	status = WdfDeviceConfigureRequestDispatching(device, TBWriteQueue, WdfRequestTypeWrite);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could configure the device to use our write queue\r\n");
 		return status;
 	}
 
 	// initialize message queues
-	status = ThInitMessageQueue(&THOutputQueue);
+	status = TbInitMessageQueue(&TBOutputQueue);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not init the output message queue\r\n");
 		return status;
 	}
-	status = ThInitResponseTable(&THResponses);
+	status = TbInitResponseTable(&TBResponses);
 
 	return status;
 }
 
-NTSTATUS ThInitWorkItems(IN WDFDEVICE device) {
+NTSTATUS TbInitWorkItems(IN WDFDEVICE device) {
 	WDF_OBJECT_ATTRIBUTES  workitemAttributes;
 	WDF_WORKITEM_CONFIG  workitemConfig;
 	NTSTATUS status = STATUS_SUCCESS;
 
 	WDF_OBJECT_ATTRIBUTES_INIT(&workitemAttributes);
 	// if we want to pass parameters, we do a WDF_OBJECT_ATTRIBUTES_SET_CONTEXT_TYPE with a custom context
-	WDF_WORKITEM_CONFIG_INIT(&workitemConfig, THReadyRead);
+	WDF_WORKITEM_CONFIG_INIT(&workitemConfig, TBReadyRead);
 	// we have to set a parent
 	workitemAttributes.ParentObject = device;
-	status = WdfWorkItemCreate(&workitemConfig, &workitemAttributes, &THReadyReadItem);
+	status = WdfWorkItemCreate(&workitemConfig, &workitemAttributes, &TBReadyReadItem);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create a work item\r\n");
 		if (status == STATUS_INVALID_PARAMETER) {
@@ -87,20 +87,20 @@ NTSTATUS ThInitWorkItems(IN WDFDEVICE device) {
 }
 
 // Called when the framework receives IRP_MJ_READ requests
-VOID ThIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
+VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	UNREFERENCED_PARAMETER(Queue);
 	UNREFERENCED_PARAMETER(Length);
 	PAGED_CODE();
 	size_t bufsize;
 	NTSTATUS status = STATUS_SUCCESS;
-	THMessage* message;
+	TBMessage* message;
 	void* buffer;
 	size_t len = MAX_PATH; // they should at least fit the biggest process path, but should actually be much bigger
 
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "File Read Called\r\n");
 	
 	// get the message
-	status = ThGetMessage(&THOutputQueue, &message);
+	status = TbGetMessage(&TBOutputQueue, &message);
 	if (!NT_SUCCESS(status) || message == NULL) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not retrieve message on read request\r\n");
 		WdfRequestCompleteWithInformation(Request, STATUS_UNSUCCESSFUL, 0);
@@ -117,7 +117,7 @@ VOID ThIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	}
 
 	// copy what we can into the buffer
-	status = ThCopyMessage(buffer, bufsize, message, &len);
+	status = TbCopyMessage(buffer, bufsize, message, &len);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not copy message to output buffer\r\n");
 		WdfRequestCompleteWithInformation(Request, STATUS_UNSUCCESSFUL, 0);
@@ -125,20 +125,20 @@ VOID ThIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	}
 
 	// remove the message if we have read it all out
-	if (NT_SUCCESS(ThFinishedMessage(message))) {
+	if (NT_SUCCESS(TbFinishedMessage(message))) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished with this message\r\n");
-		ThRemMessage(&THOutputQueue);
+		TbRemMessage(&TBOutputQueue);
 		// stop if we have responded to all current to be reads
-		if (IsListEmpty(&((&THOutputQueue)->ListHead))) {
+		if (IsListEmpty(&((&TBOutputQueue)->ListHead))) {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished with outward message queue\r\n");
-			WdfIoQueueStop(THReadQueue, NULL, NULL);
+			WdfIoQueueStop(TBReadQueue, NULL, NULL);
 		}
 	}
 	WdfRequestCompleteWithInformation(Request, status, len);
 }
 
 // Called when the framework receives IRP_MJ_WRITE
-VOID ThIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
+VOID TbIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	UNREFERENCED_PARAMETER(Queue);
 	UNREFERENCED_PARAMETER(Length);
 	PAGED_CODE();
@@ -147,11 +147,11 @@ VOID ThIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	void* buffer;
 	UINT8* cursor;
 	UINT64 flowhandle;
-	THResponseType response;
+	TBResponseType response;
 
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "File Write Called\r\n");
 
-	status = WdfRequestRetrieveInputBuffer(Request, THRESPONSE_MESSAGE_SIZE, &buffer, &bufsize);
+	status = WdfRequestRetrieveInputBuffer(Request, TBRESPONSE_MESSAGE_SIZE, &buffer, &bufsize);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Didn't get a whole response\r\n");
 		WdfRequestComplete(Request, STATUS_UNSUCCESSFUL);
@@ -163,18 +163,18 @@ VOID ThIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	flowhandle = ((UINT64*)cursor)[0];
 	cursor += sizeof(UINT64);
 
-	response = (THResponseType)(((UINT8*)cursor)[0]);
+	response = (TBResponseType)(((UINT8*)cursor)[0]);
 
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got response %x for handle %x\r\n", response, flowhandle);
 
-	ThHandleResponse(&THResponses, flowhandle, response);
+	TbHandleResponse(&TBResponses, flowhandle, response);
 
 	WdfRequestComplete(Request, status);
 }
 
-VOID THReadyRead(IN WDFWORKITEM WorkItem) {
+VOID TBReadyRead(IN WDFWORKITEM WorkItem) {
 	UNREFERENCED_PARAMETER(WorkItem);
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "WorkItem Called\r\n");
-	WdfIoQueueStart(THReadQueue);
+	WdfIoQueueStart(TBReadQueue);
 	// We reuse this workitem, so we don't have to delete it
 }

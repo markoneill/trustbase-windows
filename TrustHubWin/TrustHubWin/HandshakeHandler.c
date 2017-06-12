@@ -1,7 +1,7 @@
 #include <fwpsk.h>
 #include <Ntstrsafe.h>
 #include "ConnectionContext.h"
-#include "TrustHubGuid.h"
+#include "TrustBaseGuid.h"
 #include "HandshakeHandler.h"
 
 #define UINT24 UINT32
@@ -92,7 +92,7 @@ NTSTATUS copyData(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *con
 	}
 	// we now have the correct buffer, but we may have to keep traversing multiple buffers to get all the data
 	// allocate the area for the certificate
-	(*data) = (UINT8*)ExAllocatePoolWithTag(NonPagedPool, copy_len, TH_POOL_TAG);
+	(*data) = (UINT8*)ExAllocatePoolWithTag(NonPagedPool, copy_len, TB_POOL_TAG);
 	
 	// copy over the data
 	offset = context->bytesRead - traversed;
@@ -136,9 +136,9 @@ NTSTATUS copyData(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *con
 
 REQUESTED_ACTION NTAPI handleStateUnknown(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	byte nbyte = peekByte(dataStream, context);
-	if (nbyte == TH_TLS_HANDSHAKE_IDENTIFIER) {
+	if (nbyte == TB_TLS_HANDSHAKE_IDENTIFIER) {
 		context->currentState = PS_RECORD_LAYER;
-		context->bytesToRead = TH_TLS_RECORD_HEADER_SIZE;
+		context->bytesToRead = TB_TLS_RECORD_HEADER_SIZE;
 		return RA_NEED_MORE;
 	} else {
 		context->currentState = PS_IRRELEVANT;
@@ -153,7 +153,7 @@ REQUESTED_ACTION NTAPI handleStateRecordLayer(IN FWPS_STREAM_DATA *dataStream, I
 
 	nbyte = nextByte(dataStream, context);
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "From record: see first byte as %x\r\n", nbyte);
-	if (nbyte != TH_TLS_HANDSHAKE_IDENTIFIER) {
+	if (nbyte != TB_TLS_HANDSHAKE_IDENTIFIER) {
 		context->currentState = PS_IRRELEVANT;
 		context->bytesToRead = 0;
 		return RA_NOT_INTERESTED;
@@ -195,7 +195,7 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(IN FWPS_STREAM_DATA *dataStream
 			copyData(dataStream, context, copy_len, &(context->message->clientHello));
 
 			// Expect a header next packet
-			context->bytesToRead = TH_TLS_RECORD_HEADER_SIZE;
+			context->bytesToRead = TB_TLS_RECORD_HEADER_SIZE;
 			context->currentState = PS_RECORD_LAYER;
 			return RA_CONTINUE; // we don't care about the rest of this record
 		} else if (nbyte == TYPE_SERVER_HELLO) {
@@ -208,8 +208,8 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(IN FWPS_STREAM_DATA *dataStream
 			copyData(dataStream, context, copy_len, &(context->message->serverHello));
 			// if we have read all of this record, lets hop out
 			// else current state remains at handshake
-			if (context->bytesRead <= (unsigned)(context->recordLength + TH_TLS_RECORD_HEADER_SIZE)) {
-				context->bytesToRead = TH_TLS_RECORD_HEADER_SIZE;
+			if (context->bytesRead <= (unsigned)(context->recordLength + TB_TLS_RECORD_HEADER_SIZE)) {
+				context->bytesToRead = TB_TLS_RECORD_HEADER_SIZE;
 				context->currentState = PS_RECORD_LAYER;
 				return RA_NEED_MORE;
 			}

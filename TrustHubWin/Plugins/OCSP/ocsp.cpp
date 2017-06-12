@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include "trusthub_plugin.h"
-#include "THLogger_Level.h"
+#include "trustbase_plugin.h"
+#include "TBLogger_Level.h"
 
 #ifdef __cplusplus
 extern "C" {  // only need to export C interface if  
@@ -14,10 +14,10 @@ extern "C" {  // only need to export C interface if
 #ifdef __cplusplus
 }
 #endif  
-int(*plog)(thlog_level_t level, const char* format, ...);
+int(*plog)(tblog_level_t level, const char* format, ...);
 HCERTSTORE openRootStore();
 // Plugins must have an exported "query" function that takes a query_data_t* argument
-// Plugins must include the "trusthub_plugin.h" header
+// Plugins must include the "trustbase_plugin.h" header
 // In visual studio, add the path to the Policy engine code under:
 //   Configuration Properties->C/C++->General->Additional Include Directories
 __declspec(dllexport) int __stdcall query(query_data_t* data) {

@@ -1,5 +1,5 @@
 #pragma once
-#include "trusthub_plugin.h"
+#include "trustbase_plugin.h"
 
 class RawCertData {
 public:

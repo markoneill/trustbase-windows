@@ -73,14 +73,14 @@ bool Plugin::init_native() {
 	hDLL = LoadLibraryEx(wpath.c_str(), NULL, NULL);
 
 	if (!hDLL) {
-		thlog() << "Could not load " << path << " as dynamic library";
+		tblog() << "Could not load " << path << " as dynamic library";
 		return false;
 	}
 
 	// resolve function addresses
 	query = (query_func_t)GetProcAddress(hDLL, "query");
 	if (!query) {
-		thlog() << "Could not locate 'query' function for plugin : " << name;
+		tblog() << "Could not locate 'query' function for plugin : " << name;
 		return false;
 	}
 	initialize = (initialize_func_t)GetProcAddress(hDLL, "initialize");
@@ -92,7 +92,7 @@ bool Plugin::init_native() {
 		idata.callback = Plugin::async_callback;
 		idata.plugin_id = this->id;
 		idata.plugin_path = this->path.c_str();
-		idata.log = thlog::pluginTHLog;
+		idata.log = tblog::pluginTBLog;
 		initialize(&idata);
 	}
 
@@ -109,7 +109,7 @@ bool Plugin::init_addon(Addon* addons, size_t addon_count) {
 		}
 	}
 	if (correctAddon == NULL) {
-		thlog() << "Could not find any matching addons";
+		tblog() << "Could not find any matching addons";
 		return false;
 	}
 
@@ -122,7 +122,7 @@ bool Plugin::init_addon(Addon* addons, size_t addon_count) {
 		}
 		else {
 			this->query_by_addon = NULL;
-			thlog(LOG_WARNING) << "Could not load plugin "<<this->name;
+			tblog(LOG_WARNING) << "Could not load plugin "<<this->name;
 		}
 	}
 	else if (this->type == ASYNC) {
@@ -131,7 +131,7 @@ bool Plugin::init_addon(Addon* addons, size_t addon_count) {
 		}
 		else {
 			this->query_by_addon = NULL;
-			thlog(LOG_WARNING) << "Could not load plugin " << this->name;
+			tblog(LOG_WARNING) << "Could not load plugin " << this->name;
 		}
 	}
 	this->finalize_by_addon = correctAddon->getFinalizedFunction();
@@ -142,7 +142,7 @@ bool Plugin::init_addon(Addon* addons, size_t addon_count) {
 
 bool Plugin::plugin_loop() { //TODO
 	// DEBUG
-	thlog() << "Started Plugin loop for " << name;
+	tblog() << "Started Plugin loop for " << name;
 
 	// loop waiting for queries
 	while (Communications::keep_running) {
@@ -157,51 +157,51 @@ bool Plugin::plugin_loop() { //TODO
 			newquery->setResponse(id, PLUGIN_RESPONSE_VALID);
 		}
 		
-		thlog() << "Plugin " << id << " got called";
+		tblog() << "Plugin " << id << " got called";
 
 		// TODO set default response for this plugin
 
 		// run the query plugin function
 		int response;
 		if (this->handlerType == RAW || this->handlerType == OPENSSL) {
-			thlog() << "Running native query";
+			tblog() << "Running native query";
 			if (this->query == NULL) {
 				return PLUGIN_RESPONSE_ERROR;
 			}
 			response = this->query(&(newquery->data));
 		}
 		else if (this->handlerType == ADDON) {
-			thlog() << "Running addon query";
+			tblog() << "Running addon query";
 			if (this->query_by_addon == NULL) {
 				return PLUGIN_RESPONSE_ERROR;
 			}
 			response = this->query_by_addon(this->id, &(newquery->data));
 		}
 		else {
-			thlog() << "Plugin " << id << " had unknown handlerType set, skipping...";
+			tblog() << "Plugin " << id << " had unknown handlerType set, skipping...";
 			continue;
 		}
 
 		if (type == Plugin::SYNC) {
 			// set response
 			newquery->setResponse(id, response);
-			thlog() << "For query " << newquery->getId() << " Plugin " << id << " synchronously returned " <<
+			tblog() << "For query " << newquery->getId() << " Plugin " << id << " synchronously returned " <<
 				((response == PLUGIN_RESPONSE_VALID) ? "valid" : ((response == PLUGIN_RESPONSE_INVALID) ? "invalid" : ((response == PLUGIN_RESPONSE_ABSTAIN)?"abstain":"error")));
 		}
 	}
 	
 	// clean up
-	thlog() << "Ending Plugin loop for " << name;
+	tblog() << "Ending Plugin loop for " << name;
 	if (this->handlerType == RAW || this->handlerType == OPENSSL) {
-		thlog() << "Running native finalize";
+		tblog() << "Running native finalize";
 		if (this->finalize) {
-			thlog() << "Running native finalize";
+			tblog() << "Running native finalize";
 			this->finalize();
 		}
 	}
 	else if (this->handlerType == ADDON) {
 		if (this->query_by_addon) {
-			thlog() << "Running addon finalize";
+			tblog() << "Running addon finalize";
 			this->finalize_by_addon(this->id);
 		}
 	}
@@ -221,38 +221,38 @@ Plugin::Value Plugin::getValue() {
 }
 
 void Plugin::printInfo() {
-	thlog() << "\t Plugin " << id << " {";
-	thlog() << "\t\t Name: " << name;
-	thlog() << "\t\t Description: " << description;
-	thlog() << "\t\t Path: " << path;
+	tblog() << "\t Plugin " << id << " {";
+	tblog() << "\t\t Name: " << name;
+	tblog() << "\t\t Description: " << description;
+	tblog() << "\t\t Path: " << path;
 	switch (value) {
 	case Plugin::CONGRESS:
-		thlog() << "\t\t Aggregation Group: Congress";
+		tblog() << "\t\t Aggregation Group: Congress";
 		break;
 	case Plugin::NEEDED:
-		thlog() << "\t\t Aggregation Group: Needed";
+		tblog() << "\t\t Aggregation Group: Needed";
 		break;
 	default:
-		thlog() << "\t\t Aggregation Group: None";
+		tblog() << "\t\t Aggregation Group: None";
 	}
 
 	if (this->handlerType == Plugin::RAW) {
-		thlog() << "\t\t Handler Type: Raw Data";
-		thlog() << "\t\t Query Function: 0x" << std::hex << query;
+		tblog() << "\t\t Handler Type: Raw Data";
+		tblog() << "\t\t Query Function: 0x" << std::hex << query;
 
 	}
 	else if (this->handlerType == Plugin::OPENSSL) {
-		thlog() << "\t\t Handler Type: OpenSSL Data";
-		thlog() << "\t\t Query Function: 0x" << std::hex << query;
+		tblog() << "\t\t Handler Type: OpenSSL Data";
+		tblog() << "\t\t Query Function: 0x" << std::hex << query;
 
 	}
 	else if (this->handlerType == Plugin::ADDON) {
-		thlog() << "\t\t Handler Type: Addon-handled " << this->handler;
-		thlog() << "\t\t Query_By_Addon Function: 0x" << std::hex << query_by_addon;
+		tblog() << "\t\t Handler Type: Addon-handled " << this->handler;
+		tblog() << "\t\t Query_By_Addon Function: 0x" << std::hex << query_by_addon;
 
 	}
 
-	thlog() << "\t },";
+	tblog() << "\t },";
 }
 
 int Plugin::async_callback(int plugin_id, int query_id, int result) {
@@ -260,12 +260,12 @@ int Plugin::async_callback(int plugin_id, int query_id, int result) {
 	// set response
 	Query* foundquery = qq->find_linked(query_id);
 	if (foundquery == nullptr) {
-		thlog() << "Tried to asynchronously reply to a query that is no longer tracked";
+		tblog() << "Tried to asynchronously reply to a query that is no longer tracked";
 		return 0; // let plugin know it was unsuccessful
 	}
 
 	foundquery->setResponse(plugin_id, result);
-	thlog() << "For Query " << query_id << " Plugin " << plugin_id << " asynchronously returned " <<
+	tblog() << "For Query " << query_id << " Plugin " << plugin_id << " asynchronously returned " <<
 		((result == PLUGIN_RESPONSE_VALID) ? "valid" : ((result == PLUGIN_RESPONSE_INVALID) ? "invalid" : ((result == PLUGIN_RESPONSE_ABSTAIN) ? "abstain" : "error")));
 
 	return 1; // let plugin know the callback was successful
