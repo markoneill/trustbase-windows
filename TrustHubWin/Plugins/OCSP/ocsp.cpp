@@ -15,6 +15,9 @@ extern "C" {  // only need to export C interface if
 }
 #endif  
 int(*plog)(thlog_level_t level, const char* format, ...);
+int(*th_callback)(int plugin_id, int query_id, int plugin_response);
+int plugin_id;
+
 HCERTSTORE openRootStore();
 // Plugins must have an exported "query" function that takes a query_data_t* argument
 // Plugins must include the "trusthub_plugin.h" header
@@ -23,7 +26,7 @@ HCERTSTORE openRootStore();
 __declspec(dllexport) int __stdcall query(query_data_t* data) {
 	plog(LOG_DEBUG, "OCSP: query function ran");
 
-	bool noProblems = true;
+	int status = PLUGIN_RESPONSE_VALID;
 
 	HCERTSTORE rootStore = openRootStore();
 	CERT_REVOCATION_STATUS revocation_status = CERT_REVOCATION_STATUS();
@@ -57,7 +60,7 @@ __declspec(dllexport) int __stdcall query(query_data_t* data) {
 				break;
 			case CRYPT_E_NO_REVOCATION_DLL:
 				reason_text = "No installed or registered DLL was found that was able to verify revocation.";
-				noProblems = false;
+				status = PLUGIN_RESPONSE_ABSTAIN;
 				break;
 			case CRYPT_E_NOT_IN_REVOCATION_DATABASE:
 				//no ocsp
@@ -65,7 +68,7 @@ __declspec(dllexport) int __stdcall query(query_data_t* data) {
 				break;
 			case CRYPT_E_REVOCATION_OFFLINE:
 				reason_text = "It was not possible to connect to the revocation server.";
-				noProblems = false;
+				status = PLUGIN_RESPONSE_ABSTAIN;
 				break;
 			case CRYPT_E_REVOKED:
 				switch (revocation_status.dwReason) {
@@ -92,22 +95,23 @@ __declspec(dllexport) int __stdcall query(query_data_t* data) {
 					break;
 				} 
 				plog(LOG_DEBUG, "Revoked certificate was encountered. reason: %s", reason_text);
-				return PLUGIN_RESPONSE_INVALID;
+				
+				status = PLUGIN_RESPONSE_INVALID;
 				break;
 			case ERROR_SUCCESS:
 				reason_text = "The context was good.";
 				break;
 			case E_INVALIDARG:
 				reason_text = "cbSize in pRevStatus is less than sizeof(CERT_REVOCATION_STATUS).Note that dwError in pRevStatus is not updated for this error.";
-				noProblems = false;
+				status = PLUGIN_RESPONSE_ABSTAIN;
 				break;
 			}
-			plog(LOG_DEBUG, "Certificate could not be verified as revoked or not. Accepting certificate. reason: %s", reason_text);
-			break;
 		}
 	}
+
 	CertCloseStore(rootStore, CERT_CLOSE_STORE_FORCE_FLAG);
-	return noProblems ? PLUGIN_RESPONSE_VALID : PLUGIN_RESPONSE_ABSTAIN;
+	th_callback(plugin_id, data->id, status);
+	return 0; // Doesn't matter, we are going to respond via async stuff
 }
 
 /*
@@ -128,6 +132,9 @@ HCERTSTORE openRootStore()
 // Plugins can also have an optional exported "initialize" function that takes an init_data_t* arg
 __declspec(dllexport) int __stdcall initialize(init_data_t* idata) {
 	plog = idata->log;
+	plugin_id = idata->plugin_id;
+
+	th_callback = idata->callback;
 	return PLUGIN_INITIALIZE_OK;
 }
 

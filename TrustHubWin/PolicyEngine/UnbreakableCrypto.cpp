@@ -522,7 +522,7 @@ bool UnbreakableCrypto::evaluateLocalRevocation(std::vector<PCCERT_CONTEXT>* cer
 			}
 
 			thlog() << "Certificate could not be verified as revoked or not. Accepting certificate. reason: " << reason_text;
-			break;
+			//break;
 		}
 	}
 	CertCloseStore(rootStore, CERT_CLOSE_STORE_FORCE_FLAG);
