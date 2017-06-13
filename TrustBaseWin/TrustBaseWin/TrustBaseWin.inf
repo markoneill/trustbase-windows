@@ -1,0 +1,49 @@
+
+[Version]
+    Signature   = "$Windows NT$"
+    Class       = WFPCALLOUTS
+    ClassGuid   = {57465043-616C-6C6F-7574-5F636C617374}
+    Provider    = %ProviderString%
+    CatalogFile = TrustBaseWin.cat
+    DriverVer   = 11/2/2016
+
+[SourceDisksNames]
+   1 = %TrustBaseWinDisk%,,,""
+
+[SourceDisksFiles]
+   TrustBaseWin.sys = 1,,
+
+[DestinationDirs]
+    DefaultDestDir      = 12                                               ; %WinDir%\System32\Drivers
+    Inspect.DriverFiles = 12                                               ; %WinDir%\System32\Drivers
+
+[DefaultInstall]
+    OptionDesc = %TrustBaseWinServiceDesc%
+    CopyFiles  = TrustBaseWin.DriverFiles
+
+[DefaultInstall.Services]
+    AddService = %TrustBaseWinServiceName%,,TrustBaseWin.Service
+
+[DefaultUninstall]
+    DelFiles = TrustBaseWin.DriverFiles
+
+[DefaultUninstall.Services]
+    DelService = %TrustBaseWinServiceName%,0x200                                ; SPSVCINST_STOPSERVICE
+    DelReg     = TrustBaseWin.DelRegistry
+
+[TrustBaseWin.DriverFiles]
+    TrustBaseWin.sys,,,0x00000040                                               ; COPYFLG_OVERWRITE_OLDER_ONLY
+
+[TrustBaseWin.Service]
+    DisplayName   = %TrustBaseWinServiceName%
+    Description   = %TrustBaseWinServiceDesc%
+    ServiceType   = 1                                                      ; SERVICE_KERNEL_DRIVER
+    StartType     = 3                                                      ; SERVICE_DEMAND_START
+    ErrorControl  = 1                                                      ; SERVICE_ERROR_NORMAL
+    ServiceBinary = %12%\TrustBaseWin.sys                                       ; %WinDir%\System32\Drivers\TrustBaseWin.sys
+
+[Strings]
+    ProviderString     = "TODO-Set-Provider"
+	TrustBaseWinDisk        = "TrustBaseWin Installation Disk"
+    TrustBaseWinServiceDesc = "TrustBaseWin Callout Driver"
+    TrustBaseWinServiceName = "TrustBaseWin"
