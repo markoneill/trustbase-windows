@@ -2,7 +2,7 @@
 [Version]
     Signature   = "$Windows NT$"
     Class       = WFPCALLOUTS
-    ClassGuid   = {57465043-616C-6C6F-7574-5F636C617374}
+    ClassGuid   = {57465043-616C-6C6F-7574-5F636C617373}
     Provider    = %ProviderString%
     CatalogFile = TrustBaseWin.cat
     DriverVer   = 11/2/2016
