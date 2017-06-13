@@ -50,39 +50,39 @@ bool Addon::init(size_t plugin_count, int(*callback)(int, int, int)) {
 
 	// Load shared object
 	if (!hDLL) {
-		tblog() << "Could not load " << path << " as dynamic library";
+		tblog(LOG_WARNING) << "Could not load " << path << " as dynamic library";
 		return false;
 	}
 
 	// Load functions within shared object
 	initialize = (addon_initialize)GetProcAddress(hDLL, "initialize");
 	if (initialize == NULL) {
-		tblog() << "Failed to load initialize function for addon '" << path << "': " << GetLastError();
+		tblog(LOG_WARNING) << "Failed to load initialize function for addon '" << path << "': " << GetLastError();
 		return false;
 	}
 	finalize = (addon_finalize)GetProcAddress(hDLL, "finalize");
 	if (finalize == NULL) {
-		tblog() << "Failed to load finalize function for addon '" << path << "': " << GetLastError();
+		tblog(LOG_WARNING) << "Failed to load finalize function for addon '" << path << "': " << GetLastError();
 		return false;
 	}
 	load_plugin = (addon_load_plugin)GetProcAddress(hDLL, "load_plugin");
 	if (load_plugin == NULL) {
-		tblog() << "Failed to load load_plugin function for addon '" << path << "': " << GetLastError();
+		tblog(LOG_WARNING) << "Failed to load load_plugin function for addon '" << path << "': " << GetLastError();
 		return false;
 	}
 	query_plugin = (addon_query_plugin)GetProcAddress(hDLL, "query_plugin");
 	if (query_plugin == NULL) {
-		tblog() << "Failed to load query_plugin function for addon '" << path << "': " << GetLastError();
+		tblog(LOG_WARNING) << "Failed to load query_plugin function for addon '" << path << "': " << GetLastError();
 		return false;
 	}
 	query_plugin_async = (addon_async_query_plugin)GetProcAddress(hDLL, "query_plugin_async");
 	if (query_plugin_async == NULL) {
-		tblog() << "Failed to load async_query_plugin function for addon '" << path << "': " << GetLastError();
+		tblog(LOG_WARNING) << "Failed to load async_query_plugin function for addon '" << path << "': " << GetLastError();
 		return false;
 	}
 	finalize_plugin = (addon_finalize_plugin)GetProcAddress(hDLL, "finalize_plugin");
 	if (finalize_plugin == NULL) {
-		tblog() << "Failed to load finalize_plugin function for addon '" << path << "': " << GetLastError();
+		tblog(LOG_WARNING) << "Failed to load finalize_plugin function for addon '" << path << "': " << GetLastError();
 		return false;
 	}
 
@@ -100,12 +100,12 @@ bool Addon::init(size_t plugin_count, int(*callback)(int, int, int)) {
 
 void Addon::printInfo() {
 
-	tblog() << "\t Addon " << id << " {";
-	tblog() << "\t\t Name: " << name;
-	tblog() << "\t\t Description: " << description;
-	tblog() << "\t\t Path: " << path;
-	tblog() << "\t\t Type Handled: " << type_handled;
-	tblog() << "\t\t Version: %s" << version;
+	tblog(LOG_INFO) << "\t Addon " << id << " {";
+	tblog(LOG_INFO) << "\t\t Name: " << name;
+	tblog(LOG_INFO) << "\t\t Description: " << description;
+	tblog(LOG_INFO) << "\t\t Path: " << path;
+	tblog(LOG_INFO) << "\t\t Type Handled: " << type_handled;
+	tblog(LOG_INFO) << "\t\t Version: %s" << version;
 }
 
 std::string Addon::getTypeHandled()

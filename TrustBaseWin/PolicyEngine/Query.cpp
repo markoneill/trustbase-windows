@@ -77,12 +77,12 @@ UINT64 Query::getFlow() {
 }
 
 void Query::printQueryInfo() {
-	tblog() << "Query :";
-	tblog() << "\tFlow : " << std::hex << flowHandle;
+	tblog(LOG_INFO) << "Query :";
+	tblog(LOG_INFO) << "\tFlow : " << std::hex << flowHandle;
 	std::wstring wpath((wchar_t*)processPath);
 	std::string path(wpath.begin(), wpath.end());
-	tblog() << "\tPath : " << path;
-	tblog() << "\tHostname : " << data.hostname;
+	tblog(LOG_INFO) << "\tPath : " << path;
+	tblog(LOG_INFO) << "\tHostname : " << data.hostname;
 }
 
 std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, UINT64 chain_len)
@@ -101,7 +101,7 @@ std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, U
 		cursor += sizeof(UINT8) + sizeof(UINT16);
 		dataRead += sizeof(UINT8) + sizeof(UINT16);
 		if ((UINT64)(cursor + cert_length - buffer) > buflen) {
-			tblog() << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << cert_length;
+			tblog(LOG_ERROR) << "Parsing cert: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer) << ", size=" << cert_length;
 			throw std::runtime_error("");
 		}
 
@@ -110,7 +110,7 @@ std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, U
 		dataRead += cert_length;
 
 		if (cert_context == NULL) {
-			tblog() << "Wincrypt could not parse certificate. Error Code " << GetLastError();
+			tblog(LOG_ERROR) << "Wincrypt could not parse certificate. Error Code " << GetLastError();
 			return cert_context_vector;
 		}
 
@@ -149,7 +149,7 @@ STACK_OF(X509)* Query::parse_chain(unsigned char* data, size_t len) {
 		cert_ptr = current_pos;
 		cert = d2i_X509(NULL, &cert_ptr, cert_len);
 		if (!cert) {
-			tblog() << "unable to parse certificate";
+			tblog(LOG_WARNING) << "unable to parse certificate";
 			return NULL;
 		}
 		//tblog_cert(cert);

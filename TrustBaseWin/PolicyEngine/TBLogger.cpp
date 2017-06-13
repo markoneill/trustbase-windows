@@ -6,7 +6,7 @@
 std::ofstream tblog::log_file;
 bool tblog::also_cout = false;
 std::mutex tblog::mtx;
-tblog_level_t tblog::minimum_level = LOG_DEBUG;
+tblog_level_t tblog::minimum_level = LOG_INFO;
 tblog::tblog() : tblog(LOG_DEBUG) {}
 tblog::tblog(tblog_level_t log_level) {
 	level = log_level;

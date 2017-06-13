@@ -198,6 +198,10 @@ certsAddedToRootStore method.
 bool UnbreakableCrypto::removeAllStoredCertsFromRootStore()
 {
 	bool success = true;
+	if (certsAddedToRootStore.certificates.size()>0)
+	{
+		tblog(LOG_INFO) << "Clean up: removing certificates added to the root store\n";
+	}
 	while (certsAddedToRootStore.certificates.size() > 0)
 	{
 		if (!removeFromRootStore(certsAddedToRootStore.certificates.at(0))) {
@@ -313,7 +317,7 @@ bool UnbreakableCrypto::isConfigured()
 {
 	bool encoding_valid = true;
 	if (encodings != X509_ASN_ENCODING  && encodings != (X509_ASN_ENCODING | PKCS_7_ASN_ENCODING)) {
-		tblog() << "Unknown Encoding configured in UnbreakableCrypto";
+		tblog(LOG_ERROR) << "Unknown Encoding configured in UnbreakableCrypto";
 		encoding_valid = false;
 	}
 
@@ -385,7 +389,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 	//Return Error if not configured
 	if (!isConfigured())
 	{
-		tblog() << "UnbreakableCrypto was run but not configured";
+		tblog(LOG_ERROR) << "UnbreakableCrypto was run but not configured";
 		return UnbreakableCrypto_ERROR;
 	}
 	//not null
@@ -510,7 +514,7 @@ bool UnbreakableCrypto::evaluateLocalRevocation(std::vector<PCCERT_CONTEXT>* cer
 					reason_text = "The CA says this certificate is on hold";
 					break;
 				}
-				tblog() << "Revoked certificate was encountered. reason: " << reason_text;
+				tblog(LOG_INFO) << "Revoked certificate was encountered. reason: " << reason_text;
 				return true;
 				break;
 			case ERROR_SUCCESS:
@@ -660,7 +664,7 @@ char* UnbreakableCrypto::convertHostnameToWildcard(char* hostname)
 
 bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 	if (!isConfigured()) {
-		tblog() << "WARNING! Using UnbreakableCrypto without configuring.";
+		tblog(LOG_ERROR) << "WARNING! Using UnbreakableCrypto without configuring.";
 		return false;
 	}
 
@@ -669,7 +673,7 @@ bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 	//++++++++++++++++++++++++++++++++++++
 
 	if (cert == NULL) {
-		tblog() << "UnbreakableCrypto got a NULL certificate. That should not happen" << GetLastError();
+		tblog(LOG_ERROR) << "UnbreakableCrypto got a NULL certificate. That should not happen" << GetLastError();
 		return false;
 	}
 
@@ -682,7 +686,7 @@ bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 	)
 		)
 	{
-		tblog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
+		tblog(LOG_ERROR) << "Wincrypt could not create cert_chain_engine Error Code: " << GetLastError();
 		return false;
 	}
 
@@ -701,7 +705,7 @@ bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 	)
 		)
 	{
-		tblog() << "Wincrypt could not create authentiation train Error Code: " << GetLastError();
+		tblog(LOG_ERROR) << "Wincrypt could not create cert_chain_engine Error Code: " << GetLastError();
 		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 		return false;
 	}
@@ -723,7 +727,7 @@ bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 	)
 		)
 	{
-		tblog() << "Wincrypt could not policy check the certificate chain. Error Code: " << GetLastError();
+		tblog(LOG_ERROR) << "Wincrypt could not policy check the certificate chain. Error Code: " << GetLastError();
 		CertFreeCertificateChain(cert_chain_context); cert_chain_context = NULL;
 		CertFreeCertificateChainEngine(authentication_train_handle); authentication_train_handle = NULL;
 		//delete cert_policy_status;

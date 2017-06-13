@@ -221,19 +221,19 @@ Plugin::Value Plugin::getValue() {
 }
 
 void Plugin::printInfo() {
-	tblog() << "\t Plugin " << id << " {";
-	tblog() << "\t\t Name: " << name;
-	tblog() << "\t\t Description: " << description;
-	tblog() << "\t\t Path: " << path;
+	tblog(LOG_INFO) << "\t Plugin " << id << " {";
+	tblog(LOG_INFO) << "\t\t Name: " << name;
+	tblog(LOG_INFO) << "\t\t Description: " << description;
+	tblog(LOG_INFO) << "\t\t Path: " << path;
 	switch (value) {
 	case Plugin::CONGRESS:
-		tblog() << "\t\t Aggregation Group: Congress";
+		tblog(LOG_INFO) << "\t\t Aggregation Group: Congress";
 		break;
 	case Plugin::NEEDED:
-		tblog() << "\t\t Aggregation Group: Needed";
+		tblog(LOG_INFO) << "\t\t Aggregation Group: Needed";
 		break;
 	default:
-		tblog() << "\t\t Aggregation Group: None";
+		tblog(LOG_INFO) << "\t\t Aggregation Group: None";
 	}
 
 	if (this->handlerType == Plugin::RAW) {
@@ -252,7 +252,7 @@ void Plugin::printInfo() {
 
 	}
 
-	tblog() << "\t },";
+	tblog(LOG_INFO) << "\t },";
 }
 
 int Plugin::async_callback(int plugin_id, int query_id, int result) {
@@ -265,7 +265,7 @@ int Plugin::async_callback(int plugin_id, int query_id, int result) {
 	}
 
 	foundquery->setResponse(plugin_id, result);
-	tblog() << "For Query " << query_id << " Plugin " << plugin_id << " asynchronously returned " <<
+	tblog(LOG_INFO) << "For Query " << query_id << " Plugin " << plugin_id << " asynchronously returned " <<
 		((result == PLUGIN_RESPONSE_VALID) ? "valid" : ((result == PLUGIN_RESPONSE_INVALID) ? "invalid" : ((result == PLUGIN_RESPONSE_ABSTAIN) ? "abstain" : "error")));
 
 	return 1; // let plugin know the callback was successful

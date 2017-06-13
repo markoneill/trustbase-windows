@@ -34,24 +34,24 @@ int main()
 	// Start Logging
 
 	tblog::setFile("./policy_engine.log", true);
-	tblog() << "Starting Policy Engine";
+	tblog(LOG_INFO) << "Starting Policy Engine";
 
 	// load configuration
 	PolicyContext context;
 
 	if (!context.loadConfig(CONFIG_LOCATION)) {
-		tblog() << "Failed to load configuration file";
+		tblog(LOG_ERROR) << "Failed to load configuration file";
 		return -1;
 	}
 
 	// initialize addons
 	if (!context.initAddons()) {
-		tblog() << "Failed to init Addons, exiting...";
+		tblog(LOG_ERROR) << "Failed to init Addons, exiting...";
 		return -1;
 	}
 	// initialize plugins
 	if (!context.initPlugins()) {
-		tblog() << "Failed to init Plugins, exiting...";
+		tblog(LOG_ERROR) << "Failed to init Plugins, exiting...";
 		return -1;
 	}
 
@@ -65,19 +65,20 @@ int main()
 
 	// start decider and plugin threads
 	plugin_threads = new std::thread[context.plugin_count + 1];
-	tblog() << "Starting Decider Thread";
+	tblog(LOG_INFO) << "Starting Decider Thread";
 	plugin_threads[context.plugin_count] = std::thread(decider_loop, &qq, &context);
-	tblog() << "Starting " << context.plugin_count << " plugins...";
+	tblog(LOG_INFO) << "Starting " << context.plugin_count << " plugins...";
 	for (int i = 0; i < context.plugin_count; i++) {
-		tblog() << "Starting Plugin #" << i << " : " << context.plugins[i].getName();
+		tblog(LOG_INFO) << "Starting Plugin #" << i << " : " << context.plugins[i].getName();
 		plugin_threads[i] = std::thread(&Plugin::plugin_loop, context.plugins[i]);
 	}
 
 	// init things
 	if (!Communications::init_communication(&qq, (int)context.plugin_count)) {
-		tblog() << "Initialization errors, exiting...";
+		tblog(LOG_ERROR) << "Initialization errors, exiting...";
 		return -1;
 	}
+	tblog(LOG_INFO) << "Successfully initialized Policy Engine. Ready for queries";
 
 	// loop
 	Communications::listen_for_queries();
@@ -96,8 +97,9 @@ int main()
 	for (int i = 0; i < context.addon_count; i++) {
 		context.addons[i].cleanup();
 	}
+	UBC.removeAllStoredCertsFromRootStore();
 
-	tblog() << "Finished, exiting...\n";
+	tblog(LOG_INFO) << "Finished, exiting...\n";
 
 	std::system("PAUSE");
     return 0;
@@ -120,7 +122,7 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		
 		// get system's response
 		UnbreakableCrypto_RESPONSE system_response = UBC.evaluate(query);
-		tblog() << "Evaluate says: " << system_response;
+		tblog() << "Certificate Evaluate says: " << system_response;
 
 		// get timeout time
 		auto now = std::chrono::system_clock::now();
@@ -130,13 +132,13 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		std::unique_lock<std::mutex> lk(query->mutex);
 		while (query->num_responses < query->num_plugins) {
 			if (query->threshold_met.wait_until(lk, timeout) == std::cv_status::timeout) {
-				tblog() << "One or more plugins timed out!";
+				tblog(LOG_WARNING) << "One or more plugins timed out!";
 				break;
 			}
 		}
 		query->accepting_responses = false;
 		lk.unlock();
-		tblog() << "Handling query "<< query->getId() << " with " << query->num_responses << " responses";
+		tblog(LOG_INFO) << "Handling query "<< query->getId() << " with " << query->num_responses << " responses";
 		// remove the query from the linked list
 		qq->unlink(query->getId());
 
@@ -176,7 +178,7 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 			PCCERT_CONTEXT leaf_cert_context = query->data.cert_context_chain->at(leaf_cert_index);
 			if (leaf_cert_context == NULL) {
 				tblog() << "cert_context at index " << leaf_cert_index << "is NULL";
-				return UnbreakableCrypto_REJECT;
+				return false;
 			}
 
 			bool insertRootSuccess = UBC.insertIntoRootStore(leaf_cert_context);
