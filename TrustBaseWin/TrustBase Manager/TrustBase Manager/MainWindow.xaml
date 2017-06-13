@@ -1,0 +1,56 @@
+﻿<Window x:Class="TrustBase_Manager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:TrustBase_Manager"
+        mc:Ignorable="d" 
+        Title="TrustBase Manager" Height="600" Width="800">
+    <Window.Icon>
+        <BitmapImage UriSource="file:///C:/Users/Joshua Reynolds/Pictures/TrustBaseIcon.ico"/>
+    </Window.Icon>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="35"/>
+        </Grid.RowDefinitions>
+        <Button x:Name="manage_exceptions_button" 
+                HorizontalAlignment="Left" 
+                Grid.Column="0" 
+                Grid.Row="1" 
+                Content="Manage Exceptions" 
+                VerticalAlignment="Stretch" 
+                Width="142" 
+                Click="Manage_Exceptions_Button_Click"
+                />
+        <Button x:Name="refresh_button" 
+                Content="Refresh Log" 
+                HorizontalAlignment="Center"
+                Margin="0,0,0,0" 
+                VerticalAlignment="Stretch" 
+                Width="165" 
+                Click="Refresh_Button_Click" 
+                Grid.Row="1"
+                />
+       <DataGrid x:Name="dataGrid" 
+                  HorizontalAlignment="Stretch" 
+                  Margin="0,0,0,0" 
+                  VerticalAlignment="Stretch" 
+                  ColumnWidth="Auto"
+                  Grid.Column="0" 
+                  Grid.Row="0" 
+                  ItemsSource="{Binding}"
+                  />
+       <CheckBox x:Name="checkBox" 
+                  Content="Notify me when Trustbase blocks a connection" 
+                  Grid.Row="1" 
+                  Grid.Column="0" 
+                  Margin="0,0,5,0"
+                  HorizontalAlignment="Right" 
+                  VerticalAlignment="Center"
+                  />
+    </Grid>
+</Window>
