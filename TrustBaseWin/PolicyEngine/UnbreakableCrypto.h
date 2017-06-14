@@ -47,6 +47,7 @@ private:
 	bool evaluateChainVouching(std::vector<PCCERT_CONTEXT>* cert_context_chain);
 	bool evaluateIsCa(std::vector<PCCERT_CONTEXT>* cert_context_chain);
 
+	bool isDuplicateCertificate(PCCERT_CONTEXT cert1, PCCERT_CONTEXT cert2);
 
 	char* convertHostnameToWildcard(char* hostname);
 

@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "UnbreakableCrypto.h"
 #include <vector>
-
 UnbreakableCrypto::UnbreakableCrypto() {
 
 }
@@ -552,6 +551,10 @@ bool UnbreakableCrypto::evaluateChainVouching(std::vector<PCCERT_CONTEXT>* cert_
 bool UnbreakableCrypto::evaluateIsCa(std::vector<PCCERT_CONTEXT>* cert_context_chain)
 {
 	size_t cert_count = cert_context_chain->size();
+
+	//gathering leaf certificate information for duplicate checking
+	PCCERT_CONTEXT leaf_cert = cert_context_chain->at(0);
+
 	for (int i = cert_count - 1; i >= 0; i--) {
 	//All certs except the leaf should be in the Intermediate CA store
 	//check all certs except the leaf
@@ -559,6 +562,14 @@ bool UnbreakableCrypto::evaluateIsCa(std::vector<PCCERT_CONTEXT>* cert_context_c
 			continue;
 		}
 		PCCERT_CONTEXT current_cert = cert_context_chain->at(i);
+
+		//sometimes the leaf certificate is sent twice. 
+		//all duplicates of the leaf certificate should not be checked for CA flag
+		bool isDuplicate = isDuplicateCertificate(leaf_cert, current_cert);
+		if (isDuplicate)
+		{
+			continue;
+		}
 
 		bool isCA = false;
 		bool foundConstrant = false;
@@ -628,6 +639,26 @@ bool UnbreakableCrypto::evaluateIsCa(std::vector<PCCERT_CONTEXT>* cert_context_c
 	}
 	return true;
 }
+
+bool UnbreakableCrypto::isDuplicateCertificate(PCCERT_CONTEXT cert1, PCCERT_CONTEXT cert2)
+{
+	//compare size to rule out most cases
+	if (cert1->cbCertEncoded == cert2->cbCertEncoded)
+	{
+		//rule out more false duplicates: compare size of issuer and subject name
+		if (cert1->pCertInfo->Issuer.cbData == cert2->pCertInfo->Issuer.cbData && cert1->pCertInfo->Subject.cbData == cert2->pCertInfo->Subject.cbData) {
+			//likely a duplicate
+			if (memcmp(cert1->pbCertEncoded, cert2->pbCertEncoded, cert1->cbCertEncoded)==0)
+			{
+				return true;
+			}
+		}
+
+	}
+
+	return false;
+}
+
 
 char* UnbreakableCrypto::convertHostnameToWildcard(char* hostname)
 {

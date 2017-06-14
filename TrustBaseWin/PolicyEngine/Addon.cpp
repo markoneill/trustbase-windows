@@ -93,9 +93,8 @@ bool Addon::init(size_t plugin_count, int(*callback)(int, int, int)) {
 	i_addon_data.callback = callback;
 	i_addon_data.lib_file = this->path.c_str();
 	i_addon_data.log = tblog::pluginTBLog;
-	initialize(&i_addon_data);
 
-	return true;
+	return (initialize(&i_addon_data) == 0);
 }
 
 void Addon::printInfo() {

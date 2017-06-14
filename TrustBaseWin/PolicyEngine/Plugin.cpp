@@ -152,10 +152,7 @@ bool Plugin::plugin_loop() { //TODO
 			// done to wake from lock
 			continue;
 		}
-		if (value == Plugin::IGNORED) {
-			// respond ok
-			newquery->setResponse(id, PLUGIN_RESPONSE_VALID);
-		}
+
 		
 		tblog() << "Plugin " << id << " got called";
 
@@ -163,23 +160,31 @@ bool Plugin::plugin_loop() { //TODO
 
 		// run the query plugin function
 		int response;
-		if (this->handlerType == RAW || this->handlerType == OPENSSL) {
-			tblog() << "Running native query";
-			if (this->query == NULL) {
-				return PLUGIN_RESPONSE_ERROR;
-			}
-			response = this->query(&(newquery->data));
+
+		if (value == Plugin::IGNORED) {
+			// respond ok
+			response = PLUGIN_RESPONSE_VALID;
 		}
-		else if (this->handlerType == ADDON) {
-			tblog() << "Running addon query";
-			if (this->query_by_addon == NULL) {
-				return PLUGIN_RESPONSE_ERROR;
+		else
+		{
+			if (this->handlerType == RAW || this->handlerType == OPENSSL) {
+				tblog() << "Running native query";
+				if (this->query == NULL) {
+					return PLUGIN_RESPONSE_ERROR;
+				}
+				response = this->query(&(newquery->data));
 			}
-			response = this->query_by_addon(this->id, &(newquery->data));
-		}
-		else {
-			tblog() << "Plugin " << id << " had unknown handlerType set, skipping...";
-			continue;
+			else if (this->handlerType == ADDON) {
+				tblog() << "Running addon query";
+				if (this->query_by_addon == NULL) {
+					return PLUGIN_RESPONSE_ERROR;
+				}
+				response = this->query_by_addon(this->id, &(newquery->data));
+			}
+			else {
+				tblog(LOG_ERROR) << "Plugin " << id << " had unknown handlerType set, skipping...";
+				return false;
+			}
 		}
 
 		if (type == Plugin::SYNC) {

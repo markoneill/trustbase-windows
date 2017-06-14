@@ -1,18 +1,17 @@
 #include <Python.h>
+#include <mutex>
+#include <condition_variable>
 
 #include "python_plugins.h"
 
-enum GIL_State { uninitialized, initialized, finished };
-
-static GIL_State gil_state = uninitialized;
-
 static PyThreadState* mainThreadState;
+static PyThreadState** threadStates;
 
 PyObject **plugin_functions;
 PyObject **plugin_final_functions;
-static int plugin_count;
-static int init_plugin(PyObject* pFunc, int id, int is_async);
-static void log_PyErr(void);
+int plugin_count;
+int init_plugin(PyObject* pFunc, int id, int is_async);
+void log_PyErr(void);
 int unsafe_query_plugin(int id, query_data_t* data);
 int unsafe_query_plugin_async(int id, query_data_t* data);
 int unsafe_finalize_plugin(int id);
@@ -29,34 +28,20 @@ int(*plog)(tblog_level_t level, const char* format, ...);
 
 __declspec(dllexport) int __stdcall initialize(init_addon_data_t* data) {
 	char python_stmt[128];
-	char *argv_path[] = { "" };
 	
-	//always be in the correct gil_state
-	if (gil_state != uninitialized)
-	{
-		return 1;
-	}
-	
-	Py_Initialize();
 	plugin_count = data->plugin_count;
-
 	plog = data->log;
-
 	async_callback = data->callback;
 	this_file = data->lib_file;
 
-	// Set the python module search path to plugin_dir
-	PySys_SetArgvEx(0, argv_path, 0);
-	if (sprintf(python_stmt, "import sys; import signal; signal.signal(signal.SIGINT, signal.SIG_DFL)") < 0) {
-		plog(LOG_ERROR, "Failed to set default signal handling");
-		return 1;
-	}
-	if (PyRun_SimpleString(python_stmt) < 0) {
-		plog(LOG_ERROR, "Exception raised while running '%s'", python_stmt);
+	// Allocate plugin fuctions
+
+	threadStates = (PyThreadState**)calloc(plugin_count, sizeof(PyThreadState*));
+	if (threadStates == NULL) {
+		plog(LOG_ERROR, "Failed to allocate memory for %d plugins", plugin_count);
 		return 1;
 	}
 
-	// Allocate plugin fuctions
 	plugin_functions = (PyObject**)calloc(plugin_count, sizeof(PyObject*));
 	if (plugin_functions == NULL) {
 		plog(LOG_ERROR, "Failed to allocate memory for %d plugins", plugin_count);
@@ -68,28 +53,35 @@ __declspec(dllexport) int __stdcall initialize(init_addon_data_t* data) {
 		return 1;
 	}
 
+	Py_Initialize();
+	PyEval_InitThreads();
+
+	for (int i = 0; i < plugin_count; i++)
+	{
+		threadStates[i] = Py_NewInterpreter();
+	}
+
+	mainThreadState = PyEval_SaveThread();
+
 	return 0;
 }
 
 __declspec(dllexport) int __stdcall finalize(void) {
-	
-	//always be in the correct gil_state
-	if (gil_state == uninitialized)
-	{
-		//do nothing extra
-	}
-	else if (gil_state == initialized)
-	{
-		//return the main thread
-		PyEval_RestoreThread(mainThreadState);
-	}
-	else if (gil_state == finished)
-	{
-		//bad
-		return 1;
-	}
-	
+
+
 	int i;
+
+	for (i = 0; i < plugin_count; i++) {
+		if (threadStates[i] != NULL) {
+			PyEval_AcquireThread(threadStates[i]);
+			Py_EndInterpreter(threadStates[i]);
+			PyEval_ReleaseLock();
+			threadStates[i] = NULL;
+		}
+	}
+
+	PyEval_RestoreThread(mainThreadState);
+
 	for (i = 0; i < plugin_count; i++) {
 		if (plugin_functions[i] != NULL) {
 			Py_DECREF(plugin_functions[i]);
@@ -105,6 +97,7 @@ __declspec(dllexport) int __stdcall finalize(void) {
 	}
 
 	Py_Finalize();
+	free(threadStates);
 	free(plugin_functions);
 	free(plugin_final_functions);
 
@@ -125,9 +118,18 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 	char* dot_ptr;
 	char* slash_ptr;
 
-	//always be in the correct gil_state
-	if (gil_state != uninitialized)
-	{
+	PyEval_AcquireThread(threadStates[id]);
+
+	char *argv_path[] = { "" };
+
+	// Set the python module search path to plugin_dir
+	PySys_SetArgvEx(0, argv_path, 0);
+	if (sprintf(python_stmt, "import sys; import signal; signal.signal(signal.SIGINT, signal.SIG_DFL)") < 0) {
+		plog(LOG_ERROR, "Failed to set default signal handling");
+		return 1;
+	}
+	if (PyRun_SimpleString(python_stmt) < 0) {
+		plog(LOG_ERROR, "Exception raised while running '%s'", python_stmt);
 		return 1;
 	}
 
@@ -146,21 +148,25 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 
 	if (snprintf(python_stmt, 128, "sys.path.insert(0,'%s')", path) < 0) {
 		plog(LOG_ERROR, "Path too long '%s'", path);
+		PyEval_ReleaseThread(threadStates[id]);
 		return 1;
 	}
 
 	if (PyRun_SimpleString(python_stmt) < 0) {
 		plog(LOG_ERROR, "Exception raised while running '%s'", python_stmt);
+		PyEval_ReleaseThread(threadStates[id]);
 		return 1;
 	}
 
 	if (id < 0) {
 		plog(LOG_ERROR, "Invalid id");
+		PyEval_ReleaseThread(threadStates[id]);
 		return 1;
 	}
 
 	if (module_name == NULL) {
 		plog(LOG_ERROR, "Module name cannot be NULL");
+		PyEval_ReleaseThread(threadStates[id]);
 		return 1;
 	}
 
@@ -170,6 +176,7 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 			log_PyErr();
 		}
 		plog(LOG_ERROR, "Failed to construct PyString from module name");
+		PyEval_ReleaseThread(threadStates[id]);
 		return 1;
 	}
 
@@ -181,14 +188,20 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 			log_PyErr();
 		}
 		plog(LOG_ERROR, "Failed to import module '%s'", module_name);
+		PyEval_ReleaseThread(threadStates[id]);
 		return 1;
 	}
 	//call init function
 	pFunc = PyObject_GetAttrString(pModule, plugin_init_func_name);
 	if (init_plugin(pFunc, id, is_async) != 0) {
 		plog(LOG_ERROR, "Init_plugin failed");
+		if (pFunc != NULL) {
+			Py_DECREF(pFunc);
+		}
+		PyEval_ReleaseThread(threadStates[id]);
 		return 1;
 	}
+
 	//store query function
 	pFunc = PyObject_GetAttrString(pModule, plugin_query_func_name);
 	if (pFunc && PyCallable_Check(pFunc)) {
@@ -199,6 +212,11 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 			log_PyErr();
 		}
 		plog(LOG_ERROR, "Failed to get function '%s'", plugin_query_func_name);
+		if (pFunc != NULL) {
+			Py_DECREF(pFunc);
+		}
+		PyEval_ReleaseThread(threadStates[id]);
+
 		return 1;
 	}
 	//store finalize function	
@@ -211,25 +229,26 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 			log_PyErr();
 		}
 		plog(LOG_ERROR, "Failed to get function '%s'", plugin_final_func_name);
+		if (pFunc != NULL) {
+			Py_DECREF(pFunc);
+		}
+		PyEval_ReleaseThread(threadStates[id]);
+
 		return 1;
 	}
+	Py_DECREF(pFunc);
 	Py_DECREF(pModule);
+	PyEval_ReleaseThread(threadStates[id]);
 
 	return 0;
 }
 
- static int init_plugin(PyObject* pFunc, int id, int is_async) {
+ int init_plugin(PyObject* pFunc, int id, int is_async) {
 	PyObject* pArgs;
 	PyObject* pValue;
 	int(*cb_func_ptr)(int, int, int);
 	int set_arg;
 	int result;
-
-	//always be in the correct gil_state
-	if (gil_state != uninitialized)
-	{
-		return 1;
-	}
 
 	if (is_async == 1) {
 		pArgs = PyTuple_New(3);
@@ -238,6 +257,7 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 				log_PyErr();
 			}
 			plog(LOG_ERROR, "Failed to create new python tuple");
+
 			return 1;
 		}
 		//set id
@@ -248,6 +268,7 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 			}
 			plog(LOG_ERROR, "Failed to parse id argument");
 			Py_DECREF(pArgs);
+
 			return 1;
 		}
 		set_arg = PyTuple_SetItem(pArgs, 0, pValue);
@@ -257,6 +278,7 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 			}
 			plog(LOG_ERROR, "Failed to set id argument in tuple");
 			Py_DECREF(pArgs);
+
 			return 1;
 		}
 
@@ -268,6 +290,7 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 			}
 			plog(LOG_ERROR, "Failed to parse file argument");
 			Py_DECREF(pArgs);
+
 			return -1;
 		}
 		set_arg = PyTuple_SetItem(pArgs, 1, pValue);
@@ -277,6 +300,7 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 			}
 			plog(LOG_ERROR, "Failed to set file argument in tuple");
 			Py_DECREF(pArgs);
+
 			return 1;
 		}
 
@@ -289,6 +313,7 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 			}
 			plog(LOG_ERROR, "Failed to parse pointer argument");
 			Py_DECREF(pArgs);
+
 			return -1;
 		}
 		set_arg = PyTuple_SetItem(pArgs, 2, pValue);
@@ -298,6 +323,7 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 			}
 			plog(LOG_ERROR, "Failed to set pointer argument in tuple");
 			Py_DECREF(pArgs);
+
 			return 1;
 		}
 		//call with arguments
@@ -314,6 +340,7 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 			log_PyErr();
 		}
 		plog(LOG_ERROR, "Failed to call plugin init function");
+
 		return -1;
 	}
 	result = (int)PyInt_AsLong(pValue);
@@ -323,6 +350,7 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 			log_PyErr();
 		}
 		plog(LOG_ERROR, "Failed to parse return value");
+
 		return -1;
 	}
 
@@ -338,28 +366,13 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
  __declspec(dllexport) int __stdcall query_plugin(int id, query_data_t* data) {
 	 int result=-1;
 
-	 //always be in the correct gil_state
-	if (gil_state == uninitialized)
-	{
-		gil_state = initialized;
-		PyEval_InitThreads();
-		mainThreadState = PyEval_SaveThread();
-	}
-	else if (gil_state == initialized)
-	{
-		 //nothing extra
-	}
-	else if (gil_state == finished)
-	{
-		//bad
-		return -1;
-	}
-
-	 PyGILState_STATE state = PyGILState_Ensure();
+	 PyEval_AcquireThread(threadStates[id]);
 	 result=unsafe_query_plugin(id, data);
-	 PyGILState_Release(state);
+	 PyEval_ReleaseThread(threadStates[id]);
+
 	 return result;
  }
+
  int unsafe_query_plugin(int id, query_data_t* data) {
 	int result;
 	int set_arg;
@@ -488,29 +501,11 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 __declspec(dllexport) int __stdcall query_plugin_async(int id, query_data_t* data) {
 	int result = -1;
 
-	//always be in the correct gil_state
-	if (gil_state == uninitialized)
-	{
-		gil_state = initialized;
-		PyEval_InitThreads();
-		mainThreadState = PyEval_SaveThread();
-	}
-	else if (gil_state == initialized)
-	{
-		//nothing extra
-	}
-	else if (gil_state == finished)
-	{
-		//bad
-		return -1;
-	}
-
-	PyGILState_STATE state = PyGILState_Ensure();
+	PyEval_AcquireThread(threadStates[id]);
 	result = unsafe_query_plugin_async(id, data);
-	PyGILState_Release(state);
+	PyEval_ReleaseThread(threadStates[id]);	
 
 	return result;
-
 }
 int unsafe_query_plugin_async(int id, query_data_t* data) {
 	int result;
@@ -534,7 +529,9 @@ int unsafe_query_plugin_async(int id, query_data_t* data) {
 	}
 
 	result = 0;
+
 	pFunc = plugin_functions[id];
+
 	pArgs = PyTuple_New(4);
 	if (pArgs == NULL) {
 		if (PyErr_Occurred()) {
@@ -656,52 +653,19 @@ int callback(int result, int plugin_id, int query_id) {
 __declspec(dllexport) int __stdcall finalize_plugin(int id) {
 	int result = -1;
 
-	//always be in the correct gil_state
-	if (gil_state == uninitialized)
-	{
-		gil_state = initialized;
-		PyEval_InitThreads();
-		mainThreadState = PyEval_SaveThread();
-	}
-	else if (gil_state == initialized)
-	{
-		//nothing extra
-	}
-	else if (gil_state == finished)
-	{
-		//bad
-		return -1;
-	}
-
-	PyGILState_STATE state = PyGILState_Ensure();
+	PyEval_AcquireThread(threadStates[id]);
 	result = unsafe_finalize_plugin(id);
-	PyGILState_Release(state);
+	PyEval_ReleaseThread(threadStates[id]);
 
 	return result;
 }
+
 int unsafe_finalize_plugin(int id) {
 	PyObject* pValue;
 	PyObject* pFunc;
 
-	//always be in the correct gil_state
-	if (gil_state == uninitialized)
-	{
-		gil_state = initialized;
-		PyEval_InitThreads();
-		mainThreadState = PyEval_SaveThread();
-	}
-	else if (gil_state == initialized)
-	{
-		//nothing extra
-	}
-	else if (gil_state == finished)
-	{
-		//bad
-		return -1;
-	}
-
-	// Call finalize functions
 	pFunc = plugin_final_functions[id];
+	
 	if (pFunc == NULL) {
 		plog(LOG_ERROR, "Failed to find a finalize function for plugin %d", id);
 		return 0;
