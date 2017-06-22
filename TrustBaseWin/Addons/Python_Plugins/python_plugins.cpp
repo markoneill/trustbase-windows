@@ -80,8 +80,6 @@ __declspec(dllexport) int __stdcall finalize(void) {
 		}
 	}
 
-	PyEval_RestoreThread(mainThreadState);
-
 	for (i = 0; i < plugin_count; i++) {
 		if (plugin_functions[i] != NULL) {
 			Py_DECREF(plugin_functions[i]);
@@ -96,7 +94,12 @@ __declspec(dllexport) int __stdcall finalize(void) {
 		}
 	}
 
-	Py_Finalize();
+	PyEval_RestoreThread(mainThreadState);
+
+
+	//todo: I am uncertain why, but calling py_finalize crashes the program.
+	//Everything will function fine, but this might leak by having it commented out though.
+	//Py_Finalize();
 	free(threadStates);
 	free(plugin_functions);
 	free(plugin_final_functions);
@@ -111,7 +114,10 @@ __declspec(dllexport) int __stdcall finalize(void) {
 __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_async) {
 	PyObject* pName;
 	PyObject* pModule;
-	PyObject* pFunc;
+	PyObject* pInitFunc;
+	PyObject* pQueryFunc;
+	PyObject* pFinalizeFunc;
+
 	char path[128];
 	char python_stmt[128];
 	char* module_name;
@@ -192,51 +198,65 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char* file_name, int is_
 		return 1;
 	}
 	//call init function
-	pFunc = PyObject_GetAttrString(pModule, plugin_init_func_name);
-	if (init_plugin(pFunc, id, is_async) != 0) {
+	pInitFunc = PyObject_GetAttrString(pModule, plugin_init_func_name);
+	if (init_plugin(pInitFunc, id, is_async) != 0) {
 		plog(LOG_ERROR, "Init_plugin failed");
-		if (pFunc != NULL) {
-			Py_DECREF(pFunc);
+		if (pInitFunc != NULL) {
+			Py_DECREF(pInitFunc);
 		}
 		PyEval_ReleaseThread(threadStates[id]);
 		return 1;
 	}
 
 	//store query function
-	pFunc = PyObject_GetAttrString(pModule, plugin_query_func_name);
-	if (pFunc && PyCallable_Check(pFunc)) {
-		plugin_functions[id] = pFunc;
+	pQueryFunc = PyObject_GetAttrString(pModule, plugin_query_func_name);
+	if (pQueryFunc && PyCallable_Check(pQueryFunc)) {
+		plugin_functions[id] = pQueryFunc;
 	}
 	else {
 		if (PyErr_Occurred()) {
 			log_PyErr();
 		}
 		plog(LOG_ERROR, "Failed to get function '%s'", plugin_query_func_name);
-		if (pFunc != NULL) {
-			Py_DECREF(pFunc);
+		
+		if (pInitFunc != NULL) {
+			Py_DECREF(pInitFunc);
+		}
+		if (pQueryFunc != NULL) {
+			Py_DECREF(pQueryFunc);
 		}
 		PyEval_ReleaseThread(threadStates[id]);
 
 		return 1;
 	}
 	//store finalize function	
-	pFunc = PyObject_GetAttrString(pModule, plugin_final_func_name);
-	if (pFunc && PyCallable_Check(pFunc)) {
-		plugin_final_functions[id] = pFunc;
+	pFinalizeFunc = PyObject_GetAttrString(pModule, plugin_final_func_name);
+	if (pFinalizeFunc && PyCallable_Check(pFinalizeFunc)) {
+		plugin_final_functions[id] = pFinalizeFunc;
 	}
 	else {
 		if (PyErr_Occurred()) {
 			log_PyErr();
 		}
 		plog(LOG_ERROR, "Failed to get function '%s'", plugin_final_func_name);
-		if (pFunc != NULL) {
-			Py_DECREF(pFunc);
+		if (pInitFunc != NULL) {
+			Py_DECREF(pInitFunc);
+		}
+		if (pQueryFunc != NULL) {
+			Py_DECREF(pQueryFunc);
+		}
+		if (pFinalizeFunc != NULL) {
+			Py_DECREF(pFinalizeFunc);
 		}
 		PyEval_ReleaseThread(threadStates[id]);
 
 		return 1;
 	}
-	Py_DECREF(pFunc);
+
+	if (pInitFunc != NULL) {
+		Py_DECREF(pInitFunc);
+	}
+
 	Py_DECREF(pModule);
 	PyEval_ReleaseThread(threadStates[id]);
 
