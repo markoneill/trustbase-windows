@@ -114,17 +114,26 @@ __declspec(dllexport) int __stdcall query(query_data_t* data) {
 	// Get cert expire time as a time_t
 	exptime = ASN1_GetTimeT(X509_get_notAfter(cert));
 
-
 	/* There should be a table named 'pinned'
 	* CREATE TABLE pinned (hostname TEXT PRIMARY KEY, hash TEXT, exptime INTEGER);
 	*/
+
+
 	if (sqlite3_prepare_v2(database, "SELECT hash FROM pinned WHERE hostname=?1 AND exptime > ?2;", -1, &statement, NULL) != SQLITE_OK) {
 		rval = PLUGIN_RESPONSE_ERROR;
 	}
 	else if (sqlite3_bind_text(statement, 1, (char*)data->hostname, -1, SQLITE_STATIC) != SQLITE_OK) {
 		rval = PLUGIN_RESPONSE_ERROR;
 	}
-	else if (sqlite3_bind_int64(statement, 2, (sqlite_uint64)exptime) != SQLITE_OK) {
+
+	//Luke edit:
+	//uh, I dont think this previous code made any sense
+	//sqlite3_bind_int64(statement, 2, (sqlite_uint64)exptime) != SQLITE_OK) {
+	//this would be asking if the cert we are presenting expires at a later time than the current cert pinned.
+	//I changed it to the following:
+	//(sqlite3_bind_int64(statement, 2, (sqlite_uint64)ptime) != SQLITE_OK)
+	//this says: I want the cert that is pinned, if it has not yet expired. Otherwise we ignore it
+	else if (sqlite3_bind_int64(statement, 2, (sqlite_uint64)ptime) != SQLITE_OK) {
 		rval = PLUGIN_RESPONSE_ERROR;
 	}
 	else if (sqlite3_step(statement) == SQLITE_ROW) {
