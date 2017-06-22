@@ -9,16 +9,40 @@
 #define CONFIG_FILE "/plugin-config/cipher_suite.cfg"
 #define PLUGIN_INIT_ERROR -1
 
-#define CLIENT_HELLO_CIPHER_LEN_OFF	0x27
+#define CLIENT_HELLO_SIZE 3
+#define CLIENT_HELLO_TLS_VERISON 2
+#define CLIENT_HELLO_RANDOM_BYTES 32
+#define CLIENT_HELLO_SESSION_LENGTH 1
+
+#define CLIENT_HELLO_SESSION_LEN_OFF	CLIENT_HELLO_SIZE+CLIENT_HELLO_TLS_VERISON+CLIENT_HELLO_RANDOM_BYTES
+
+//Luke Edit: Assuming 0 length session: This value was set to 0x27 (39). For windows, at least, it should be 0x26 (38)
+//dont use CLIENT_HELLO_CIPHER_LEN_OFF as it assumes 0 length session
+//#define CLIENT_HELLO_CIPHER_LEN_OFF	CLIENT_HELLO_SIZE+CLIENT_HELLO_TLS_VERISON+CLIENT_HELLO_RANDOM_BYTES+CLIENT_HELLO_SESSION_LENGTH
 #define CLIENT_HELLO_CIPHER_LEN_SIZE	2
 #define CLIENT_HELLO_COMPRESS_LEN_SIZE	1
 #define CLIENT_HELLO_EXT_LEN_SIZE	2
 
-#define SERVER_HELLO_CIPHER_OFF		0x47
-#define SERVER_HELLO_CIPHER_SIZE	2
+#define SERVER_HELLO_SIZE			3
+#define SERVER_HELLO_TLS_VERISON	2
+#define SERVER_HELLO_RANDOM_BYTES 32
+#define SERVER_HELLO_SESSION_LENGTH 1
 
-#define EXT_OFF				0x4c
-#define EXT_SIZE			2
+#define SERVER_HELLO_SESSION_LEN_OFF	SERVER_HELLO_SIZE + SERVER_HELLO_TLS_VERISON +SERVER_HELLO_RANDOM_BYTES
+
+//Luke Edit: Assuming 0 length session: This value was set to 0x47. For windows, at least, it should be 0x27 (39)
+//dont use SERVER_HELLO_CIPHER_OFF as it assumes 0 length session
+
+//#define SERVER_HELLO_CIPHER_OFF		SERVER_HELLO_SIZE + SERVER_HELLO_TLS_VERISON +SERVER_HELLO_RANDOM_BYTES+ SERVER_HELLO_SESSION_LENGTH
+#define SERVER_HELLO_CIPHER_SIZE	2
+#define SERVER_HELLO_COMPRESSION_SIZE	1
+
+//Luke Edit: This value is not always true
+//#define EXT_OFF				0x4c
+
+#define All_EXT_SIZE			2
+
+#define EXT_SIZE				2
 #define EXT_LEN_SIZE			2
 
 #ifdef __cplusplus
@@ -129,8 +153,16 @@ __declspec(dllexport) int __stdcall finalize() {
 int verify_client_hello(char* client_hello, size_t client_hello_len) {
 	unsigned int offset;
 	unsigned int size;
+	unsigned int sessionSize;
 
-	offset = CLIENT_HELLO_CIPHER_LEN_OFF;
+	offset = CLIENT_HELLO_SESSION_LEN_OFF;
+	if (offset + CLIENT_HELLO_SESSION_LEN_OFF > client_hello_len) {
+		plog(LOG_ERROR, "Cipher Suite Plugin: Got a truncated Client Hello.");
+		return PLUGIN_RESPONSE_ERROR;
+	}
+	sessionSize = get_int_from_net(&(client_hello[offset]), CLIENT_HELLO_SESSION_LENGTH);
+
+	offset = offset + sessionSize + 1;
 	if (offset + CLIENT_HELLO_CIPHER_LEN_SIZE > client_hello_len) {
 		plog(LOG_ERROR, "Cipher Suite Plugin: Got a truncated Client Hello.");
 		return PLUGIN_RESPONSE_ERROR;
@@ -157,14 +189,22 @@ int verify_server_hello(char* server_hello, size_t server_hello_len) {
 	unsigned int cipher;
 	int i;
 	char found;
+	unsigned int sessionSize;
+
+	if (SERVER_HELLO_SESSION_LEN_OFF > server_hello_len) {
+		plog(LOG_ERROR, "Cipher Suite Plugin: Got a truncated Client Hello.");
+		return PLUGIN_RESPONSE_ERROR;
+	}
+	offset = SERVER_HELLO_SESSION_LEN_OFF;
+
+	sessionSize = get_int_from_net(&(server_hello[offset]), SERVER_HELLO_SESSION_LENGTH);
+	offset = offset + sessionSize + 1;
 
 	// extract the choosen cipher
-	offset = SERVER_HELLO_CIPHER_OFF;
 	if (offset + SERVER_HELLO_CIPHER_SIZE > server_hello_len) {
 		plog(LOG_ERROR, "Cipher Suite Plugin: Got truncated Server Hello");
 		return PLUGIN_RESPONSE_ERROR;
 	}
-
 	cipher = get_int_from_net(&(server_hello[offset]), SERVER_HELLO_CIPHER_SIZE);
 	//plog(LOG_DEBUG, "We see a cipher of %x", cipher);
 	// check the cipher
@@ -188,7 +228,7 @@ int verify_server_hello(char* server_hello, size_t server_hello_len) {
 		return PLUGIN_RESPONSE_INVALID;
 	}
 
-	offset = EXT_OFF;
+	offset = offset + SERVER_HELLO_CIPHER_SIZE + SERVER_HELLO_COMPRESSION_SIZE + All_EXT_SIZE;
 	return processExtList(server_hello, offset, server_hello_len, cipher_settings.requiredServerExtList, cipher_settings.requiredServerExtListSize, cipher_settings.rejectedServerExtList, cipher_settings.rejectedServerExtListSize);
 }
 
@@ -199,6 +239,8 @@ int processExtList(char* inbuf, int offset, int buf_len, int* req_exts, size_t r
 	unsigned int ext_len;
 
 	num_req_found = 0;
+
+
 
 	while (offset + EXT_SIZE + EXT_LEN_SIZE <= buf_len) {
 		// get the ext id
@@ -239,8 +281,10 @@ unsigned int get_int_from_net(char* inbuf, int len) {
 	unsigned int response = 0;
 	unsigned char* buf;
 	buf = (unsigned char*)inbuf;
+
 	for (i = 0; i<len; i++) {
 		response += ((unsigned)buf[i]) << (8 * (len - (i + 1)));
+
 	}
 	return response;
 }
