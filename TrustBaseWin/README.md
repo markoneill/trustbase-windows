@@ -116,6 +116,12 @@ A compiled version of Openssl 64 bit with applink enabled needs to be included. 
 
 The tools.zip also include other libs used by various plugins.
 
+The Policy Engine expects libcrypto-1_1-x64.dll to be located in 1 of 3 places: 
+  1. 'C:\WINDOWS\SYSTEM32\libcrypto-1_1-x64.dll'
+  2. In an folder in an environment path location
+  3. In the same folder as the exe
+This file is located in the tools zip at \tools\openssl-64\bin or \tools\openssl-64-debug\bin 
+
 #### Plugins
 
 Plugins must be compiled to a 'DLL'. 
