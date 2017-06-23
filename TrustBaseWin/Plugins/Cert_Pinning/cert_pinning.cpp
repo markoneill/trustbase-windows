@@ -90,10 +90,12 @@ __declspec(dllexport) int __stdcall query(query_data_t* data) {
 	statement = NULL;
 
 	if (database_path == NULL) {
+		plog(LOG_ERROR, "CERT PINNING: database_path is NULL");
 		return PLUGIN_RESPONSE_ERROR;
 	}
 
 	if (sqlite3_open_v2(database_path, &database, SQLITE_OPEN_READWRITE, NULL) != SQLITE_OK) {
+		plog(LOG_ERROR, "CERT PINNING: Could not open database");
 		return PLUGIN_RESPONSE_ERROR;
 	}
 
