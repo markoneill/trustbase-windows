@@ -131,6 +131,39 @@ See 'SamplePlugin1' or 'SamplePlugin2' for examples.
 
 To run the Native Plugins, each plugin must be built.
 
+Some plugins require other files to work. Here are the details:
+
+For Native Plugins:
+
+  (for the whitelist plugin)
+   
+      This plugin requires "sqlite3.dll"
+      The Policy Engine expects sqlite3.dll to be located in 1 of 3 places: 
+        1. 'C:\WINDOWS\SYSTEM32\sqlite3.dll'
+        2. In an folder in an environment path location
+        3. In the same folder as the exe
+      This file is located in the tools zip at \tools\sqlite3 or \tools\sqlite3 
+
+      a folder called "whitelist" is required to be in the PolicyEngine project folder. Inside this folder include a whitelist file (any file with a .pem extension)
+
+  (for the certificate pinning plugin)
+      pinned_certs.db is required to be in the PolicyEngine project folder
+
+  (for the cipher suite plugin)
+      a folder called "plugin-config" required to be in the PolicyEngine project folder. Inside this folder include a cipher_suite.cfg.
+
+For Python Plugins: use the folder "PythonPluginFiles". It should have the following files:
+
+    (required for python)
+    trusthub_python.py
+
+    (for test plugin)
+    test_plugin.py
+
+    (for crlset revocation plugin)
+    crlset_revocation.py
+    crlset.dll
+
 #### Python Addon
 
 Python 2.7.x 64bit needs to be installed. We are using 2.7.13. Python should be installed at c:\Python27
@@ -193,6 +226,73 @@ The Kernel Driver development setup is the most complex. It involves two Windows
   - On the _Target_ launch a administrator cmd console, and run `net start TrustHubWin`
   - Now the Kernel Driver is inserted and listening, start the Policy Engine or UserspaceTest as Admin
 
+#### Deploying TrustBase on a computer without debug tools
+
+I have compiled the June 22nd verison of Trustbase into a zip, put it on the Google Drive at TrustBase\Windows. Below are the current instructions required to run TrustBase on a computer (without Visual Studio or any debug tools). 
+
+1. Install Python 2.7 64 bit *In SNAPSHOT zip*
+2. Use pip to install pyOpenSSL (some plugins might require other python lib)
+    2.1. open command prompt and type: "cd c:\python27\scripts"
+    2.2. type "pip install pyOpenSSL"
+For Release version:
+3. Install Visual Studio 2015 Redistributable (x64) *In SNAPSHOT zip*
+For Debug version: 
+4. Install Visual Studio 2015
+5. Follow instructions for Driver Installation (below)
+6. Follow instructions for Policy Engine Installaion (below)
+
+## Driver Installation (Without debug tools)
+
+  1. Build The TrustBaseWin Project. I believe the files from the build are sufficient. Although, if the TrustBaseWin project is "Deploy"-ed onto a target machine, then the build will also include a ceritificate.
+
+  2. On the machine you want to the TrustBase Traffic Interceptor, you either have to provision the machine (long term effect, see `Kernel Driver development`) or you have turn on the machine with driver signing enforcement off. This will only last until the computer is restarted. The instructions the following:
+
+      1. Go to Windows Settings -> Update and Security -> Recovery -> Advanced Startup. This will restart your machine.
+      2. Troubleshoot -> Advanced options -> Startup Settings
+      3. press f7 to disable driver signature enforcement
+
+  3. Once the machine you want to install the TrustBase Traffic Interceptor is ready, right click on the "TrustBaseWin.inf" and click install. 
+
+  4. To run the TrustBase Traffic Interceptor, open an `adminstrator command prompt window` and type "net start TrustBaseWin"
+
+  5. To stop the TrustBase Traffic Interceptor, open an `adminstrator command prompt window` and type "net stop TrustBaseWin" Do note that, after it is stopped, you will need to restart the computer in order to start the Interceptor again (bug for now). You will then have to disabling driver signature enforcement again. 
+
+## Policy Engine Installation (Without debug tools)
+  1. After building the Policy Engine, Python Addon, and all the Plugins you may want to use, copy the entire bin folder (x64/debug) to a folder named whatever you want it to be named.
+  In addition to the files from the bin, include the following:
+
+    (required)
+    trustbase.cfg - A copy of this file is located in the PolicyEngine project folder.
+
+    (required)
+    libcrypto-1_1-x64.dll - A copy of this file is located in the tools zip at \tools\openssl-64\bin or \tools\openssl-64-debug\bin (alternatively this .dll could be added to the PATH)
+
+    (for the whitelist plugin)
+    sqlite3.dll - This file is located in the tools zip at \tools\sqlite3 (alternatively this .dll could be added to the PATH)
+    a folder called "whitelist". Inside this folder include a whitelist file (any file with a .pem extension)
+
+    (for the certificate pinning plugin)
+    pinned_certs.db - A copy of this file is located in the PolicyEngine project folder
+
+    (for the cipher suite plugin)
+    a folder called "plugin-config". Inside this folder include a cipher_suite.cfg. A copy of this file is located in the PolicyEngine project folder
+
+
+  2. Go up one folder from the bin folder create above, create a folder called "PythonPluginFiles". This folder can be copied from the repo. It should have the following files:
+
+    (required for python)
+    trusthub_python.py
+
+    (for test plugin)
+    test_plugin.py
+
+    (for crlset revocation plugin)
+    crlset_revocation.py
+    crlset.dll
+      The crlset.dll is created from the crlset.go, crlset.c, and crlset.h. A compiled verison is in the Google Drive at TrustBase\Windows
+  3. Go up two folders from the bin (and PythonPluginFiles) folder, and create a file called tools. This should be contents of the tools zip located on the Google Drive
+
+  4. The PolicyEngine can be run, by opening a `adminstrator command prompt window`, and running "PolicyEngine.exe"
 ### Future Development
 
 #### Development TODO
@@ -206,9 +306,9 @@ The Kernel Driver development setup is the most complex. It involves two Windows
 ##### Policy Engine
 
 - [x] Python Addon Integration
-- [ ] Python Addons use multiple threads 
-- [ ] Proxy/Inserting Certificates into Root Store
-
+- [x?] Python Addons use multiple threads 
+- [x] Proxy/Inserting Certificates into Root Store
+- [] Certs from GoDaddy (4 chain length, maybe the problem) are not trusted by evaluate function in UnbrakeableCrypto. So any time we see one, the user sees "do you want to add this to the root store"
 #### Testing TODO
 
 ##### Kernel Driver
