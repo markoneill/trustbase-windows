@@ -4,15 +4,12 @@
 #include "TrustBaseInstaller.h"
 #include <cstdio>
 
-
 /**
 * The main entry point for the service.
 * Accepts parameters "install" "uninstall" and "help"
 *
 **/
 void __cdecl _tmain(int argc, TCHAR* argv[]) {
-	
-	
 	if(argc > 1 && lstrcmpi(argv[1], TEXT("help")) == 0) {
 		printf("TrustBase Service\r\nAccepts: 'install' 'uninstall' 'help'\r\n");
 		return;
@@ -38,8 +35,7 @@ void __cdecl _tmain(int argc, TCHAR* argv[]) {
 
 	TrustBaseService service;
 
-	if (!TrustBaseService::startService(service))
-	{
+	if (!TrustBaseService::startService(service)){
 		printf("TrustBase Failed2\n");
 		DWORD error = GetLastError();
 		printf("%lu", error);

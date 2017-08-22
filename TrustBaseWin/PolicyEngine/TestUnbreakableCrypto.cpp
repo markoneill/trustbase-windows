@@ -1,8 +1,6 @@
 #include "stdafx.h"
 #include "TestUnbreakableCrypto.h"
 
-
-
 TestUnbreakableCrypto::TestUnbreakableCrypto() {
 	QF = new QueryFetcher();
 }
@@ -11,6 +9,9 @@ TestUnbreakableCrypto::~TestUnbreakableCrypto() {
 	delete QF;
 }
 
+/*
+run test cases
+*/
 int TestUnbreakableCrypto::Test() {
 	int passed = 0;
 	int warnings = 0;
@@ -18,8 +19,7 @@ int TestUnbreakableCrypto::Test() {
 
 	std::cout << std::endl << "TEST 1: UnbreakableCrypto constructor should not fail." << std::endl;
 	try {
-		if (Test1(&warnings)) 
-		{
+		if (Test1(&warnings)) {
 			std::cout << " **PASS**" << std::endl;
 			passed++;
 		}
@@ -33,8 +33,7 @@ int TestUnbreakableCrypto::Test() {
 
 	std::cout << std::endl << "TEST 2: UnbreakableCrypto configure should instantiate necessary members." << std::endl;
 	try {
-		if (Test2(&warnings))
-		{
+		if (Test2(&warnings)){
 			std::cout << " **PASS**" << std::endl;
 			passed++;
 		}
@@ -48,8 +47,7 @@ int TestUnbreakableCrypto::Test() {
 
 	std::cout << std::endl << "TEST 3: UnbreakableCrypto::evaluate should warn when running without first configuring." << std::endl;
 	try {
-		if (Test3(&warnings))
-		{
+		if (Test3(&warnings)){
 			std::cout << " **PASS**" << std::endl;
 			passed++;
 		}
@@ -63,8 +61,7 @@ int TestUnbreakableCrypto::Test() {
 
 	std::cout << std::endl << "TEST 4: UnbreakableCrypto should accept a valid certificate." << std::endl;
 	try {
-		if (Test4(&warnings))
-		{
+		if (Test4(&warnings)){
 			std::cout << " **PASS**" << std::endl;
 			passed++;
 		}
@@ -78,8 +75,7 @@ int TestUnbreakableCrypto::Test() {
 
 	std::cout << std::endl << "TEST 5: UnbreakableCrypto should reject a valid certificate with the wrong hostname" << std::endl;
 	try {
-		if (Test5(&warnings))
-		{
+		if (Test5(&warnings)){
 			std::cout << " **PASS**" << std::endl;
 			passed++;
 		}
@@ -93,8 +89,7 @@ int TestUnbreakableCrypto::Test() {
 
 	std::cout << std::endl << "TEST 6: UnbreakableCrypto should reject an invalid certificate" << std::endl;
 	try {
-		if (Test6(&warnings))
-		{
+		if (Test6(&warnings)){
 			std::cout << " **PASS**" << std::endl;
 			passed++;
 		}
@@ -108,8 +103,7 @@ int TestUnbreakableCrypto::Test() {
 
 	std::cout << std::endl << "TEST 7: UnbreakableCrypto should reject a mal-formed certificate" << std::endl;
 	try {
-		if (Test7(&warnings))
-		{
+		if (Test7(&warnings)){
 			std::cout << " **PASS**" << std::endl;
 			passed++;
 		}
@@ -126,8 +120,7 @@ int TestUnbreakableCrypto::Test() {
 	//std::cout << " **SKIPPED**" << std::endl;
 	//UNCOMMENT AT YOUR OWN RISK. THIS WILL TRY TO ALTER YOUR WINDOWS ROOT CERTIFICATE STORE :)
 	try {
-		if (Test8(&warnings))
-		{
+		if (Test8(&warnings)){
 			std::cout << " **PASS**" << std::endl;
 			passed++;
 		}
@@ -231,7 +224,6 @@ bool TestUnbreakableCrypto::Test5(int* warning_count) {
 	RawCertData * null_in_hostname = BuildNullInHostnameQuery();
 	std::vector<PCCERT_CONTEXT> null_in_hostname_data = null_in_hostname->getCertInVector();
 
-
 	if (null_in_hostname == NULL || bad_hostname == NULL) { throw std::exception("Cert Reading Failed!"); }
 	if (UBC.evaluateChain(&bad_host_data, "wrong.host.badssl.com") != UnbreakableCrypto_REJECT) {
 		std::cout << "+A valid certificate with a bad hostname was not rejected by UnbreakableCrypto!" << std::endl;
@@ -267,7 +259,6 @@ bool TestUnbreakableCrypto::Test6(int* warning_count) {
 	delete invalid;
 	return pass;
 }
-
 
 //UnbreakableCrypto should reject a mal-formed certificate
 bool TestUnbreakableCrypto::Test7(int* warning_count) {
@@ -346,9 +337,6 @@ bool TestUnbreakableCrypto::Test9(int * warning_count)
 {
 	return false;
 }
-
-
-
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //Utilities for the tests:

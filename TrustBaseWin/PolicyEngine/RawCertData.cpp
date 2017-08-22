@@ -1,6 +1,11 @@
 #include "stdafx.h"
 #include "RawCertData.h"
 
+/*
+A class to wrap raw certificates in order to convert them to various types (openssl x509; wincrypt PCCERT_CONTEXT).
+This class is used to simplify test cases.
+*/
+
 RawCertData::RawCertData(UINT8 * raw_cert, DWORD cert_len)
 {
 	this->raw_cert = raw_cert;

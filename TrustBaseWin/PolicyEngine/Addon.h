@@ -4,9 +4,10 @@
 #include <LibLoaderAPI.h>
 #include "TBLogger.h"
 #include "trustbase_plugin.h"
+
+
 class Addon {
 public:
-
 	Addon();
 	Addon(const Addon& other);
 	Addon(int id, std::string name, std::string path, std::string type_handled, std::string description="", std::string version="");

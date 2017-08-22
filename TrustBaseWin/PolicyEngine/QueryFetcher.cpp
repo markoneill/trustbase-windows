@@ -1,8 +1,12 @@
 #include "stdafx.h"
 #include "QueryFetcher.h"
 
-RawCertData * QueryFetcher::fetch(FetchFileName ffn) {
+/*
+A class to fetch certificates for various test cases
+*/
 
+
+RawCertData * QueryFetcher::fetch(FetchFileName ffn) {
 	LPCWSTR filename;
 
 	switch (ffn) {

@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "QueryQueue.h"
 
-
 QueryQueue::QueryQueue(int plugin_count) {
 	this->plugin_count = plugin_count;
 	queues = new PluginQueue[plugin_count + 1];
@@ -52,7 +51,6 @@ bool QueryQueue::link(Query * query) {
 	list.push_front(query);
 
 	lck.unlock();
-
 	return true;
 }
 

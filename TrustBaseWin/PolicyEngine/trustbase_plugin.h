@@ -20,6 +20,22 @@
 #define PLUGIN_FINALIZE_ERR		-1
 
 typedef struct query_data_t {
+/*	
+*	id: a non-negative integer that is used as an index in an array
+*		containing pointers to plugin functions; it is the identifier
+*		for which plugin to query as assigned by the load_plugin() function
+*	hostname: the domain name
+*	port: the port the query came on
+*	chain : the cert chain to test for validity in openssl X509 form
+*	cert_context_chain : the cert chain to test for validity in wincrypt PCCERT_CONTEXT form
+*	raw_chain : the cert chain to test for validity in raw byte form
+*	raw_chain_len : the length of the raw_chain byte array
+*	client_hello : the client_hello in raw byte form
+*	client_hello_len : the length of the client_hello byte array
+*	server_hello : the server_hello in raw byte form
+*	server_hello_len : the length of the server_hello byte array
+*/
+
 	int id;
 	char* hostname;
 	uint16_t port;
@@ -41,6 +57,13 @@ typedef struct init_data_t {
 } init_data_t;
 
 typedef struct init_addon_data_t {
+	/*
+	*	plugin_count: the number of plugins that will be loaded into memory. Used
+	*					for allocating memory
+	*	plugin_directory: the directory that the python interpreter will use to
+	*						begin searching for modules
+	*/
+
 	size_t plugin_count;
 	const char* plugin_dir;
 	const char *lib_file;

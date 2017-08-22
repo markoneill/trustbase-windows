@@ -22,7 +22,6 @@
     <ProjectGuid>{A102123E-44F5-4159-8C1B-FBA8B8BD1C4C}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>SimplePlugin2</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

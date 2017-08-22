@@ -21,7 +21,6 @@
     <ProjectGuid>{00F41694-D8D7-410A-8248-7E79AD135519}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>whitelist</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
     <ProjectName>whitelist</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

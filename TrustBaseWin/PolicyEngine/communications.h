@@ -1,5 +1,4 @@
 #pragma once
-
 #include <Windows.h>
 #include <atomic>
 #include <exception>
@@ -10,7 +9,7 @@
 #define TRUSTBASEKERN	L"\\\\.\\TrustBase"
 #define INITIALBUFSIZE	16384
 
-#define COMMUNICATIONS_DEBUG_MODE	false
+#define COMMUNICATIONS_DEBUG_MODE	true
 #define COMMUNICATIONS_DEBUG_QUERY	"./example_query.bin"
 
 namespace Communications {

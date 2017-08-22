@@ -17,9 +17,7 @@
 
 bool decider_loop(QueryQueue* qq, PolicyContext* context);
 
-int main()
-{
-
+int main(){
 	//Store certificates in root store removal
 	UnbreakableCrypto UBC = UnbreakableCrypto();
 	UBC.configure();
@@ -106,7 +104,6 @@ int main()
 }
 
 bool decider_loop(QueryQueue* qq, PolicyContext* context) {
-
 	UnbreakableCrypto UBC = UnbreakableCrypto();
 	UBC.configure();
 
@@ -168,8 +165,7 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		}
 
 		//Check if we need to trick the system to accept what the plugins say.
-		if (response == PLUGIN_RESPONSE_VALID && !(system_response==UnbreakableCrypto_ACCEPT))
-		{
+		if (response == PLUGIN_RESPONSE_VALID && !(system_response==UnbreakableCrypto_ACCEPT)){
 			if (query->data.cert_context_chain->size() <= 0) {
 				tblog() << "No PCCERT_CONTEXT in chain";
 				return false;
@@ -192,6 +188,5 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		// free that query
 		delete query;
 	}
-
 	return true;
 }

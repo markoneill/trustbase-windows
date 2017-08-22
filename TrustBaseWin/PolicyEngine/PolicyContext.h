@@ -11,7 +11,6 @@ public:
 	~PolicyContext();
 
 	bool loadConfig(const char* path);
-
 	bool initAddons();
 
 	Plugin* getPlugin(const char* name);
@@ -27,8 +26,4 @@ public:
 	size_t addon_count;
 
 	double congress_threshold;
-	
-	// Decider queue
-
-	// timeout list
 };

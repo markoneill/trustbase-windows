@@ -14,7 +14,6 @@ namespace Communications {
 }
 
 bool Communications::send_response(int result, UINT64 flowHandle) {
-	
 	((UINT64*)response_buf)[0] = flowHandle;
 	((UINT8*)response_buf)[sizeof(UINT64)] = (UINT8)result;
 
@@ -22,20 +21,15 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 		tblog() << "Would have responded " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << flowHandle;
 		return true;
 	}
-	else
-	{
-
+	else{
 		tblog() << "about to respond with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << flowHandle;
-
-
 		//Using Overlapped to allow async read/write. We only allow upto a single read and single write at the same time. 
 		//This allows the ReadFile call to block on its own  thread, without also blocking the WriteFile function. 
 		OVERLAPPED overlappedWrite = { 0 };
 		overlappedWrite.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 		DWORD dwBytesWritten = 0;
 
-		if (!overlappedWrite.hEvent)
-		{
+		if (!overlappedWrite.hEvent){
 			//bad
 			tblog() << "CreateEvent failed";
 			return false;
@@ -44,8 +38,7 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 
 		bool writeFileSuccessful = WriteFile(file, response_buf, 0x10, NULL, &overlappedWrite);
 		DWORD dwWaitRes = WaitForSingleObject(overlappedWrite.hEvent, INFINITE);
-		if (dwWaitRes == WAIT_FAILED)
-		{
+		if (dwWaitRes == WAIT_FAILED){
 			//bad
 			tblog() << "WAIT_FAILED";
 			tblog() << "quitting write function";
@@ -55,18 +48,14 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 		if(writeFileSuccessful){
 			//no action needed
 		}
-		else
-		{
-
-			if (GetLastError() != ERROR_IO_PENDING)
-			{
+		else{
+			if (GetLastError() != ERROR_IO_PENDING){
 				tblog() << "Unsuccessfully ";
 				tblog() << "NOT ERROR_IOPENDING ";
 				tblog() << "quitting write function";
 				return false;
 			}
-			else
-			{
+			else{
 				writeFileSuccessful = GetOverlappedResult(file, &overlappedWrite, &dwBytesWritten, true);
 			}
 		}
@@ -75,12 +64,11 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 		if (writeFileSuccessful) {
 			tblog() << "Successfully ";
 		}
-		else
-		{
+		else{
 			tblog() << "Unsuccessfully ";
 		}
-		if (overlappedWrite.hEvent)
-		{
+
+		if (overlappedWrite.hEvent){
 			CloseHandle(overlappedWrite.hEvent);
 		}
 
@@ -106,34 +94,27 @@ bool Communications::recv_query() {
 		OVERLAPPED overlappedRead = { 0 };
 		overlappedRead.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 		DWORD dwBytesRead = 0;
-		if (!overlappedRead.hEvent)
-		{
+		if (!overlappedRead.hEvent){
 			//bad
 			return false;
 		}
 		overlappedRead.Offset = 0;
 		bool readFileSuccessful = ReadFile(file, bufcur, (DWORD)((bufsize - 1) - (bufcur - buf)), NULL, &overlappedRead);
 		DWORD dwWaitRes = WaitForSingleObject(overlappedRead.hEvent, INFINITE);
-		if (dwWaitRes == WAIT_FAILED)
-		{
+		if (dwWaitRes == WAIT_FAILED){
 			//bad
-			if (overlappedRead.hEvent)
-			{
+			if (overlappedRead.hEvent){
 				CloseHandle(overlappedRead.hEvent);
 			}
 			return false;
 		}
 		//is read done? if not, we need to wait for overlapped async read
-		if (readFileSuccessful)
-		{
+		if (readFileSuccessful){
 			//no action needed
 		}
-		else
-		{
-			if (GetLastError() != ERROR_IO_PENDING)
-			{
-				if (overlappedRead.hEvent)
-				{
+		else{
+			if (GetLastError() != ERROR_IO_PENDING){
+				if (overlappedRead.hEvent){
 					CloseHandle(overlappedRead.hEvent);
 				}
 				tblog(LOG_WARNING) << "Couldn't read query!";
@@ -144,7 +125,7 @@ bool Communications::recv_query() {
 
 		//async read is over
 		if(readFileSuccessful){
-			if (toRead == 0) {
+			if (toRead == 0){
 				toRead = ((UINT64*)buf)[0];
 				flowHandle = ((UINT64*)buf)[1];
 				tblog() << "Got a query of " << toRead << " bytes, with flow handle " << flowHandle;
@@ -152,8 +133,7 @@ bool Communications::recv_query() {
 			readlen = overlappedRead.InternalHigh - overlappedRead.Offset;
 			Read += readlen;
 		} else {
-			if (overlappedRead.hEvent)
-			{
+			if (overlappedRead.hEvent){
 				CloseHandle(overlappedRead.hEvent);
 			}
 			tblog(LOG_WARNING) << "Couldn't read query!";
@@ -162,8 +142,7 @@ bool Communications::recv_query() {
 
 		if (Read >= toRead) {
 			buf = bufcur;
-			if (overlappedRead.hEvent)
-			{
+			if (overlappedRead.hEvent){
 				CloseHandle(overlappedRead.hEvent);
 			}
 			break;
@@ -178,8 +157,7 @@ bool Communications::recv_query() {
 			buf = bufcur;
 			bufcur = buf + Read;
 		}
-		if (overlappedRead.hEvent)
-		{
+		if (overlappedRead.hEvent){
 			CloseHandle(overlappedRead.hEvent);
 		}
 	}

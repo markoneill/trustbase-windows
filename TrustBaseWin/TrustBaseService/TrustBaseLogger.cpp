@@ -1,7 +1,6 @@
 #include "TrustBaseLogger.h"
 
-void TrustBaseLogger::logEventWrite(char* message)
-{
+void TrustBaseLogger::logEventWrite(char* message){
 	HANDLE eventLog = OpenEventLog(NULL, TEXT("TrustBaseLog"));
 	char * * messages = &(message);
 	ReportEvent(

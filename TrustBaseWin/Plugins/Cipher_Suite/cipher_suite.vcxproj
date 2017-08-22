@@ -26,7 +26,6 @@
     <ProjectGuid>{FCFAD3A7-A3EB-45C8-905E-D36C7ECC68BA}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>cipher_suite</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
     <ProjectName>cipher_suite</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

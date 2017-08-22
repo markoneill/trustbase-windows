@@ -18,7 +18,6 @@
     <ProjectGuid>{10F3A838-1216-4A5C-B85A-3C6F99FC752A}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>cert_pinning</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
     <ProjectName>cert_pinning</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

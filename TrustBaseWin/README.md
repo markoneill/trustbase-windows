@@ -2,7 +2,6 @@
 
 [TOC]
 
-
 ## Structure Overview
 
 Trustbase for Windows has two main subgroups, the **Kernel Driver** and the **Policy Engine**. The **Kernel Driver** monitors connections, identifies TLS connections, and parses out the relevant information. The certificate chain and other relevant meta-data are passed to the **Policy Engine** for evaluation. The Policy Engine runs a pluggable list of validation protocols asynchronously to validate or reject the certificate. The Policy Engine then instructs the Kernel Driver to either allow or sever the connection.
@@ -100,17 +99,18 @@ Congressed plugins form a fraction, and if the fraction of valid responses is no
 
 All of Trustbase on Windows is contained in a single Visual Studio solution.
 
+We are using Visual Studio 2015.
+The Windows SDK version 10.0.x.x must be installed.
+
 #### Policy Engine
 
 The Policy Engine can be tested on it's own if `COMMUNICATIONS_DEBUG_MODE` in communications.h is set to true, and `COMMUNICATIONS_DEBUG_QUERY` is the path to a binary file containing a query message formatted as a message from the Kernel Driver.
-
-To set up the Policy Engine, the project for both the Policy Engine and libconfig++ must be set to a x64 build mode, and the Policy Engine must have it's project search for includes in libconfig's file. This applies to both Debug and Release modes.
 
 The Policy Engine also currently expects the "trustbase.cfg" file to be in the same folder as the executable. 
 
 The Policy Engine also has a hardcoded path for the debug query in 'communications.h'.
 
-A compiled version of Openssl 64 bit with applink enabled needs to be included. This has already been built and is located in the "Tools.zip". This should be unzipped and placed in the Trustbase root folder. This is located in our shared Google Drive at:
+A compiled version of Openssl 64 bit with applink enabled needs to be included. This has already been built and is located in the "Tools.zip". This should be unzipped and placed in the Trustbase root folder. This is located in our private Google Drive at:
 
   Internet - Security Joint Research - TrustBase - Windows
 
@@ -228,7 +228,7 @@ The Kernel Driver development setup is the most complex. It involves two Windows
 
 #### Deploying TrustBase on a computer without debug tools
 
-I have compiled the June 22nd verison of Trustbase into a zip, put it on the Google Drive at TrustBase\Windows. Below are the current instructions required to run TrustBase on a computer (without Visual Studio or any debug tools). 
+I have compiled the June 22nd verison of Trustbase into a zip, save it on our private Google Drive at TrustBase\Windows. Below are the current instructions required to run TrustBase on a computer (without Visual Studio or any debug tools). 
 
 1. Install Python 2.7 64 bit *In SNAPSHOT zip*
 2. Use pip to install pyOpenSSL (some plugins might require other python lib)
@@ -289,8 +289,8 @@ For Debug version:
     (for crlset revocation plugin)
     crlset_revocation.py
     crlset.dll
-      The crlset.dll is created from the crlset.go, crlset.c, and crlset.h. A compiled verison is in the Google Drive at TrustBase\Windows
-  3. Go up two folders from the bin (and PythonPluginFiles) folder, and create a file called tools. This should be contents of the tools zip located on the Google Drive
+      The crlset.dll is created from the crlset.go, crlset.c, and crlset.h. A compiled verison is in our private Google Drive at TrustBase\Windows
+  3. Go up two folders from the bin (and PythonPluginFiles) folder, and create a file called tools. This should be contents of the tools zip located on our private Google Drive
 
   4. The PolicyEngine can be run, by opening a `adminstrator command prompt window`, and running "PolicyEngine.exe"
 ### Future Development

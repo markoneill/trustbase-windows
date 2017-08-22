@@ -1,14 +1,12 @@
 #include "stdafx.h"
 #include "PolicyContext.h"
 
-
 PolicyContext::PolicyContext() {
 	this->plugins = NULL;
 	this->plugin_count = 0;
 	this->addons = NULL;
 	this->addon_count = 0;
 }
-
 
 PolicyContext::~PolicyContext() {
 	delete[] plugins;
@@ -70,7 +68,6 @@ bool PolicyContext::loadConfig(const char* path) {
 
 		}
 
-
 		// Parse plugins
 		const libconfig::Setting& plugin_group = cfg.lookup("plugins");
 		count = plugin_group.getLength();
@@ -112,8 +109,7 @@ bool PolicyContext::loadConfig(const char* path) {
 				if (openssl==0) {
 					httype = Plugin::RAW;
 				}
-				else
-				{
+				else{
 					httype = Plugin::OPENSSL;
 				}
 			}
@@ -189,7 +185,6 @@ bool PolicyContext::initPlugins() {
 }
 
 void PolicyContext::printWelcome() {
-
 	tblog(LOG_INFO) << "\n[#][#] Starting Trustbase [#][#]";
 	tblog(LOG_INFO) << "Loaded plugins: [";
 	for (int i = 0; i < plugin_count; i++) {

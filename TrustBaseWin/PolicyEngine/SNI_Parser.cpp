@@ -17,7 +17,9 @@
 #define SIZE_SNI_TYPE			1
 #define SIZE_SNI_NAME_LEN		2
 
-
+/*
+* From a client hello, retrive the hostname
+*/
 char* SNI_Parser::sni_get_hostname(char* client_hello, int client_hello_len) {
 	char* hostname;
 	char* bufptr;
@@ -74,8 +76,8 @@ char* SNI_Parser::sni_get_hostname(char* client_hello, int client_hello_len) {
 	return hostname;
 }
 
-inline unsigned int SNI_Parser::be24_to_cpu(be24 x)
-{
+// Big Endian to CPU helper functions
+inline unsigned int SNI_Parser::be24_to_cpu(be24 x){
 	return (uint32_t) (
 		(x.b[0] << 16) | 
 		(x.b[1] << 8) | 
@@ -83,8 +85,7 @@ inline unsigned int SNI_Parser::be24_to_cpu(be24 x)
 	);
 }
 
-inline unsigned short SNI_Parser::be16_to_cpu(be16 x)
-{
+inline unsigned short SNI_Parser::be16_to_cpu(be16 x){
 	return (uint16_t) (
 		(x.b[0] << 8) | 
 		(x.b[1])

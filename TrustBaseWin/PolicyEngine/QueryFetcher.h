@@ -5,6 +5,11 @@
 #include <fstream>
 #include <atlstr.h>
 #include "RawCertData.h"
+
+/*
+A class to fetch certificates for various test cases
+*/
+
 enum FetchFileName {
 VALID_CERT_FILENAME,
 INVALID_CERT_FILENAME,
@@ -13,9 +18,6 @@ NULL_HOST_CERT_FILENAME,
 MALFORMED_CERT_FILENAME,
 SELF_SIGNED_CERT_FILENAME
 };
-
-
-
 class QueryFetcher {
 public:
 	RawCertData * fetch(FetchFileName file_selector);

@@ -40,7 +40,6 @@ Query::Query(UINT64 flowHandle, UINT64 processId, char* processPath, UINT8 * raw
 }
 
 Query::~Query() {
-
 	delete[] responses;
 	delete[] processPath;
 	sk_X509_pop_free(data.chain, X509_free);
@@ -85,8 +84,7 @@ void Query::printQueryInfo() {
 	tblog(LOG_INFO) << "\tHostname : " << data.hostname;
 }
 
-std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, UINT64 chain_len)
-{
+std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, UINT64 chain_len){
 	PCERT_CHAIN windows_cert_chain = new CERT_CHAIN;
 	UINT8* cursor = raw_chain;
 
@@ -95,8 +93,7 @@ std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, U
 	UINT64 dataRead = 0;
 	std::vector<PCCERT_CONTEXT>* cert_context_vector = new std::vector<PCCERT_CONTEXT>;
 
-	while (dataRead < buflen)
-	{
+	while (dataRead < buflen){
 		unsigned int cert_length = ntoh24(cursor);
 		cursor += sizeof(UINT8) + sizeof(UINT16);
 		dataRead += sizeof(UINT8) + sizeof(UINT16);
@@ -119,8 +116,8 @@ std::vector<PCCERT_CONTEXT>* Query::parse_cert_context_chain(UINT8* raw_chain, U
 
 	return cert_context_vector;
 }
-bool Query::clean_cert_context_chain(std::vector<PCCERT_CONTEXT>* cert_context_chain)
-{
+
+bool Query::clean_cert_context_chain(std::vector<PCCERT_CONTEXT>* cert_context_chain){
 	if (cert_context_chain != NULL) {
 		for (int i = 0; i < cert_context_chain->size(); i++)
 		{
@@ -132,6 +129,7 @@ bool Query::clean_cert_context_chain(std::vector<PCCERT_CONTEXT>* cert_context_c
 	}
 	return true;
 }
+
 STACK_OF(X509)* Query::parse_chain(unsigned char* data, size_t len) {
 	unsigned char* start_pos;
 	unsigned char* current_pos;

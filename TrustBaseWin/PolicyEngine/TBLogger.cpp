@@ -21,8 +21,7 @@ tblog::~tblog() {
 		// If the log level is below the minimum, ditch it
 		if (minimum_level > level) {
 		}
-		else
-		{
+		else{
 			std::string level_indicator;
 			switch (level) {
 			case LOG_DEBUG:
@@ -72,8 +71,8 @@ bool tblog::close() {
 	log_file.close();
 	return true;
 }
-int tblog::pluginTBLog(tblog_level_t level, const char* format, ...)
-{
+
+int tblog::pluginTBLog(tblog_level_t level, const char* format, ...){
 	va_list args;
 	// Parse the args
 	va_start(args, format);

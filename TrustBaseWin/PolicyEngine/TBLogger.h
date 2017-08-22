@@ -1,17 +1,13 @@
 #pragma once
-
 #ifndef TB_LOGGER_H
 #define TB_LOGGER_H
-
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <mutex>
 #include "TBLogger_Level.h"
-
 class tblog {
 public:
-
 	tblog();
 	tblog(tblog_level_t);
 
@@ -43,7 +39,4 @@ private:
 	static std::mutex mtx;
 	static tblog_level_t minimum_level;
 };
-
-
-
 #endif // TB_LOGGER_H

@@ -6,15 +6,13 @@ void TrustBaseInstaller::install()
 {
 	char lpFilename[MAX_PATH];
 	DWORD copied = GetModuleFileName(NULL, lpFilename, MAX_PATH);
-	if(copied == 0)
-	{
+	if(copied == 0){
 		printf("GetModuleFileName did not copy anything");
 		return;
 	}
 
 	SC_HANDLE handle = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-	if (handle == NULL)
-	{
+	if (handle == NULL){
 		printf("OpenSCManager failed");
 		return;
 	}
@@ -35,8 +33,7 @@ void TrustBaseInstaller::install()
 		NULL
 	);
 
-	if (service == NULL)
-	{
+	if (service == NULL){
 		printf("CreateService failed");
 		CloseServiceHandle(handle);
 		handle = NULL;
@@ -57,8 +54,7 @@ void TrustBaseInstaller::uninstall()
 	DWORD dwWaitTime;
 
 	SC_HANDLE handle = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-	if (handle == NULL)
-	{
+	if (handle == NULL){
 		printf("OpenSCManager failed");
 		return;
 	}
@@ -66,8 +62,7 @@ void TrustBaseInstaller::uninstall()
 	SC_HANDLE service = OpenService(handle, SERVICE_NAME, SERVICE_STOP |
 		SERVICE_QUERY_STATUS | DELETE);
 
-	if (service == NULL)
-	{
+	if (service == NULL){
 		printf("OpenService failed");
 		CloseServiceHandle(handle);
 		handle = NULL;
@@ -79,8 +74,7 @@ void TrustBaseInstaller::uninstall()
 		SC_STATUS_PROCESS_INFO,
 		(LPBYTE)&serviceStatus,
 		sizeof(SERVICE_STATUS_PROCESS),
-		&dwBytesNeeded))
-	{
+		&dwBytesNeeded)){
 		printf("QueryServiceStatusEx failed");
 		CloseServiceHandle(handle);
 		CloseServiceHandle(service);
@@ -90,13 +84,11 @@ void TrustBaseInstaller::uninstall()
 	}
 
 	//start stop
-	if (serviceStatus.dwCurrentState != SERVICE_STOPPED && serviceStatus.dwCurrentState != SERVICE_STOP_PENDING)
-	{
+	if (serviceStatus.dwCurrentState != SERVICE_STOPPED && serviceStatus.dwCurrentState != SERVICE_STOP_PENDING){
 		if (!ControlService(
 			service,
 			SERVICE_CONTROL_STOP,
-			(LPSERVICE_STATUS)&serviceStatus))
-		{
+			(LPSERVICE_STATUS)&serviceStatus)){
 			printf("ControlService failed (trying to stop service)");
 			CloseServiceHandle(handle);
 			CloseServiceHandle(service);
@@ -106,14 +98,11 @@ void TrustBaseInstaller::uninstall()
 		}
 	}
 
-	if (serviceStatus.dwCurrentState == SERVICE_STOPPED)
-	{
+	if (serviceStatus.dwCurrentState == SERVICE_STOPPED){
 		printf("Service is has stopped.\n");
 	}
-	else if(serviceStatus.dwCurrentState == SERVICE_STOP_PENDING)
-	{
-		while (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING)
-		{
+	else if(serviceStatus.dwCurrentState == SERVICE_STOP_PENDING){
+		while (serviceStatus.dwCurrentState == SERVICE_STOP_PENDING){
 			printf("Service stop pending...\n");
 
 			dwWaitTime = serviceStatus.dwWaitHint / 10;
@@ -130,8 +119,7 @@ void TrustBaseInstaller::uninstall()
 				SC_STATUS_PROCESS_INFO,
 				(LPBYTE)&serviceStatus,
 				sizeof(SERVICE_STATUS_PROCESS),
-				&dwBytesNeeded))
-			{
+				&dwBytesNeeded)){
 				printf("QueryServiceStatusEx failed");
 				CloseServiceHandle(handle);
 				CloseServiceHandle(service);
@@ -140,14 +128,12 @@ void TrustBaseInstaller::uninstall()
 				return;
 			}
 
-			if (serviceStatus.dwCurrentState == SERVICE_STOPPED)
-			{
+			if (serviceStatus.dwCurrentState == SERVICE_STOPPED){
 				printf("Service stopped successfully.\n");
 				break;
 			}
 
-			if (GetTickCount() - dwStartTime > dwTimeout)
-			{
+			if (GetTickCount() - dwStartTime > dwTimeout){
 				printf("Service stop timed out.\n");
 				CloseServiceHandle(handle);
 				CloseServiceHandle(service);
@@ -158,8 +144,7 @@ void TrustBaseInstaller::uninstall()
 		}
 	}
 
-	if (!DeleteService(service))
-	{
+	if (!DeleteService(service)){
 		printf("DeleteService failed");
 		CloseServiceHandle(handle);
 		CloseServiceHandle(service);

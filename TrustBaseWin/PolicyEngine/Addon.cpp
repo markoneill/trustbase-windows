@@ -5,7 +5,6 @@ Addon::Addon() {
 }
 
 Addon::Addon(const Addon & other) {
-
 	this->id = other.id;
 	this->name = other.name;
 	this->path = other.path;
@@ -21,8 +20,7 @@ Addon::Addon(const Addon & other) {
 	this->finalize_plugin = other.finalize_plugin;
 }
 
-Addon::Addon(int id, std::string name, std::string path, std::string type_handled, std::string description, std::string version)
-{
+Addon::Addon(int id, std::string name, std::string path, std::string type_handled, std::string description, std::string version){
 	this->id = id;
 	this->name = name;
 	this->path = path;
@@ -42,7 +40,6 @@ Addon::~Addon() {
 }
 
 bool Addon::init(size_t plugin_count, int(*callback)(int, int, int)) {
-
 	HINSTANCE hDLL;
 
 	std::wstring wpath = std::wstring(path.begin(), path.end());
@@ -98,7 +95,6 @@ bool Addon::init(size_t plugin_count, int(*callback)(int, int, int)) {
 }
 
 void Addon::printInfo() {
-
 	tblog(LOG_INFO) << "\t Addon " << id << " {";
 	tblog(LOG_INFO) << "\t\t Name: " << name;
 	tblog(LOG_INFO) << "\t\t Description: " << description;
@@ -107,31 +103,25 @@ void Addon::printInfo() {
 	tblog(LOG_INFO) << "\t\t Version: %s" << version;
 }
 
-std::string Addon::getTypeHandled()
-{
+std::string Addon::getTypeHandled(){
 	return this->type_handled;
 }
-addon_query_plugin Addon::getQueryFunction()
-{
+addon_query_plugin Addon::getQueryFunction(){
 	return this->query_plugin;
 }
-addon_async_query_plugin Addon::getAsyncQueryFunction()
-{
+addon_async_query_plugin Addon::getAsyncQueryFunction(){
 	return this->query_plugin_async;
 }
-addon_finalize_plugin Addon::getFinalizedFunction()
-{
+addon_finalize_plugin Addon::getFinalizedFunction(){
 	return this->finalize_plugin;
 }
 
-int Addon::loadPlugin(int pluginId, std::string pluginPath, int isAsync)
-{
+int Addon::loadPlugin(int pluginId, std::string pluginPath, int isAsync){
 	char* path = strdup(pluginPath.c_str());
 	int ret = load_plugin(pluginId, path, isAsync);
 	free(path);
 	return ret;
 }
-int Addon::cleanup()
-{
+int Addon::cleanup(){
 	return finalize();
 }

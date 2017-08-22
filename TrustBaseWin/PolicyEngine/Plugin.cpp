@@ -67,9 +67,7 @@ bool Plugin::init(Addon* addons, size_t addon_count) {
 
 bool Plugin::init_native() {
 	HINSTANCE hDLL;
-
 	std::wstring wpath = std::wstring(path.begin(), path.end());
-
 	hDLL = LoadLibraryEx(wpath.c_str(), NULL, NULL);
 
 	if (!hDLL) {
@@ -152,12 +150,9 @@ bool Plugin::plugin_loop() { //TODO
 			// done to wake from lock
 			continue;
 		}
-
-		
 		tblog() << "Plugin " << id << " got called";
 
 		// TODO set default response for this plugin
-
 		// run the query plugin function
 		int response;
 
@@ -189,7 +184,6 @@ bool Plugin::plugin_loop() { //TODO
 			return false;
 		}
 		
-
 		if (type == Plugin::SYNC) {
 			// set response
 			newquery->setResponse(id, response);

@@ -22,20 +22,18 @@ extern "C" {  // only need to export C interface if
 *	Initializes the Python Interpreter and allocates memory for plugin pointers.
 *	Must be called before any other functions.
 *
-*	plugin_count: the number of plugins that will be loaded into memory. Used
-*					for allocating memory
-*	plugin_directory: the directory that the python interpreter will use to
-*						begin searching for modules
+*	data: an init_addon_data_t which contains the require 
+*			information for initializing the python addon
+*
 *	returns EXIT_SUCCESS on success and EXIT_FAILURE on failure
 */
-//int initialize(int plugin_count, char *plugin_directory, int (*callback_pointer)(int,int,int), const char *lib_file);
 __declspec(dllexport) int __stdcall initialize(init_addon_data_t*);
 
 /*
 *	Finalizes the Python Interpreter and frees memory from plugin pointers.
 *	Do not call any other functions after this function.
 *
-*	returns EXIT_SUCCESS
+*	returns EXIT_SUCCESS on success and EXIT_FAILURE on failure
 */
 __declspec(dllexport) int __stdcall finalize(void);
 
@@ -47,11 +45,13 @@ __declspec(dllexport) int __stdcall finalize(void);
 *		containing pointers to plugin functions; also used as an identifier
 *		for which plugin to query using the query() function
 *
-*	module_name: the name of the Python file to be imported into the Python
+*	file_name: the name of the Python file to be imported into the Python
 *				interpreter. The search for this module begins in the
 *				plugin_directory parameter of the initialize() function.
 *
 *	is_async: 0 if not async, 1 if is async
+*
+*	returns EXIT_SUCCESS on success and EXIT_FAILURE on failure
 */
 __declspec(dllexport) int __stdcall load_plugin(int id, char *file_name, int is_async);
 
@@ -61,9 +61,13 @@ __declspec(dllexport) int __stdcall load_plugin(int id, char *file_name, int is_
 *		containing pointers to plugin functions; it is the identifier
 *		for which plugin to query as assigned by the load_plugin() function
 *
-*	host: the domain name
-*	cert_chain: the cert chain to test for validity
-*	length: the length of cert_chain
+*	data: an query_data_t which contains the required information about the query
+*
+*	returns result: the plugin's opinion on the certificate
+*		PLUGIN_RESPONSE_ERROR  -1
+*		PLUGIN_RESPONSE_INVALID 0
+*		PLUGIN_RESPONSE_VALID   1
+*		PLUGIN_RESPONSE_ABSTAIN 2
 */
 __declspec(dllexport) int __stdcall query_plugin(int id, query_data_t* data);
 
@@ -72,10 +76,13 @@ __declspec(dllexport) int __stdcall query_plugin(int id, query_data_t* data);
 *		containing pointers to plugin functions; it is the identifier
 *		for which plugin to query as assigned by the load_plugin() function
 *
-*	host: the domain name
-*	cert_chain: the cert chain to test for validity
-*	length: the length of cert_chain
-*	query_id: the async query
+*	data: an query_data_t which contains the required information about the query
+*
+*	returns result: the plugin's opinion on the certificate
+*		PLUGIN_RESPONSE_ERROR  -1
+*		PLUGIN_RESPONSE_INVALID 0
+*		PLUGIN_RESPONSE_VALID   1
+*		PLUGIN_RESPONSE_ABSTAIN 2
 */
 __declspec(dllexport) int __stdcall query_plugin_async(int id, query_data_t* data);
 #ifdef __cplusplus
@@ -99,6 +106,9 @@ extern "C" {  // only need to export C interface if
 			  // used by C++ source code  
 #endif  
 /**
+*	Calls the finalize function as part of the python plugin file	
+*	This is the thread safe version.
+*
 *	id: a non-negative integer that is used as an index in an array
 *		containing pointers to plugin functions; it is the identifier
 *		for which plugin to query as assigned by the load_plugin() function

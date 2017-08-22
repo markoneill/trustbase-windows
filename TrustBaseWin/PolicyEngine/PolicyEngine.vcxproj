@@ -22,7 +22,6 @@
     <ProjectGuid>{DF65D77E-8EC7-4281-A1BD-F4871D630533}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>PolicyEngine</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -208,29 +207,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="example_query.bin" />
-    <Resource Include="ExpiredCert.cer">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <FileType>Document</FileType>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-    </Resource>
-    <Resource Include="NullHostCert.cer">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </Resource>
-    <None Include="example_query_Luke.bin" />
     <None Include="trustbase.cfg" />
-    <Resource Include="MalformedCert.cer">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </Resource>
-    <Resource Include="ValidCert.cer">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </Resource>
-    <Resource Include="WrongHostCert.cer">
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </Resource>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

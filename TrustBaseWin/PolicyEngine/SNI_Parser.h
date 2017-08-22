@@ -4,11 +4,11 @@
 #include <stdint.h>
 #include <string>
 
-
-
-
 namespace SNI_Parser {
 
+	/*
+	* From a client hello, retrive the hostname
+	*/
 	char* sni_get_hostname(char* client_hello, int client_hello_len);
 
 	typedef struct { uint8_t b[2]; } be16, le16;

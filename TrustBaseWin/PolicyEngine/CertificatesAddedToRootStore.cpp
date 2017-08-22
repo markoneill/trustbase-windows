@@ -1,14 +1,19 @@
 #include "stdafx.h"
 #include "CertificatesAddedToRootStore.h"
 
+/*
+*	CertificatesAddedToRootStore is a class to record which certificates have been added to the root store to avoid proxying.
+*	This class also is used to remove certificates that have been added to the root store when they are not needed.
+*/
 
-CertificatesAddedToRootStore::CertificatesAddedToRootStore()
-{
-	//make sure file exists
+/*
+* This constructor makes sure that the STORED_CERT_FILE exists, and then loads the data from the file into memory
+*/
+CertificatesAddedToRootStore::CertificatesAddedToRootStore(){
 	std::ifstream infile(STORED_CERT_FILE);
-
-	if (!infile)
-	{
+	
+	//make sure file exists
+	if (!infile){
 		std::ofstream file;
 		file.open(STORED_CERT_FILE, std::ios::out);
 		file.close();
@@ -16,23 +21,26 @@ CertificatesAddedToRootStore::CertificatesAddedToRootStore()
 
 	loadCertificateFile();
 }
-bool CertificatesAddedToRootStore::loadCertificateFile()
-{
+/*
+* Loads the certificates that have been added to the root store from the file into memory
+*/
+bool CertificatesAddedToRootStore::loadCertificateFile(){
 	std::ifstream infile(STORED_CERT_FILE);
 
 	std::string line;
 	this->certificates.clear();
 
-	while (std::getline(infile, line))
-	{
+	while (std::getline(infile, line)){
 		std::istringstream iss(line);
 		this->certificates.push_back(line);
 	}
 
 	return true;
 }
-bool CertificatesAddedToRootStore::saveAllCertificatesToFile()
-{
+/*
+* Saves the certificates that have been added to the root store from the memory onto a file
+*/
+bool CertificatesAddedToRootStore::saveAllCertificatesToFile(){
 	std::ofstream file;
 	file.open(STORED_CERT_FILE, std::ofstream::trunc);
 
@@ -42,29 +50,29 @@ bool CertificatesAddedToRootStore::saveAllCertificatesToFile()
 	file.close();
 	return true;
 }
-
-bool CertificatesAddedToRootStore::addCertificate(std::string thumbPrint)
-{
+/*
+*  add a certificates thumbprint to the list in memory and then save the list to a file
+*/
+bool CertificatesAddedToRootStore::addCertificate(std::string thumbPrint){
 	bool success = false;
 	certificates.push_back(thumbPrint);
 	success = saveAllCertificatesToFile();
 	return success;
 }
-
-bool CertificatesAddedToRootStore::removeCertificate(std::string thumbPrint)
-{
+/*
+*  remove a certificates thumbprint from the list in memory and then save the list to a file
+*/
+bool CertificatesAddedToRootStore::removeCertificate(std::string thumbPrint){
 	bool success = false;
 	if (this->certificates.size() > 0) {
 		tblog() << "attempting to remove certificate with thumbprint of " << this->certificates.at(0);
 		this->certificates.erase(std::remove(this->certificates.begin(), this->certificates.end(), thumbPrint), certificates.end());
 		success = saveAllCertificatesToFile();
-		if (success == false)
-		{
+		if (success == false){
 			tblog(LOG_ERROR) << "Failed to remove certificate";
 		}
 	}
-	else
-	{
+	else{
 		tblog() << "No certs to remove from storedCerts file";
 	}
 	return success;

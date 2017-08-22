@@ -9,11 +9,8 @@
 #include <vector>
 
 #define CERT_LENGTH_FIELD_SIZE	3
-
-
 class Query {
 public:
-
 	Query(UINT64 flowHandle, UINT64 processId, char* processPath, UINT8 * raw_certificate, DWORD cert_len, UINT8 * client_hello, DWORD client_hello_len, UINT8 * server_hello, DWORD server_hello_len, int plugin_count);
 	~Query();
 	std::mutex mutex;
@@ -29,7 +26,6 @@ public:
 	int getId();
 	UINT64 getFlow();
 	void printQueryInfo();
-
 private:
 	UINT64 flowHandle;
 	char* processPath;

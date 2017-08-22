@@ -52,7 +52,6 @@ namespace TrustBase_Admin_Console
 
         private void addExceptionButton(object sender, RoutedEventArgs e)
         {
-
             if (MessageBox.Show("An exception will be added", "Exception Add", MessageBoxButton.OKCancel) ==
                 MessageBoxResult.OK)
             {
