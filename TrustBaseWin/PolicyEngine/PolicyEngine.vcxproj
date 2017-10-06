@@ -172,6 +172,7 @@
     <ClInclude Include="SNI_Parser.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="TBEventLogger.h" />
     <ClInclude Include="TestUnbreakableCrypto.h" />
     <ClInclude Include="TBLogger.h" />
     <ClInclude Include="TBLogger_Level.h" />
@@ -196,6 +197,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TBEventLogger.cpp" />
     <ClCompile Include="TestUnbreakableCrypto.cpp" />
     <ClCompile Include="TBLogger.cpp" />
     <ClCompile Include="UnbreakableCrypto.cpp" />

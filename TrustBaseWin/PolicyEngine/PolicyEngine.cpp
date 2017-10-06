@@ -11,6 +11,8 @@
 #include "QueryQueue.h"
 #include "UnbreakableCrypto.h"
 #include "TestUnbreakableCrypto.h"
+#include "TBEventLogger.h"
+
 #define CONFIG_LOCATION		"./trustbase.cfg"
 // Things that need to go in the config
 #define TIMEOUT_TIME		15000
@@ -104,6 +106,8 @@ int main(){
 }
 
 bool decider_loop(QueryQueue* qq, PolicyContext* context) {
+	tbeventlog eventLog;
+
 	UnbreakableCrypto UBC = UnbreakableCrypto();
 	UBC.configure();
 
@@ -165,7 +169,8 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		}
 
 		//Check if we need to trick the system to accept what the plugins say.
-		if (response == PLUGIN_RESPONSE_VALID && !(system_response==UnbreakableCrypto_ACCEPT)){
+		if (response == PLUGIN_RESPONSE_VALID && !(system_response == UnbreakableCrypto_ACCEPT))
+		{
 			if (query->data.cert_context_chain->size() <= 0) {
 				tblog() << "No PCCERT_CONTEXT in chain";
 				return false;
@@ -181,12 +186,15 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 			tblog() << "insertIntoRootStore returned " << insertRootSuccess;
 
 		}
-
 		// send the response
-		Communications::send_response(response, query->getFlow());
-
+		if (Communications::send_response(response, query->getFlow()))
+		{
+			//if the response was sent successfully, then log an event
+			eventLog.sendEvent(response, query->getProcessPath(), query->data.hostname);
+		}
 		// free that query
 		delete query;
+		
 	}
 	return true;
 }

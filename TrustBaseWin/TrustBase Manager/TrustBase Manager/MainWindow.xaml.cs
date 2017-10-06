@@ -14,20 +14,37 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Management;
 using System.Runtime.InteropServices;
+using System.IO;
 using System.Reflection;
 using System.Management.Instrumentation;
 using System.Data;
 using System.Diagnostics;
 using System.Windows.Forms;
 using System.Collections.Specialized;
+using System.Security.Principal;
 
 namespace TrustBase_Manager
 {
+
+
     /// <summary>
     /// Interaction logic for TrustBaseLog GUI
     /// </summary>
     public partial class MainWindow : Window
     {
+        const int RESPONSE_ERROR = -1;
+        const int RESPONSE_VALID = 1;
+        const int RESPONSE_INVALID = 0;
+
+        static bool IsRunningAsAdmin
+        {
+            get
+            {
+                return WindowsIdentity.GetCurrent().Owner
+                  .IsWellKnown(WellKnownSidType.BuiltinAdministratorsSid);
+            }
+        }
+
         System.Collections.Generic.Dictionary<string, DateTime> deduplicator = new Dictionary<string, DateTime>();
 
         private System.Windows.Forms.ContextMenu trayIconContextMenu;
@@ -55,7 +72,8 @@ namespace TrustBase_Manager
         /**
          * Represents whether the enable notifications box is checked
          **/
-        private bool enableNotifications = false;
+        private bool enableBlockNotifications = false;
+        private bool enableAcceptNotifications = false;
 
         /**
          * Main Window Constructor
@@ -69,7 +87,6 @@ namespace TrustBase_Manager
          **/
         public MainWindow()
         {
-
             //======================
             // DEFAULT TO INVISIBLE
             //======================
@@ -93,22 +110,17 @@ namespace TrustBase_Manager
             // SET UP LOG DATA DISPLAY
             //=========================
             DataColumn TimeColumn = new DataColumn("Time");
-            DataColumn ProcessIDColumn = new DataColumn("ProcessID");
-            DataColumn ErrorColumn = new DataColumn("Error");
+            DataColumn ProcessColumn = new DataColumn("Process");
+            DataColumn HostnameColumn = new DataColumn("Hostname");
+            DataColumn MessageColumn = new DataColumn("Message");
 
             events.Columns.Add(TimeColumn);
-            events.Columns.Add(ProcessIDColumn);
-            events.Columns.Add(ErrorColumn);
+            events.Columns.Add(ProcessColumn);
+            events.Columns.Add(HostnameColumn);
+            events.Columns.Add(MessageColumn);
 
             events.Rows.Clear();
-            foreach (EventLogEntry entry in myLog.Entries)
-            {
-                DataRow TBevent = events.NewRow();
-                TBevent["Time"] = entry.TimeGenerated.ToShortDateString() + " - " + entry.TimeGenerated.ToLongTimeString();
-                TBevent["ProcessID"] = entry.Source;
-                TBevent["Error"] = entry.Message;
-                events.Rows.Add(TBevent);
-            }
+            refreshLog();
 
             dataGrid.DataContext = events.DefaultView;
             //dataGrid.AutoGenerateColumns = true;
@@ -118,11 +130,17 @@ namespace TrustBase_Manager
             dataGrid.RowHeaderWidth = 0;
 
             //=================
+            //NOTIFICATION CHECK
+            //=================
+            enableBlockNotifications = (bool)this.notifyCheckBox.IsChecked;
+            enableAcceptNotifications = (bool)this.notifyAcceptCheckBox.IsChecked;
+
+            //=================
             //SET UP TRAY ICON
             //=================
 
             this.trayIcon = new System.Windows.Forms.NotifyIcon();
-            this.trayIcon.Icon = new System.Drawing.Icon(@"C:\\Users\\Joshua Reynolds\\Pictures\\TrustBaseIcon.ico");
+            this.trayIcon.Icon = Properties.Resources.TrustBaseIcon;
             this.trayIcon.Text = "TrustBase";
             this.trayIcon.Visible = true;
             this.trayIcon.Click += this.TrayIconClicked;
@@ -130,7 +148,7 @@ namespace TrustBase_Manager
             this.trayIconContextMenu = new System.Windows.Forms.ContextMenu();
 
             this.trayIconContextMenu.MenuItems.Add("Open TrustBase Manager");
-            this.trayIconContextMenu.MenuItems.Add("Allow/Block TrustBase notifications");
+            //this.trayIconContextMenu.MenuItems.Add("Allow/Block TrustBase notifications");
 
             this.trayIcon.ContextMenu = this.trayIconContextMenu;
 
@@ -138,7 +156,25 @@ namespace TrustBase_Manager
             //ADD EVENT LISTENERS
             //====================
             this.Closing += this.closing;
-            this.checkBox.Click += CheckBox_Click;
+            this.notifyCheckBox.Click += CheckBox_Click;
+
+            //====================
+            //CHECK IF RUNNING AS ADMIN
+            //====================
+            if(IsRunningAsAdmin)
+            {
+                this.SimulateLogMenuItem.IsEnabled = true;
+                this.ClearLogMenuItem.IsEnabled = true;
+
+                //check if log exists. Creating this can only be done as admin.
+                if (!EventLog.SourceExists("TrustBase Manager"))
+                    EventLog.CreateEventSource("TrustBase Manager", "TrustBaseLog");
+            }
+            else
+            {
+                this.SimulateLogMenuItem.IsEnabled = false;
+                this.ClearLogMenuItem.IsEnabled = false;
+            }
 
             //====================
             //DISPLAY UAC SHIELD
@@ -149,7 +185,13 @@ namespace TrustBase_Manager
         private void CheckBox_Click(object sender, RoutedEventArgs e)
         {
             System.Windows.Controls.CheckBox box = (System.Windows.Controls.CheckBox) e.Source;
-            this.enableNotifications = box.IsChecked.Value;
+            this.enableBlockNotifications = box.IsChecked.Value;
+        }
+
+        private void notifyAcceptCheckBox_Click(object sender, RoutedEventArgs e)
+        {
+            System.Windows.Controls.CheckBox box = (System.Windows.Controls.CheckBox)e.Source;
+            this.enableAcceptNotifications = box.IsChecked.Value;
         }
 
         /**
@@ -172,9 +214,43 @@ namespace TrustBase_Manager
          * Requires Elevated permisison from UAC
          * NOT IMPLEMENTED YET
          **/
-        private void Manage_Exceptions_Button_Click(object sender, RoutedEventArgs e)
+        //private void Manage_Exceptions_Button_Click(object sender, RoutedEventArgs e)
+        //{
+        //}
+
+        /**
+         * Refresh button clicked
+         * 
+         **/
+        private void Refresh_Button_Click(object sender, RoutedEventArgs e)
         {
-            myLog.WriteEntry("chrome.exe|An unauthorized user person tried to add TrustBase Exceptions");
+            refreshLog();
+        }
+        /**
+         * Refresh menu item clicked
+         * 
+         **/
+        private void RefreshLogMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            refreshLog();
+        }
+        /**
+         * simulate log entry menu item clicked
+         * Requires Elevated permisison from UAC
+         **/
+        private void SimulateLogMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            myLog.WriteEntry("chrome.exe|fake.com|TrustBase blocked a connection",EventLogEntryType.Error,0, RESPONSE_INVALID);
+        }
+        /**
+         * clear log menu item clicked
+         * Requires Elevated permisison from UAC
+         **/
+        private void ClearLogMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            myLog.Clear();
+            deduplicator.Clear();
+            refreshLog();
         }
 
         /**
@@ -183,37 +259,22 @@ namespace TrustBase_Manager
          * Clears the log and repopulates it
          * 
          **/
-        private void Refresh_Button_Click(object sender, RoutedEventArgs e)
+        private void refreshLog()
         {
             events.Rows.Clear();
             foreach (EventLogEntry entry in myLog.Entries)
             {
-                string message;
-                string process;
-                if(entry.Message.Contains(DELIMETER))
-                {
-                    int delimeterPosition = entry.Message.IndexOf(DELIMETER);
-                    message = entry.Message.Substring(delimeterPosition + 1);
-                    process = entry.Message.Substring(0, delimeterPosition);
-                }
-                else
-                {
-                    process = "Unspecified";
-                    message = entry.Message;
-                }
-                
-                
+                TrustBaseEvent parsedEvent = parseEvent(entry);
 
                 DataRow TBevent = events.NewRow();
-                TBevent["Time"] = entry.TimeGenerated.ToShortDateString() + " - " + entry.TimeGenerated.ToLongTimeString();
-                TBevent["ProcessID"] = process;
-                TBevent["Error"] = message;
+                TBevent["Time"] = parsedEvent.TimeWritten.ToShortDateString() + " - " + parsedEvent.TimeWritten.ToLongTimeString();
+                TBevent["Process"] = parsedEvent.ProcessName;
+                TBevent["Hostname"] = parsedEvent.HostName;
+                TBevent["Message"] = parsedEvent.Message;
+
                 events.Rows.Add(TBevent);
             }
         }
-
-
-
 
         /**
         * Notify the User
@@ -227,9 +288,10 @@ namespace TrustBase_Manager
         * //TODO Persist nofification enabled state 
         * 
         **/
+
         private void notify(object sender, EntryWrittenEventArgs e)
         {            
-            if (!this.enableNotifications)
+            if (!this.enableBlockNotifications && !this.enableAcceptNotifications)
             {
                 return;
             }
@@ -247,44 +309,56 @@ namespace TrustBase_Manager
                     most_recent = entry;
                 }
             }
-
             //============================
             // GENERATE NOTIFICATION TEXT
             //============================
-            string message;
             ToolTipIcon icon;
 
-            if (most_recent.Message.Contains(DELIMETER))
+            TrustBaseEvent parsedEvent = parseEvent(most_recent);
+
+            if(parsedEvent.connectionBlocked && !this.enableBlockNotifications)
             {
-                int delimeterPosition = most_recent.Message.IndexOf(DELIMETER);
-                message = most_recent.Message.Substring(delimeterPosition + 1);
-                string process = most_recent.Message.Substring(0, delimeterPosition);
-                message = "Trustbase blocked a connection made by " + process + ". " + message;
+                return;
+            }
+            if (!parsedEvent.connectionBlocked && !this.enableAcceptNotifications)
+            {
+                return;
+            }
+
+            if (parsedEvent.type == EventLogEntryType.Error)
+            {
                 icon = ToolTipIcon.Error;
+            }
+            else if (parsedEvent.type == EventLogEntryType.Warning)
+            {
+                icon = ToolTipIcon.Warning;
+            }
+            else if (parsedEvent.type == EventLogEntryType.Information)
+            {
+                icon = ToolTipIcon.Info;
             }
             else
             {
-                message = most_recent.Message;
-                icon = ToolTipIcon.Info;
+                icon = ToolTipIcon.None;
             }
 
             //=========================================================
             //DO NOT NOTIFY FOR THE SAME PROGRAM BLOCKED SEVERAL TIMES
             //=========================================================
-            if (!deduplicator.Keys.Contains<string>(most_recent.Source))
+            if (!deduplicator.Keys.Contains<string>(parsedEvent.ProcessName))
             {
-                deduplicator.Add(most_recent.Source, DateTime.Now);
-                trayIcon.ShowBalloonTip(9000, "TrustBase", message, icon);
+                deduplicator.Add(parsedEvent.ProcessName, DateTime.Now);
+                trayIcon.ShowBalloonTip(9000, "TrustBase", parsedEvent.Message + "\n" + parsedEvent.HostName + "\n" + parsedEvent.ProcessName, icon);
             }
             else
             {
                 DateTime last_notification;
-                deduplicator.TryGetValue(most_recent.Source, out last_notification);
+                deduplicator.TryGetValue(parsedEvent.ProcessName, out last_notification);
                 if(DateTime.Now.Ticks - last_notification.Ticks > TimeSpan.TicksPerMinute)
                 {
-                    deduplicator.Remove(most_recent.Source);
-                    deduplicator.Add(most_recent.Source, DateTime.Now);
-                    trayIcon.ShowBalloonTip(9000, "TrustBase", message, icon);
+                    deduplicator.Remove(parsedEvent.ProcessName);
+                    deduplicator.Add(parsedEvent.ProcessName, DateTime.Now);
+                    trayIcon.ShowBalloonTip(9000, "TrustBase", parsedEvent.Message + "\n" + parsedEvent.HostName + "\n" + parsedEvent.ProcessName, icon);
                 }
             }
             
@@ -354,9 +428,36 @@ namespace TrustBase_Manager
         private TrustBaseEvent parseEvent(EventLogEntry entry)
         {
             var result = new TrustBaseEvent();
-            result.Exception = entry.Message;
+
+            result.Message = "Unspecified";
+            result.ProcessName = "Unspecified";
+            result.HostName = "Unspecified";
+
+            if (entry.Message.Contains(DELIMETER))
+            {
+                int delimeterPosition = entry.Message.IndexOf(DELIMETER);
+                result.ProcessName = entry.Message.Substring(0, delimeterPosition);
+
+                string hostnameAndmessage = entry.Message.Substring(delimeterPosition + 1);
+                if (hostnameAndmessage.Contains(DELIMETER))
+                {
+                    delimeterPosition = hostnameAndmessage.IndexOf(DELIMETER);
+                    result.HostName = hostnameAndmessage.Substring(0, delimeterPosition);
+                    result.Message = hostnameAndmessage.Substring(delimeterPosition + 1);
+                }
+                else
+                {
+                    result.Message = hostnameAndmessage;
+                }
+            }
+            else
+            {
+                result.Message = entry.Message;
+            }
+
+            result.connectionBlocked = entry.CategoryNumber == RESPONSE_INVALID;
+            result.type = entry.EntryType;
             result.GUID = new Guid();
-            //result.ProcessName = result.GUID;
             result.TimeWritten = entry.TimeWritten;
             return result;
         }
@@ -368,246 +469,14 @@ namespace TrustBase_Manager
          **/
         private struct TrustBaseEvent
         {
-            public string Exception;
+            public string Message;
             public Guid GUID;
             public string ProcessName;
+            public string HostName;
             public DateTime TimeWritten;
+            public bool connectionBlocked;
+            public EventLogEntryType type;
         }
-
-        //[Flags]
-        //public enum SHGSI : uint
-        //{
-        //    SHGSI_ICONLOCATION = 0,
-        //    SHGSI_ICON = 0x000000100,
-        //    SHGSI_SYSICONINDEX = 0x000004000,
-        //    SHGSI_LINKOVERLAY = 0x000008000,
-        //    SHGSI_SELECTED = 0x000010000,
-        //    SHGSI_LARGEICON = 0x000000000,
-        //    SHGSI_SMALLICON = 0x000000001,
-        //    SHGSI_SHELLICONSIZE = 0x000000004
-        //}
-
-        //[StructLayoutAttribute(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        //public struct SHSTOCKICONINFO
-        //{
-        //    public UInt32 cbSize;
-        //    public IntPtr hIcon;
-        //    public Int32 iSysIconIndex;
-        //    public Int32 iIcon;
-        //    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
-        //    public string szPath;
-        //}
-
-        //[DllImport("Shell32.dll", SetLastError = false)]
-        //public static extern Int32 SHGetStockIconInfo(SHSTOCKICONID siid, SHGSI uFlags, ref SHSTOCKICONINFO psii);
-
-        //private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-
-        //[DllImport("user32.dll")]
-        //public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
-
-        //[DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        //private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr extraData);
-
-        //[DllImport("user32.dll")]
-        //static extern IntPtr GetForegroundWindow();
-
-        //[StructLayout(LayoutKind.Sequential)]
-        //public struct RECT
-        //{
-        //    public int Left;
-        //    public int Top;
-        //    public int Right;
-        //    public int Bottom;
-        //}
-
-        //public enum SHSTOCKICONID : uint
-        //{
-        //    SIID_DOCNOASSOC = 0,
-        //    SIID_DOCASSOC = 1,
-        //    SIID_APPLICATION = 2,
-        //    SIID_FOLDER = 3,
-        //    SIID_FOLDEROPEN = 4,
-        //    SIID_DRIVE525 = 5,
-        //    SIID_DRIVE35 = 6,
-        //    SIID_DRIVEREMOVE = 7,
-        //    SIID_DRIVEFIXED = 8,
-        //    SIID_DRIVENET = 9,
-        //    SIID_DRIVENETDISABLED = 10,
-        //    SIID_DRIVECD = 11,
-        //    SIID_DRIVERAM = 12,
-        //    SIID_WORLD = 13,
-        //    SIID_SERVER = 15,
-        //    SIID_PRINTER = 16,
-        //    SIID_MYNETWORK = 17,
-        //    SIID_FIND = 22,
-        //    SIID_HELP = 23,
-        //    SIID_SHARE = 28,
-        //    SIID_LINK = 29,
-        //    SIID_SLOWFILE = 30,
-        //    SIID_RECYCLER = 31,
-        //    SIID_RECYCLERFULL = 32,
-        //    SIID_MEDIACDAUDIO = 40,
-        //    SIID_LOCK = 47,
-        //    SIID_AUTOLIST = 49,
-        //    SIID_PRINTERNET = 50,
-        //    SIID_SERVERSHARE = 51,
-        //    SIID_PRINTERFAX = 52,
-        //    SIID_PRINTERFAXNET = 53,
-        //    SIID_PRINTERFILE = 54,
-        //    SIID_STACK = 55,
-        //    SIID_MEDIASVCD = 56,
-        //    SIID_STUFFEDFOLDER = 57,
-        //    SIID_DRIVEUNKNOWN = 58,
-        //    SIID_DRIVEDVD = 59,
-        //    SIID_MEDIADVD = 60,
-        //    SIID_MEDIADVDRAM = 61,
-        //    SIID_MEDIADVDRW = 62,
-        //    SIID_MEDIADVDR = 63,
-        //    SIID_MEDIADVDROM = 64,
-        //    SIID_MEDIACDAUDIOPLUS = 65,
-        //    SIID_MEDIACDRW = 66,
-        //    SIID_MEDIACDR = 67,
-        //    SIID_MEDIACDBURN = 68,
-        //    SIID_MEDIABLANKCD = 69,
-        //    SIID_MEDIACDROM = 70,
-        //    SIID_AUDIOFILES = 71,
-        //    SIID_IMAGEFILES = 72,
-        //    SIID_VIDEOFILES = 73,
-        //    SIID_MIXEDFILES = 74,
-        //    SIID_FOLDERBACK = 75,
-        //    SIID_FOLDERFRONT = 76,
-        //    SIID_SHIELD = 77,
-        //    SIID_WARNING = 78,
-        //    SIID_INFO = 79,
-        //    SIID_ERROR = 80,
-        //    SIID_KEY = 81,
-        //    SIID_SOFTWARE = 82,
-        //    SIID_RENAME = 83,
-        //    SIID_DELETE = 84,
-        //    SIID_MEDIAAUDIODVD = 85,
-        //    SIID_MEDIAMOVIEDVD = 86,
-        //    SIID_MEDIAENHANCEDCD = 87,
-        //    SIID_MEDIAENHANCEDDVD = 88,
-        //    SIID_MEDIAHDDVD = 89,
-        //    SIID_MEDIABLURAY = 90,
-        //    SIID_MEDIAVCD = 91,
-        //    SIID_MEDIADVDPLUSR = 92,
-        //    SIID_MEDIADVDPLUSRW = 93,
-        //    SIID_DESKTOPPC = 94,
-        //    SIID_MOBILEPC = 95,
-        //    SIID_USERS = 96,
-        //    SIID_MEDIASMARTMEDIA = 97,
-        //    SIID_MEDIACOMPACTFLASH = 98,
-        //    SIID_DEVICECELLPHONE = 99,
-        //    SIID_DEVICECAMERA = 100,
-        //    SIID_DEVICEVIDEOCAMERA = 101,
-        //    SIID_DEVICEAUDIOPLAYER = 102,
-        //    SIID_NETWORKCONNECT = 103,
-        //    SIID_INTERNET = 104,
-        //    SIID_ZIPFILE = 105,
-        //    SIID_SETTINGS = 106,
-        //    SIID_DRIVEHDDVD = 132,
-        //    SIID_DRIVEBD = 133,
-        //    SIID_MEDIAHDDVDROM = 134,
-        //    SIID_MEDIAHDDVDR = 135,
-        //    SIID_MEDIAHDDVDRAM = 136,
-        //    SIID_MEDIABDROM = 137,
-        //    SIID_MEDIABDR = 138,
-        //    SIID_MEDIABDRE = 139,
-        //    SIID_CLUSTEREDDRIVE = 140,
-        //    SIID_MAX_ICONS = 175
-        //}
-
-        ////MAYBE WE CAN ASSOCIATE
-        //[DllImport("msi.dll", CharSet = CharSet.Unicode)]
-        //static extern Int32 MsiGetProductInfo(string product, string property,
-        //[Out] StringBuilder valueBuf, ref Int32 len);
-
-        //[DllImport("msi.dll", SetLastError = true)]
-        //static extern int MsiEnumProducts(int iProductIndex,
-        //    StringBuilder lpProductBuf);
-
-        //static void thing(string[] args)
-        //{
-        //    StringBuilder sbProductCode = new StringBuilder(39);
-        //    int iIdx = 0;
-
-        //    while (0 == MsiEnumProducts(iIdx++, sbProductCode))
-        //    {
-        //        Int32 productNameLen = 512;
-        //        StringBuilder sbProductName = new StringBuilder(productNameLen);
-
-        //        MsiGetProductInfo(sbProductCode.ToString(),
-        //            "ProductName", sbProductName, ref productNameLen);
-
-        //        //if (sbProductName.ToString().Contains("Visual Studio"))
-        //        //{
-        //        //    Int32 installDirLen = 1024;
-        //        //    StringBuilder sbInstallDir = new StringBuilder(installDirLen);
-
-        //        //    MsiGetProductInfo(sbProductCode.ToString(),
-        //        //        "InstallLocation", sbInstallDir, ref installDirLen);
-
-        //        //    //Console.WriteLine("ProductName {0}: {1}",
-        //        //    //    sbProductName, sbInstallDir);
-        //        //}
-        //    }
-        //}
-
-        //private void OverLayActiveWindow()
-        //{
-        //    //System.Threading.Thread.Sleep(5000);
-
-        //    //int processID = 2452;
-
-        //    // Process process = Process.GetProcessById(processID);
-        //    //Process thisProcess = process;// Process.GetCurrentProcess();
-        //    System.IntPtr main_window = GetForegroundWindow(); //thisProcess.MainWindowHandle;
-        //    Size windowsize = GetControlSize(main_window);
-        //    Point upperLeft = GetControlLocation(main_window);
-
-        //    Window overlay = new Window();
-        //    RECT windowRect;
-        //    GetWindowRect(main_window, out windowRect);
-        //    overlay.Left = windowRect.Left;
-        //    overlay.Top = windowRect.Top;
-        //    overlay.Title = "TRUSTBASE ALERT!";
-        //    overlay.ShowInTaskbar = true;
-        //    overlay.Height = windowsize.Height;
-        //    overlay.Width = windowsize.Width;
-        //    overlay.Content = new ContentControl();
-        //    overlay.Background = Brushes.Red;
-        //    overlay.Show();
-        //    overlay.Topmost = true;
-        //    overlay.Focus();
-        //}
-
-        //public static Size GetControlSize(IntPtr hWnd)
-        //{
-        //    RECT pRect;
-        //    Size cSize = new Size();
-        //    // get coordinates relative to window
-        //    GetWindowRect(hWnd, out pRect);
-
-        //    cSize.Width = pRect.Right - pRect.Left;
-        //    cSize.Height = pRect.Bottom - pRect.Top;
-
-        //    return cSize;
-        //}
-
-        //public static Point GetControlLocation(IntPtr hWnd)
-        //{
-        //    RECT pRect;
-        //    Point upperLeft = new Point();
-        //    // get coordinates relative to window
-        //    GetWindowRect(hWnd, out pRect);
-
-        //    upperLeft.X = pRect.Left;
-        //    upperLeft.Y = pRect.Top;
-
-        //    return upperLeft;
-        //}
 
     }
 }

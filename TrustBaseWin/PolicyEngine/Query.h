@@ -23,9 +23,12 @@ public:
 
 	void setResponse(int plugin_id, int response);
 	int getResponse(int plugin_id);
+	char* getProcessPath();
 	int getId();
+
 	UINT64 getFlow();
 	void printQueryInfo();
+
 private:
 	UINT64 flowHandle;
 	char* processPath;
