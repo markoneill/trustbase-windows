@@ -114,14 +114,14 @@ UnbreakableCrypto_ACCEPT
 UnbreakableCrypto_ERROR
 */
 UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluate(Query * cert_data) {
-	char * hostname = SNI_Parser::sni_get_hostname(cert_data->data.client_hello, cert_data->data.client_hello_len);
+	char * hostname = SNI_Parser::sni_get_hostname(cert_data->data.client_hello, (int)cert_data->data.client_hello_len);
 
 	if (cert_data->data.cert_context_chain->size() <= 0) {
 		tblog() << "No PCCERT_CONTEXT in chain";
 		return UnbreakableCrypto_REJECT;
 	}
 	int left_cert_index = 0;
-	int root_cert_index = cert_data->data.cert_context_chain->size() - 1;
+	int root_cert_index = ((int)(cert_data->data.cert_context_chain->size())) - 1;
 
 	PCCERT_CONTEXT leaf_cert_context = cert_data->data.cert_context_chain->at(left_cert_index);
 
@@ -288,7 +288,7 @@ CRYPT_HASH_BLOB* UnbreakableCrypto::getSHA1CryptHashBlob(byte* raw_cert, size_t 
 	byte* pbComputedHash = new byte[20];
 	DWORD *pcbComputedHash = new DWORD;
 	(*pcbComputedHash) = 20;
-	CryptHashCertificate(NULL, 0, 0, raw_cert, raw_cert_len, pbComputedHash, pcbComputedHash);
+	CryptHashCertificate(NULL, 0, 0, raw_cert, (DWORD)raw_cert_len, pbComputedHash, pcbComputedHash);
 	CRYPT_HASH_BLOB* blob = new CRYPT_HASH_BLOB;
 	blob->pbData = pbComputedHash;
 	blob->cbData = *pcbComputedHash;
@@ -305,7 +305,7 @@ CRYPT_HASH_BLOB* UnbreakableCrypto::getSHA1CryptHashBlob(std::string thumbprint)
 	memcpy(pbComputedHash, thumbprint.c_str(), thumbprint.size());
 	CRYPT_HASH_BLOB* blob = new CRYPT_HASH_BLOB;
 	blob->pbData = pbComputedHash;
-	blob->cbData = thumbprint.size();
+	blob->cbData = (DWORD)thumbprint.size();
 	return blob;
 }
 
@@ -362,10 +362,10 @@ This function really needs to work correctly.
 5. Test: Verify all non-leaf certificates has a CA flag set
 */
 UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_CONTEXT>* cert_context_chain, char * hostname){
-	size_t cert_count;
-	int i;
-	PCCERT_CONTEXT current_cert;
-	PCCERT_CONTEXT proof_cert;
+	//size_t cert_count;
+	//int i;
+	//PCCERT_CONTEXT current_cert;
+	//PCCERT_CONTEXT proof_cert;
 
 	//Return Error if not configured
 	if (!isConfigured()){
@@ -396,7 +396,7 @@ Returns true if the certificate chain has null values
 */
 bool UnbreakableCrypto::evaluateContainsNullCertificates(std::vector<PCCERT_CONTEXT>* cert_context_chain) {
 	size_t cert_count = cert_context_chain->size();
-	for (int i = cert_count - 1; i >= 0; i--) {
+	for (int i = ((int)cert_count) - 1; i >= 0; i--) {
 		PCCERT_CONTEXT current_cert = cert_context_chain->at(i);
 		if (current_cert == NULL) {
 			tblog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: cert_context_chain->at(" << i << ") = NULL";
@@ -411,12 +411,12 @@ Returns false if any of the certificates hostname are invalid
 bool UnbreakableCrypto::evaluateHostname(std::vector<PCCERT_CONTEXT>* cert_context_chain, char *hostname) {
 	//Reject invalid Hostname
 	LPWSTR wHostname = new WCHAR[strlen(hostname) + 1];
-	MultiByteToWideChar(CP_OEMCP, 0, hostname, -1, wHostname, strlen(hostname) + 1);
+	MultiByteToWideChar(CP_OEMCP, 0, hostname, -1, wHostname, ((int)strlen(hostname)) + 1);
 
 	if (!checkHostname(cert_context_chain->at(0), wHostname)){
 		char* wildCardHostname = convertHostnameToWildcard(hostname);
 		LPWSTR w_WildCardHostname = new WCHAR[strlen(wildCardHostname) + 1];
-		MultiByteToWideChar(CP_OEMCP, 0, wildCardHostname, -1, w_WildCardHostname, strlen(wildCardHostname) + 1);
+		MultiByteToWideChar(CP_OEMCP, 0, wildCardHostname, -1, w_WildCardHostname, ((int)strlen(wildCardHostname)) + 1);
 
 		if (!checkHostname(cert_context_chain->at(0), w_WildCardHostname)){
 			delete[] wHostname;
@@ -524,7 +524,7 @@ Returns true if the leaf certificate is be traceable back to a root certificate.
 */
 bool UnbreakableCrypto::evaluateChainVouching(std::vector<PCCERT_CONTEXT>* cert_context_chain){
 	size_t cert_count = cert_context_chain->size();
-	for (int i = cert_count - 1; i >= 0; i--) {
+	for (int i = ((int)cert_count) - 1; i >= 0; i--) {
 		//The first cert should be signed by a root certificate
 		if (i == 0) {
 			PCCERT_CONTEXT current_cert = cert_context_chain->at(i);
@@ -545,7 +545,7 @@ bool UnbreakableCrypto::evaluateIsCa(std::vector<PCCERT_CONTEXT>* cert_context_c
 	//gathering leaf certificate information for duplicate checking
 	PCCERT_CONTEXT leaf_cert = cert_context_chain->at(0);
 
-	for (int i = cert_count - 1; i >= 0; i--) {
+	for (int i = ((int)cert_count) - 1; i >= 0; i--) {
 	//All certs except the leaf should be in the Intermediate CA store
 	//check all certs except the leaf
 		if (i == 0) {
@@ -562,7 +562,7 @@ bool UnbreakableCrypto::evaluateIsCa(std::vector<PCCERT_CONTEXT>* cert_context_c
 
 		bool isCA = false;
 		bool foundConstrant = false;
-		for (int ext = 0; ext< current_cert->pCertInfo->cExtension; ext++){
+		for (int ext = 0; ext< ((int)current_cert->pCertInfo->cExtension); ext++){
 			//look for CA extension
 			if (!strcmp(current_cert->pCertInfo->rgExtension[ext].pszObjId, szOID_BASIC_CONSTRAINTS)){
 				//NOTE: I have never seen szOID_BASIC_CONSTRAINTS found. It always has been the szOID_BASIC_CONSTRAINTS2 
@@ -658,7 +658,7 @@ char* UnbreakableCrypto::convertHostnameToWildcard(char* hostname){
 		return wildcardHostname;
 	}
 
-	int count = strlen(hostname) - index + 1;
+	int count = ((int)strlen(hostname)) - index + 1;
 	char* wildcardHostname = new char[count + 1];
 	wildcardHostname[0] = '*';
 

@@ -168,14 +168,14 @@ bool Plugin::plugin_loop() { //TODO
 		if (this->handlerType == RAW || this->handlerType == OPENSSL) {
 			tblog() << "Running native query";
 			if (this->query == NULL) {
-				return PLUGIN_RESPONSE_ERROR;
+				return false;
 			}
 			response = this->query(&(newquery->data));
 		}
 		else if (this->handlerType == ADDON) {
 			tblog() << "Running addon query";
 			if (this->query_by_addon == NULL) {
-				return PLUGIN_RESPONSE_ERROR;
+				return false;
 			}
 			response = this->query_by_addon(this->id, &(newquery->data));
 		}

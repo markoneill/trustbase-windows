@@ -1,0 +1,6 @@
+LIBRARY TRUSTBASENATIVECLIENT
+EXPORTS
+	trustbase_connect
+	trustbase_disconnect
+	query_cert
+	query_cert_openssl

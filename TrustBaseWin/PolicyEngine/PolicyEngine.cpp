@@ -6,6 +6,7 @@
 #include <chrono>
 #include "TBLogger.h"
 #include "communications.h"
+#include "Native.h"
 #include "PolicyContext.h"
 #include "Query.h"
 #include "QueryQueue.h"
@@ -72,16 +73,27 @@ int main(){
 	}
 
 	// init things
-	if (!Communications::init_communication(&qq, (int)context.plugin_count)) {
-		tblog(LOG_ERROR) << "Initialization errors, exiting...";
+	if (!NativeAPI::init_native(&qq, (int)context.plugin_count)) {
+		tblog(LOG_ERROR) << "Couldn't initialize native api, exiting...";
 		return -1;
 	}
+	//DEBUGGING
+	/*if (!Communications::init_communication(&qq, (int)context.plugin_count)) {
+		tblog(LOG_ERROR) << "Communications Initialization errors, exiting...";
+		return -1;
+	}*/
 	tblog(LOG_INFO) << "Successfully initialized Policy Engine. Ready for queries";
 
+	// start native api loop
+	std::thread native_api_loop = std::thread(NativeAPI::listen_for_queries);
+
 	// loop
-	Communications::listen_for_queries();
+	//DEBUGGING
+	//Communications::listen_for_queries();
 
 	// cleanup threads
+	native_api_loop.join();
+
 	// wait on all threads to finish
 	for (int i = 0; i <= context.plugin_count; i++) {
 		plugin_threads[i].join();
@@ -90,7 +102,8 @@ int main(){
 	delete[] plugin_threads;
 
 	// cleanup communication
-	Communications::cleanup();
+	//DEBUGGING
+	//Communications::cleanup();
 
 	for (int i = 0; i < context.addon_count; i++) {
 		context.addons[i].cleanup();
@@ -105,6 +118,7 @@ int main(){
 
 bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 	UnbreakableCrypto UBC = UnbreakableCrypto();
+	UnbreakableCrypto_RESPONSE system_response;
 	UBC.configure();
 
 	while (Communications::keep_running) {
@@ -117,9 +131,11 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 
 		tblog() << "Decider dequeued query " << query->getId();
 		
-		// get system's response
-		UnbreakableCrypto_RESPONSE system_response = UBC.evaluate(query);
-		tblog() << "Certificate Evaluate says: " << system_response;
+		// get system's response if it isn't a native request
+		if (query->native_pipe == INVALID_HANDLE_VALUE) {
+			system_response = UBC.evaluate(query);
+			tblog() << "Certificate Evaluate says: " << system_response;
+		}
 
 		// get timeout time
 		auto now = std::chrono::system_clock::now();
@@ -164,8 +180,10 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 			}
 		}
 
+
 		//Check if we need to trick the system to accept what the plugins say.
-		if (response == PLUGIN_RESPONSE_VALID && !(system_response==UnbreakableCrypto_ACCEPT)){
+		// only if this is not a native query
+		if (query->native_pipe == INVALID_HANDLE_VALUE && response == PLUGIN_RESPONSE_VALID && !(system_response==UnbreakableCrypto_ACCEPT)){
 			if (query->data.cert_context_chain->size() <= 0) {
 				tblog() << "No PCCERT_CONTEXT in chain";
 				return false;
@@ -183,7 +201,11 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		}
 
 		// send the response
-		Communications::send_response(response, query->getFlow());
+		if (query->native_pipe == INVALID_HANDLE_VALUE) { // send to the kernel driver
+			Communications::send_response(response, query->getFlow());
+		} else { // send to the proper native client
+			NativeAPI::send_response(response, query->native_pipe, query->getFlow());
+		}
 
 		// free that query
 		delete query;

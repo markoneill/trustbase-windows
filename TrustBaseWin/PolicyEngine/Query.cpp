@@ -5,11 +5,14 @@
 #define DEFAULT_RESPONSE	PLUGIN_RESPONSE_VALID
 
 int Query::next_id;
+std::mutex Query::id_mux;
 
 Query::Query(UINT64 flowHandle, UINT64 processId, char* processPath, UINT8 * raw_certificate, DWORD cert_len, UINT8 * client_hello, DWORD client_hello_len, UINT8 * server_hello, DWORD server_hello_len, int plugin_count) {
 	this->flowHandle = flowHandle;
 	this->processId = processId;
 	this->processPath = processPath;
+
+	this->native_pipe = INVALID_HANDLE_VALUE;
 
 	data.hostname = NULL;
 	data.port = 0;
@@ -23,13 +26,48 @@ Query::Query(UINT64 flowHandle, UINT64 processId, char* processPath, UINT8 * raw
 	data.server_hello = (char*)server_hello;
 	data.server_hello_len = server_hello_len;
 
+	Query::id_mux.lock();
 	data.id = Query::next_id;
 	Query::next_id++;
+	Query::id_mux.unlock();
 
 	//Get Hostname
 	data.hostname = SNI_Parser::sni_get_hostname((char*)client_hello, client_hello_len);
 
 	// allocate responses
+	this->num_plugins = plugin_count;
+	this->num_responses = 0;
+	responses = new int[plugin_count];
+	for (int i = 0; i < plugin_count; i++) {
+		responses[i] = DEFAULT_RESPONSE;
+	}
+	accepting_responses = true;
+}
+
+Query::Query(UINT64 native_id, UINT8* raw_certificate, DWORD cert_len, HANDLE pipe, char* in_hostname, uint16_t in_port, int plugin_count) {
+	this->flowHandle = native_id;
+	this->processId = 0;
+	this->processPath = NULL;
+
+	this->native_pipe = pipe;
+
+	data.hostname = in_hostname;
+	data.port = in_port;
+	data.raw_chain = raw_certificate;
+	data.raw_chain_len = cert_len;
+	data.chain = parse_chain(raw_certificate, cert_len);
+	data.cert_context_chain = parse_cert_context_chain(raw_certificate, cert_len);
+
+	data.client_hello = NULL;
+	data.client_hello_len = 0;
+	data.server_hello = NULL;
+	data.server_hello_len = 0;
+
+	Query::id_mux.lock();
+	data.id = Query::next_id;
+	Query::next_id++;
+	Query::id_mux.unlock();
+
 	this->num_plugins = plugin_count;
 	this->num_responses = 0;
 	responses = new int[plugin_count];
@@ -76,7 +114,7 @@ UINT64 Query::getFlow() {
 }
 
 void Query::printQueryInfo() {
-	tblog(LOG_INFO) << "Query :";
+	tblog(LOG_INFO) << "Query : " << data.id;
 	tblog(LOG_INFO) << "\tFlow : " << std::hex << flowHandle;
 	std::wstring wpath((wchar_t*)processPath);
 	std::string path(wpath.begin(), wpath.end());
@@ -141,7 +179,7 @@ STACK_OF(X509)* Query::parse_chain(unsigned char* data, size_t len) {
 	STACK_OF(X509)* chain;
 
 	chain = sk_X509_new_null();
-	while ((current_pos - start_pos) < len) {
+	while ((current_pos - start_pos) < ((int)len)) {
 		cert_len = ntoh24(current_pos);
 		current_pos += CERT_LENGTH_FIELD_SIZE;
 		cert_ptr = current_pos;

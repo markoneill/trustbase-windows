@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include <atomic>
 #include <exception>
-#include "TBLogger.h"
 #include "Query.h"
 #include "QueryQueue.h"
 

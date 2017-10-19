@@ -36,19 +36,16 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 		}
 		overlappedWrite.Offset = 0;
 
-		bool writeFileSuccessful = WriteFile(file, response_buf, 0x10, NULL, &overlappedWrite);
+		bool writeFileSuccessful = (bool)WriteFile(file, response_buf, 0x10, NULL, &overlappedWrite);
 		DWORD dwWaitRes = WaitForSingleObject(overlappedWrite.hEvent, INFINITE);
-		if (dwWaitRes == WAIT_FAILED){
+		if (dwWaitRes == WAIT_FAILED) {
 			//bad
 			tblog() << "WAIT_FAILED";
 			tblog() << "quitting write function";
 			return false;
 		}
 		//is write done? if not, we need to wait for overlapped async write
-		if(writeFileSuccessful){
-			//no action needed
-		}
-		else{
+		if(!writeFileSuccessful) {
 			if (GetLastError() != ERROR_IO_PENDING){
 				tblog() << "Unsuccessfully ";
 				tblog() << "NOT ERROR_IOPENDING ";
@@ -56,7 +53,7 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 				return false;
 			}
 			else{
-				writeFileSuccessful = GetOverlappedResult(file, &overlappedWrite, &dwBytesWritten, true);
+				writeFileSuccessful = (bool)GetOverlappedResult(file, &overlappedWrite, &dwBytesWritten, true);
 			}
 		}
 
@@ -80,7 +77,7 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 bool Communications::recv_query() {
 	DWORD readlen;
 	UINT64 toRead = 0;
-	UINT64 Read = 0;
+	UINT64 Read = 0; // the amount of bytes read
 	UINT64 flowHandle = 0;
 	UINT8* bufcur;
 
@@ -88,77 +85,35 @@ bool Communications::recv_query() {
 
 	while (true) {
 		// read until we have read a whole query
-
-		//Using Overlapped to allow async read/write. We only allow upto a single read and single write at the same time. 
-		//This allows the ReadFile call to block on its own  thread, without also blocking the WriteFile function. 
-		OVERLAPPED overlappedRead = { 0 };
-		overlappedRead.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-		DWORD dwBytesRead = 0;
-		if (!overlappedRead.hEvent){
-			//bad
+		// We don't have to do an overlapped read here, because the write it is in it's own thread
+		if (!ReadFile(file, bufcur, (DWORD)((bufsize - 1) - (bufcur - buf)), &readlen, NULL)) {
+			//failed for some reason?
+			tblog() << "Could not read query file! GLE = " << GetLastError();
 			return false;
-		}
-		overlappedRead.Offset = 0;
-		bool readFileSuccessful = ReadFile(file, bufcur, (DWORD)((bufsize - 1) - (bufcur - buf)), NULL, &overlappedRead);
-		DWORD dwWaitRes = WaitForSingleObject(overlappedRead.hEvent, INFINITE);
-		if (dwWaitRes == WAIT_FAILED){
-			//bad
-			if (overlappedRead.hEvent){
-				CloseHandle(overlappedRead.hEvent);
-			}
-			return false;
-		}
-		//is read done? if not, we need to wait for overlapped async read
-		if (readFileSuccessful){
-			//no action needed
-		}
-		else{
-			if (GetLastError() != ERROR_IO_PENDING){
-				if (overlappedRead.hEvent){
-					CloseHandle(overlappedRead.hEvent);
-				}
-				tblog(LOG_WARNING) << "Couldn't read query!";
-				return false;
-			}
-			readFileSuccessful = GetOverlappedResult(file, &overlappedRead, &dwBytesRead, true);
 		}
 
-		//async read is over
-		if(readFileSuccessful){
-			if (toRead == 0){
-				toRead = ((UINT64*)buf)[0];
-				flowHandle = ((UINT64*)buf)[1];
-				tblog() << "Got a query of " << toRead << " bytes, with flow handle " << flowHandle;
-			}
-			readlen = overlappedRead.InternalHigh - overlappedRead.Offset;
-			Read += readlen;
-		} else {
-			if (overlappedRead.hEvent){
-				CloseHandle(overlappedRead.hEvent);
-			}
-			tblog(LOG_WARNING) << "Couldn't read query!";
-			return false;
+		if (toRead == 0){
+			toRead = ((UINT64*)buf)[0];
+			flowHandle = ((UINT64*)buf)[1];
+			tblog() << "Got a query of " << toRead << " bytes, with flow handle " << flowHandle;
 		}
+		Read += readlen;
 
 		if (Read >= toRead) {
-			buf = bufcur;
-			if (overlappedRead.hEvent){
-				CloseHandle(overlappedRead.hEvent);
-			}
+			//buf = bufcur; // why is this? this doesn't make sense to me
 			break;
 		} else if (2 * Read < bufsize) {
 			// we need to double our buffer, copy our buf, drop it, and point bufcur to the end of the data
 			tblog() << "Doubling the buffer size from " << bufsize << " to " << bufsize * 2 << " for queries";
 			bufsize = bufsize * 2;
-			bufcur = new UINT8[bufsize];
-			memcpy(bufcur, buf, Read);
+			UINT8* newbuf = new UINT8[bufsize];
+			memcpy(newbuf, buf, Read);
 
 			delete[] buf;
-			buf = bufcur;
+			buf = newbuf;
 			bufcur = buf + Read;
-		}
-		if (overlappedRead.hEvent){
-			CloseHandle(overlappedRead.hEvent);
+		} else {
+			bufcur = bufcur + Read; // should never happen really
 		}
 	}
 
