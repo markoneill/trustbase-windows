@@ -109,6 +109,12 @@ int Query::getId() {
 	return data.id;
 }
 
+char* Query::getProcessPath()
+{
+	return processPath;
+}
+
+
 UINT64 Query::getFlow() {
 	return flowHandle;
 }

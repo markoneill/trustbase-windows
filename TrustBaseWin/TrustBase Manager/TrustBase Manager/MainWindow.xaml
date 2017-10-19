@@ -7,25 +7,27 @@
         mc:Ignorable="d" 
         Title="TrustBase Manager" Height="600" Width="800">
     <Window.Icon>
-        <BitmapImage UriSource="file:///C:/Users/Joshua Reynolds/Pictures/TrustBaseIcon.ico"/>
+        <ImageSource>TrustBaseIcon.ico</ImageSource>
     </Window.Icon>
+
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="20"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="35"/>
+            <RowDefinition Height="40
+                           "/>
         </Grid.RowDefinitions>
-        <Button x:Name="manage_exceptions_button" 
-                HorizontalAlignment="Left" 
-                Grid.Column="0" 
-                Grid.Row="1" 
-                Content="Manage Exceptions" 
-                VerticalAlignment="Stretch" 
-                Width="142" 
-                Click="Manage_Exceptions_Button_Click"
-                />
+
+        <Menu x:Name="myMenu" Grid.Column="0" Grid.Row="0">
+            <MenuItem x:Name="fileMenuItem" Header="_File">
+                <MenuItem x:Name="RefreshLogMenuItem" Header="_Refresh Log" Click="RefreshLogMenuItem_Click"/>
+                <MenuItem x:Name="SimulateLogMenuItem" Header="_Simulate Event (Admin)" Click="SimulateLogMenuItem_Click"/>
+                <MenuItem x:Name="ClearLogMenuItem" Header="_Clear Log (Admin)" Click="ClearLogMenuItem_Click"/>
+            </MenuItem>
+        </Menu>
         <Button x:Name="refresh_button" 
                 Content="Refresh Log" 
                 HorizontalAlignment="Center"
@@ -33,24 +35,32 @@
                 VerticalAlignment="Stretch" 
                 Width="165" 
                 Click="Refresh_Button_Click" 
-                Grid.Row="1"
+                Grid.Row="2"
                 />
-       <DataGrid x:Name="dataGrid" 
+        <DataGrid x:Name="dataGrid" 
                   HorizontalAlignment="Stretch" 
                   Margin="0,0,0,0" 
                   VerticalAlignment="Stretch" 
                   ColumnWidth="Auto"
                   Grid.Column="0" 
-                  Grid.Row="0" 
+                  Grid.Row="1" 
                   ItemsSource="{Binding}"
                   />
-       <CheckBox x:Name="checkBox" 
-                  Content="Notify me when Trustbase blocks a connection" 
-                  Grid.Row="1" 
+        <CheckBox x:Name="notifyCheckBox" 
+                  Content="Notify when Trustbase &#xD;&#xA;blocks a connection" 
+                  Grid.Row="2" 
                   Grid.Column="0" 
-                  Margin="0,0,5,0"
+                  Margin="0,5.333,162.333,-0.333"
                   HorizontalAlignment="Right" 
-                  VerticalAlignment="Center"
+                  VerticalAlignment="Center" IsChecked="True" Height="35" Width="147"
+                  />
+        <CheckBox x:Name="notifyAcceptCheckBox" 
+            Content="Notify when Trustbase &#xA;accepts a connection" 
+            Grid.Row="2" 
+            Grid.Column="0" 
+            Margin="0,5.333,5.333,-0.333"
+            HorizontalAlignment="Right" 
+            VerticalAlignment="Center" Height="35" Width="152" Click="notifyAcceptCheckBox_Click"
                   />
     </Grid>
 </Window>

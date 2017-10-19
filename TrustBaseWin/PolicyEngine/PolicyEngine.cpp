@@ -12,6 +12,8 @@
 #include "QueryQueue.h"
 #include "UnbreakableCrypto.h"
 #include "TestUnbreakableCrypto.h"
+#include "TBEventLogger.h"
+
 #define CONFIG_LOCATION		"./trustbase.cfg"
 // Things that need to go in the config
 #define TIMEOUT_TIME		15000
@@ -117,6 +119,9 @@ int main(){
 }
 
 bool decider_loop(QueryQueue* qq, PolicyContext* context) {
+	tbeventlog eventLog;
+	bool sent_response = false;
+
 	UnbreakableCrypto UBC = UnbreakableCrypto();
 	UnbreakableCrypto_RESPONSE system_response;
 	UBC.configure();
@@ -182,8 +187,9 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 
 
 		//Check if we need to trick the system to accept what the plugins say.
+
 		// only if this is not a native query
-		if (query->native_pipe == INVALID_HANDLE_VALUE && response == PLUGIN_RESPONSE_VALID && !(system_response==UnbreakableCrypto_ACCEPT)){
+		if (query->native_pipe == INVALID_HANDLE_VALUE && response == PLUGIN_RESPONSE_VALID && !(system_response==UnbreakableCrypto_ACCEPT)) {
 			if (query->data.cert_context_chain->size() <= 0) {
 				tblog() << "No PCCERT_CONTEXT in chain";
 				return false;
@@ -199,16 +205,21 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 			tblog() << "insertIntoRootStore returned " << insertRootSuccess;
 
 		}
-
 		// send the response
 		if (query->native_pipe == INVALID_HANDLE_VALUE) { // send to the kernel driver
-			Communications::send_response(response, query->getFlow());
+			sent_response = Communications::send_response(response, query->getFlow());
 		} else { // send to the proper native client
-			NativeAPI::send_response(response, query->native_pipe, query->getFlow());
+			sent_response = NativeAPI::send_response(response, query->native_pipe, query->getFlow());
+		}
+
+		if (sent_response) {
+			//if the response was sent successfully, then log an event
+			eventLog.sendEvent(response, query->getProcessPath(), query->data.hostname);
 		}
 
 		// free that query
 		delete query;
+		
 	}
 	return true;
 }

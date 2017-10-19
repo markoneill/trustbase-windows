@@ -81,7 +81,11 @@
     <ClInclude Include="TBLogger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+<<<<<<< HEAD
     <ClInclude Include="Native.h">
+=======
+    <ClInclude Include="TBEventLogger.h">
+>>>>>>> 2833f118d75fd5c5d0417afe4f2a2f2d0cb346ac
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -131,7 +135,11 @@
     <ClCompile Include="TBLogger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+<<<<<<< HEAD
     <ClCompile Include="Native.cpp">
+=======
+    <ClCompile Include="TBEventLogger.cpp">
+>>>>>>> 2833f118d75fd5c5d0417afe4f2a2f2d0cb346ac
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

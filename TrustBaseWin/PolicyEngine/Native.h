@@ -40,7 +40,7 @@ namespace NativeAPI {
 	bool init_native(QueryQueue* in_qq, int in_plugin_count);
 	bool listen_for_queries();
 	void handle_client(HANDLE hPipe);
-	void send_response(int result, HANDLE hPipe, int id);
+	bool send_response(int result, HANDLE hPipe, int id);
 
 	void WINAPI readCompletion(DWORD err, DWORD bytesread, OVERLAPPED* overlapped);
 }

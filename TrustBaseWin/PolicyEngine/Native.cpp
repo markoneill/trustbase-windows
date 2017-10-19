@@ -163,18 +163,22 @@ void WINAPI NativeAPI::readCompletion(DWORD err, DWORD bytesread, OVERLAPPED* ov
 	//TODO modify the native client to just do that
 }
 
-void NativeAPI::send_response(int result, HANDLE hPipe, int id) {
+bool NativeAPI::send_response(int result, HANDLE hPipe, int id) {
 	DWORD bytesout;
 	native_response resp;
 	resp.id = id;
 	resp.reply = result;
+	bool success = true;
 
 	// try to send the response on the pipe
 	//TODO change this to async? Possibly WriteFileEx
 	if (!WriteFile(hPipe, &resp, sizeof(native_response), &bytesout, NULL)) {
 		tblog() << "Couldn't write response to native client";
+		success = false;
 	}
 
 	// We are closing the handle here, because we are only doing a query per connection right now
 	CloseHandle(hPipe);
+
+	return success;
 }
