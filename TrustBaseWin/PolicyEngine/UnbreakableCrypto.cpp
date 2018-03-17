@@ -382,14 +382,18 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 
 	//Reject invalid Hostname
 	bool validHostname = evaluateHostname(cert_context_chain, hostname);
+
+	//todo: Revoked Certificate validation should not be here. Currently "UnbreakableCrypto" is used to validate which certificates cannot be added to the root store.
+	//This code should be refactored, so that certificates can be validated for revocation status, but that should not be done here.
 	//Reject revocation knowleage (looked at cashed information)
-	bool revokedCertificates = evaluateLocalRevocation(cert_context_chain);
+	//bool revokedCertificates = evaluateLocalRevocation(cert_context_chain);
+
 	//leaf cert must be traceable back to a root cert 
 	bool chainValidates = evaluateChainVouching(cert_context_chain);
 	//verify all non-leaf certificates has a CA flag set
 	bool validIsCaFlags = evaluateIsCa(cert_context_chain);
 
-	return validHostname && !revokedCertificates && chainValidates && validIsCaFlags ?UnbreakableCrypto_ACCEPT : UnbreakableCrypto_REJECT;
+	return validHostname && chainValidates && validIsCaFlags ?UnbreakableCrypto_ACCEPT : UnbreakableCrypto_REJECT;
 }
 /*
 Returns true if the certificate chain has null values
@@ -522,19 +526,21 @@ bool UnbreakableCrypto::evaluateLocalRevocation(std::vector<PCCERT_CONTEXT>* cer
 /*
 Returns true if the leaf certificate is be traceable back to a root certificate.
 */
-bool UnbreakableCrypto::evaluateChainVouching(std::vector<PCCERT_CONTEXT>* cert_context_chain){
+bool UnbreakableCrypto::evaluateChainVouching(std::vector<PCCERT_CONTEXT>* cert_context_chain) {
 	size_t cert_count = cert_context_chain->size();
-	for (int i = ((int)cert_count) - 1; i >= 0; i--) {
-		//The first cert should be signed by a root certificate
-		if (i == 0) {
-			PCCERT_CONTEXT current_cert = cert_context_chain->at(i);
-			if (!ValidateWithRootStore(current_cert)) {
-				tblog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: ValidateWithRootStore failed";
-				return false;
-			}
+	for (int i = 0; i < cert_count; i++) {
+		//TODO: I am unsure if this function is actually validating correctly. 
+		//We used to only validate the leaf certificate, but many certificates such as *.google.com failed to validate
+		//I noticed that google's certificates often come in a chain of 2. While the leaf certificate does not validate the intermediate certificate does. 
+
+		//This function does work correctly (does not validate) with badssl.com for self-signed and untrusted-root
+		PCCERT_CONTEXT current_cert = cert_context_chain->at(i);
+		if (ValidateWithRootStore(current_cert)) {
+			tblog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: ValidateWithRootStore failed";
+			return true;
 		}
 	}
-	return true;
+	return false;
 }
 /*
 Returns true if all non-leaf certificates have the isCA flag set.
@@ -720,7 +726,7 @@ bool UnbreakableCrypto::ValidateWithRootStore(PCCERT_CONTEXT cert) {
 
 	CERT_CHAIN_POLICY_PARA chain_policy;
 	chain_policy.cbSize = sizeof(CERT_CHAIN_POLICY_PARA);
-	chain_policy.dwFlags = CERT_CHAIN_POLICY_IGNORE_ALL_REV_UNKNOWN_FLAGS;
+	chain_policy.dwFlags = CERT_CHAIN_POLICY_IGNORE_NOT_TIME_NESTED_FLAG;// CERT_CHAIN_POLICY_IGNORE_ALL_REV_UNKNOWN_FLAGS;
 
 	CERT_CHAIN_POLICY_STATUS cert_policy_status;
 	if (!CertVerifyCertificateChainPolicy(
