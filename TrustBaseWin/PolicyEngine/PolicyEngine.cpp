@@ -75,26 +75,30 @@ int main(){
 	}
 
 	// init things
-	if (!NativeAPI::init_native(&qq, (int)context.plugin_count)) {
-		tblog(LOG_ERROR) << "Couldn't initialize native api, exiting...";
-		return -1;
-	}
-	//DEBUGGING
-	/*if (!Communications::init_communication(&qq, (int)context.plugin_count)) {
+
+	//DEBUGGING (TURNED OFF NATIVE API)
+	//if (!NativeAPI::init_native(&qq, (int)context.plugin_count)) {
+	//	tblog(LOG_ERROR) << "Couldn't initialize native api, exiting...";
+	//	return -1;
+	//}
+
+	if (!Communications::init_communication(&qq, (int)context.plugin_count)) {
 		tblog(LOG_ERROR) << "Communications Initialization errors, exiting...";
 		return -1;
-	}*/
+	}
 	tblog(LOG_INFO) << "Successfully initialized Policy Engine. Ready for queries";
 
+	//DEBUGGING (TURNED OFF NATIVE API)
 	// start native api loop
-	std::thread native_api_loop = std::thread(NativeAPI::listen_for_queries);
+	//std::thread native_api_loop = std::thread(NativeAPI::listen_for_queries);
 
 	// loop
-	//DEBUGGING
-	//Communications::listen_for_queries();
+	Communications::listen_for_queries();
 
 	// cleanup threads
-	native_api_loop.join();
+
+	//DEBUGGING (TURNED OFF NATIVE API)
+	//	native_api_loop.join();
 
 	// wait on all threads to finish
 	for (int i = 0; i <= context.plugin_count; i++) {
@@ -104,8 +108,7 @@ int main(){
 	delete[] plugin_threads;
 
 	// cleanup communication
-	//DEBUGGING
-	//Communications::cleanup();
+	Communications::cleanup();
 
 	for (int i = 0; i < context.addon_count; i++) {
 		context.addons[i].cleanup();
