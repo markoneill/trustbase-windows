@@ -188,6 +188,8 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 			}
 		}
 
+		tblog() << "Want to send response as " << ((response == PLUGIN_RESPONSE_VALID) ?  "valid" : "invalid");
+
 
 		//Check if we need to trick the system to accept what the plugins say.
 
@@ -216,13 +218,14 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 		}
 
 		if (sent_response) {
+			tblog() << "Sent the query along";
 			//if the response was sent successfully, then log an event
 			eventLog.sendEvent(response, query->getProcessPath(), query->data.hostname);
 		}
 
 		// free that query
 		delete query;
-		
+		tblog() << "Finished with query";
 	}
 	return true;
 }

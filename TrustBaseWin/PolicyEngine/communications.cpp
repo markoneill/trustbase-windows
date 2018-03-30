@@ -82,18 +82,11 @@ bool Communications::recv_query() {
 	UINT8* bufcur;
 
 	bufcur = buf;
-
-
-	//this while (true) block was written at the same time as the NativeAPI code
-	//I was unable to get the general communication with the keneral working with it,
-	//so I reverted the code. I am unsure why the problem exisit and I did not want to get
-	//rid of this code as it is cleaner and likely works well with the 
-	//NativeAPI code at the very least
 	
-	/*while (true) {
+	while (true) {
 		// read until we have read a whole query
 		// We don't have to do an overlapped read here, because the write it is in it's own thread
-		if (!ReadFile(file, bufcur, (DWORD)((bufsize - 1) - (bufcur - buf)), &readlen, NULL)) {
+		if (!ReadFile(file, (LPVOID)bufcur, (DWORD)((bufsize - 1) - (bufcur - buf)), &readlen, NULL)) {
 			//failed for some reason?
 			tblog() << "Could not read query file! GLE = " << GetLastError();
 			return false;
@@ -102,15 +95,15 @@ bool Communications::recv_query() {
 		if (toRead == 0) {
 			toRead = ((UINT64*)buf)[0];
 			flowHandle = ((UINT64*)buf)[1];
-			tblog() << "Got a query of " << toRead << " bytes, with flow handle " << flowHandle;
+			tblog() << "Got a query of " << toRead << " bytes, with flow handle " << flowHandle << " and got " << readlen << "of it";
 		}
 		Read += readlen;
 
 		if (Read >= toRead) {
-			//buf = bufcur; // why is this? this doesn't make sense to me
+			// we are done
 			break;
 		}
-		else if (2 * Read < bufsize) {
+		else if ((2 * Read) > bufsize) {
 			// we need to double our buffer, copy our buf, drop it, and point bufcur to the end of the data
 			tblog() << "Doubling the buffer size from " << bufsize << " to " << bufsize * 2 << " for queries";
 			bufsize = bufsize * 2;
@@ -120,15 +113,15 @@ bool Communications::recv_query() {
 			delete[] buf;
 			buf = newbuf;
 			bufcur = buf + Read;
-		}
-		else {
+		} else {
+			tblog() << "Didn't get it all on this round, but didn't fill the buffer";
 			bufcur = bufcur + Read; // should never happen really
 		}
-	}*/
+	}
 	
 
 	
-	while (true) {
+	/*while (true) {
 		// read until we have read a whole query
 
 		//Using Overlapped to allow async read/write. We only allow upto a single read and single write at the same time. 
@@ -204,7 +197,7 @@ bool Communications::recv_query() {
 		if (overlappedRead.hEvent){
 			CloseHandle(overlappedRead.hEvent);
 		}
-	}
+	}*/
 	
 	// parse the message
 	Query* query = parse_query(buf, Read);
@@ -249,6 +242,41 @@ bool Communications::debug_recv_query() {
 	return true;
 }
 
+void Communications::hex_dump(const UINT8* buf, UINT64 len) {
+	const UINT8* c;
+	char* dump;
+	char* dend;
+	char* dc;
+	int i;
+
+	dump = new char[len * 3];
+	dend = dump + (len * 3);
+	dc = dump;
+
+	c = buf;
+
+	i = 0;
+	while ((c + 4) < (buf + len)) {
+		if (!(i % 4)) {
+			dc[0] = '\n';
+			dc++;
+		}
+		i++;
+
+
+		dc += snprintf(dc, dend - dc, "%02x%02x%02x%02x ", c[0], c[1], c[2], c[3]);
+		c += 4;
+	}
+
+	while (c < (buf + len)) {
+		dc += snprintf(dc, dend - dc, "%02x", c[0]);
+		c++;
+	}
+
+	tblog() << dump;
+
+}
+
 Query* Communications::parse_query(UINT8* buffer, UINT64 buflen) {
 	UINT8* cursor = buffer;
 	UINT64 length;
@@ -290,6 +318,11 @@ Query* Communications::parse_query(UINT8* buffer, UINT64 buflen) {
 		cursor += sizeof(UINT32);
 		if ((UINT64)(cursor + processPathSize - buffer) > buflen) {
 			tblog(LOG_ERROR) << "Parsing path: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer);
+			tblog() << "Len  :" << std::hex << length;
+			tblog() << "Flow :" << std::hex << flowHandle;
+			tblog() << "Pid  :" << std::hex << processId;
+			tblog() << "ERR Path Size :" << std::hex << processPathSize;
+			hex_dump(buffer, buflen);
 			throw std::runtime_error("");
 		}
 		processPath = new char[processPathSize];
@@ -398,7 +431,10 @@ bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) 
 		tblog() << "STARTING COMMUNICATIONS IN DEBUG MODE";
 		return true;
 	}
-	file = CreateFileW(TRUSTBASEKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+
+	// this is the old way to open it with OVERLAPPED
+	//file = CreateFileW(TRUSTBASEKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+	file = CreateFileW(TRUSTBASEKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 	if (file == NULL ||  file == INVALID_HANDLE_VALUE) {
 		tblog(LOG_ERROR) << "Couldn't open trustbase kernel file.";
 		tblog(LOG_ERROR) << GetLastError();
@@ -419,9 +455,13 @@ bool Communications::listen_for_queries() {
 	while (keep_running) {
 		if (!recv_query()) {
 			tblog(LOG_WARNING) << "Could not handle query";
-			success = false;
+			
+			//WARNING
+			// DANGEROUS TEST, USUALLY YOU SHOULD STOP RUNNING OR FIGURE IT OUT IF THAT FAILS
+			//success = false;
 			// flip keep running to close the Policy Engine
-			keep_running = false;
+			//keep_running = false;
+			
 		}
 	}
 

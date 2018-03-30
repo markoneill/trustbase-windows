@@ -6,7 +6,7 @@
 std::ofstream tblog::log_file;
 bool tblog::also_cout = false;
 std::mutex tblog::mtx;
-tblog_level_t tblog::minimum_level = LOG_INFO;
+tblog_level_t tblog::minimum_level = LOG_DEBUG;
 tblog::tblog() : tblog(LOG_DEBUG) {}
 tblog::tblog(tblog_level_t log_level) {
 	level = log_level;
@@ -19,9 +19,7 @@ tblog::~tblog() {
 		// this can help prevent threading issues
 
 		// If the log level is below the minimum, ditch it
-		if (minimum_level > level) {
-		}
-		else{
+		if (minimum_level <= level) {
 			std::string level_indicator;
 			switch (level) {
 			case LOG_DEBUG:

@@ -393,7 +393,7 @@ UnbreakableCrypto_RESPONSE UnbreakableCrypto::evaluateChain(std::vector<PCCERT_C
 	//verify all non-leaf certificates has a CA flag set
 	bool validIsCaFlags = evaluateIsCa(cert_context_chain);
 
-	return validHostname && chainValidates && validIsCaFlags ?UnbreakableCrypto_ACCEPT : UnbreakableCrypto_REJECT;
+	return (validHostname && chainValidates && validIsCaFlags) ? UnbreakableCrypto_ACCEPT : UnbreakableCrypto_REJECT;
 }
 /*
 Returns true if the certificate chain has null values
@@ -536,7 +536,6 @@ bool UnbreakableCrypto::evaluateChainVouching(std::vector<PCCERT_CONTEXT>* cert_
 		//This function does work correctly (does not validate) with badssl.com for self-signed and untrusted-root
 		PCCERT_CONTEXT current_cert = cert_context_chain->at(i);
 		if (ValidateWithRootStore(current_cert)) {
-			tblog() << "UnbreakableCrypto_REJECT: Loop through chain from root to leaf to validate the chain: ValidateWithRootStore failed";
 			return true;
 		}
 	}
