@@ -1,0 +1,39 @@
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:bal="http://schemas.microsoft.com/wix/BalExtension" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+	<Bundle Version="1.0" UpgradeCode="51c3017d-d2f1-4733-a522-c21cd266d91b">
+		<BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.RtfLicense">
+			<bal:WixStandardBootstrapperApplication
+				LicenseFile="preinstall.rtf"
+				ShowVersion="yes"
+				/>
+		</BootstrapperApplicationRef>
+
+		<util:RegistrySearch Id="redist"
+			Variable="redistExists"
+			Root="HKLM"
+			Key="SOFTWARE\Classes\Installer\Dependencies\Microsoft.VS.VC_RuntimeAdditionalVSU_amd64,v14\"
+			Result="exists"
+			/>
+		<util:RegistrySearch Id="python"
+			Variable="pythonExists"
+			Root="HKCU"
+			Key="SOFTWARE\Python\PythonCore\2.7\"
+			Result="exists"
+			/>
+		
+		<Chain>
+			<MsiPackage Id="MainPackage" 
+				SourceFile="../Install me/python-2.7.13.amd64.msi" 
+				Vital="yes" 
+				InstallCondition="NOT pythonExists"
+				/>
+			<ExePackage
+				SourceFile="../Install me/vc_redist.x64.exe"
+				DetectCondition="ExeDetectedVariable"
+				InstallCommand="/q /ACTION=Install"
+				RepairCommand="/q ACTION=Repair /hideconsole"
+				UninstallCommand="/q ACTION=Uninstall /hideconsole" 
+				InstallCondition="NOT redistExists"
+				/>
+		</Chain>
+	</Bundle>
+</Wix>

@@ -1,0 +1,839 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Fragment>
+        <DirectoryRef Id="INSTALLFOLDER">
+            <Directory Id="TrustBase_SNAPSHOT_MARCH_19_2018" Name="TrustBase_SNAPSHOT_MARCH_19_2018">
+                <Component Id="readme.txt" Guid="C6A6D41D-7384-4197-AD29-BD7E804FA322">
+                    <File Id="readme.txt" KeyPath="yes" Source="$(var.MySource)\readme.txt" />
+                </Component>
+                <Component Id="runadmin.bat" Guid="CA4BC7DC-DC50-4474-8FFF-DF44A80ED11F">
+                    <File Id="runadmin.bat" KeyPath="yes" Source="$(var.MySource)\runadmin.bat" />
+                </Component>
+                <Directory Id="tools" Name="tools">
+                    <Directory Id="dirent" Name="dirent">
+                        <Component Id="dirent.h" Guid="E30206BE-B070-4FF9-922A-387741313424">
+                            <File Id="dirent.h" KeyPath="yes" Source="$(var.MySource)\tools\dirent\dirent.h" />
+                        </Component>
+                    </Directory>
+                    <Directory Id="openssl_64" Name="openssl-64">
+                        <Directory Id="bin" Name="bin">
+                            <Component Id="c_rehash.pl" Guid="B1AB6EA1-66EB-4116-82C0-876F98E25C1D">
+                                <File Id="c_rehash.pl" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\bin\c_rehash.pl" />
+                            </Component>
+                            <Component Id="libcrypto_1_1_x64.dll" Guid="EBC7D414-B46B-454E-A99D-3383F5B0625F">
+                                <File Id="libcrypto_1_1_x64.dll" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\bin\libcrypto-1_1-x64.dll" />
+                            </Component>
+                            <Component Id="libcrypto_1_1_x64.pdb" Guid="19B8B1E5-9C03-41CB-B13A-FFDCDB686932">
+                                <File Id="libcrypto_1_1_x64.pdb" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\bin\libcrypto-1_1-x64.pdb" />
+                            </Component>
+                            <Component Id="libssl_1_1_x64.dll" Guid="631A39CB-FCC9-46A1-83D2-9BF5AE8BFB14">
+                                <File Id="libssl_1_1_x64.dll" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\bin\libssl-1_1-x64.dll" />
+                            </Component>
+                            <Component Id="libssl_1_1_x64.pdb" Guid="846F9A12-E616-4692-B020-BCCCDCF0A34C">
+                                <File Id="libssl_1_1_x64.pdb" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\bin\libssl-1_1-x64.pdb" />
+                            </Component>
+                            <Component Id="openssl.exe" Guid="F0FC0FDD-D24A-4281-A887-85DAF89C1955">
+                                <File Id="openssl.exe" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\bin\openssl.exe" />
+                            </Component>
+                            <Component Id="openssl.pdb" Guid="A00BA775-4624-4292-806B-FF53364DFA9F">
+                                <File Id="openssl.pdb" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\bin\openssl.pdb" />
+                            </Component>
+                        </Directory>
+                        <Directory Id="include" Name="include">
+                            <Directory Id="openssl" Name="openssl">
+                                <Component Id="aes.h" Guid="DA1E7E8A-BCDC-4B4A-8594-24D912B96B48">
+                                    <File Id="aes.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\aes.h" />
+                                </Component>
+                                <Component Id="applink.c" Guid="2F734B68-2AD0-46E9-A6B4-B815D1F663C1">
+                                    <File Id="applink.c" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\applink.c" />
+                                </Component>
+                                <Component Id="asn1.h" Guid="40B93474-2EC9-4651-A85F-A7534C3E31EE">
+                                    <File Id="asn1.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\asn1.h" />
+                                </Component>
+                                <Component Id="asn1t.h" Guid="C4F3A5EC-D9B6-43C8-914A-34712888D228">
+                                    <File Id="asn1t.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\asn1t.h" />
+                                </Component>
+                                <Component Id="asn1_mac.h" Guid="1D6C8BFF-72A0-4B9F-ADC6-0C22734B70CA">
+                                    <File Id="asn1_mac.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\asn1_mac.h" />
+                                </Component>
+                                <Component Id="async.h" Guid="718A0F7E-C36F-4C48-9DB4-BFEE8E9CD984">
+                                    <File Id="async.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\async.h" />
+                                </Component>
+                                <Component Id="bio.h" Guid="941A9ACA-3470-44BE-A9C9-1C5163AD7615">
+                                    <File Id="bio.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\bio.h" />
+                                </Component>
+                                <Component Id="blowfish.h" Guid="F3891B77-60CE-4C29-864E-3DA9026CFD1E">
+                                    <File Id="blowfish.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\blowfish.h" />
+                                </Component>
+                                <Component Id="bn.h" Guid="A466A19F-5A39-441E-8460-EB1DFAD42C94">
+                                    <File Id="bn.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\bn.h" />
+                                </Component>
+                                <Component Id="buffer.h" Guid="E6DE5BEF-F2EC-4721-96F5-623EC2691A19">
+                                    <File Id="buffer.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\buffer.h" />
+                                </Component>
+                                <Component Id="camellia.h" Guid="FFD7F328-0BC2-4C5B-8558-55644C87CA35">
+                                    <File Id="camellia.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\camellia.h" />
+                                </Component>
+                                <Component Id="cast.h" Guid="CC883D45-757C-4159-BB1E-126ACEAD9213">
+                                    <File Id="cast.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\cast.h" />
+                                </Component>
+                                <Component Id="cmac.h" Guid="D4DEAF5B-BE14-4ABC-AF67-8234F1EAA8B7">
+                                    <File Id="cmac.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\cmac.h" />
+                                </Component>
+                                <Component Id="cms.h" Guid="9C7280B6-F76D-4D6C-A026-7CD9F7EF8E9F">
+                                    <File Id="cms.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\cms.h" />
+                                </Component>
+                                <Component Id="comp.h" Guid="C5E87B91-0C29-4C5B-822A-3914B06213C9">
+                                    <File Id="comp.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\comp.h" />
+                                </Component>
+                                <Component Id="conf.h" Guid="184D9742-CEED-4D35-AC01-4AF087455C8C">
+                                    <File Id="conf.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\conf.h" />
+                                </Component>
+                                <Component Id="conf_api.h" Guid="A20BACB4-5660-4E7D-8928-EFAA9BB1ED5C">
+                                    <File Id="conf_api.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\conf_api.h" />
+                                </Component>
+                                <Component Id="crypto.h" Guid="BDE7646B-C908-4112-86B5-AC1BFD6A1D1F">
+                                    <File Id="crypto.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\crypto.h" />
+                                </Component>
+                                <Component Id="ct.h" Guid="B5869DA7-4E6A-4092-BFCA-D8F22D1B94FA">
+                                    <File Id="ct.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\ct.h" />
+                                </Component>
+                                <Component Id="des.h" Guid="3F556D3C-6FC0-4921-9853-7DE64227B2AE">
+                                    <File Id="des.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\des.h" />
+                                </Component>
+                                <Component Id="dh.h" Guid="4EDA673F-6395-43D8-A399-EFFEEEF45F82">
+                                    <File Id="dh.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\dh.h" />
+                                </Component>
+                                <Component Id="dsa.h" Guid="2E1B4FEB-5D4A-4AE5-B042-8E9B3C3FBE35">
+                                    <File Id="dsa.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\dsa.h" />
+                                </Component>
+                                <Component Id="dtls1.h" Guid="2D6D09D5-B5D2-4C0A-8636-054133899907">
+                                    <File Id="dtls1.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\dtls1.h" />
+                                </Component>
+                                <Component Id="ebcdic.h" Guid="9925721B-F90E-431B-8911-F169460E6207">
+                                    <File Id="ebcdic.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\ebcdic.h" />
+                                </Component>
+                                <Component Id="ec.h" Guid="DD1634D0-7033-4E85-8A04-0F4F4519F16B">
+                                    <File Id="ec.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\ec.h" />
+                                </Component>
+                                <Component Id="ecdh.h" Guid="5B300638-E519-487D-861F-25B7EC5FD1CF">
+                                    <File Id="ecdh.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\ecdh.h" />
+                                </Component>
+                                <Component Id="ecdsa.h" Guid="8884BF4A-869C-47B4-89E2-2E3CE1F090AF">
+                                    <File Id="ecdsa.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\ecdsa.h" />
+                                </Component>
+                                <Component Id="engine.h" Guid="865C4874-4F52-4632-9A6C-8B7350C6208B">
+                                    <File Id="engine.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\engine.h" />
+                                </Component>
+                                <Component Id="err.h" Guid="A1399C5D-8BC1-4EFE-A863-66BD5B979651">
+                                    <File Id="err.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\err.h" />
+                                </Component>
+                                <Component Id="evp.h" Guid="C75DF9A8-6F1D-4CBA-9467-5BEA04CB049E">
+                                    <File Id="evp.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\evp.h" />
+                                </Component>
+                                <Component Id="e_os2.h" Guid="46362662-BFB1-4ACA-86F6-C0D52DFD37AD">
+                                    <File Id="e_os2.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\e_os2.h" />
+                                </Component>
+                                <Component Id="hmac.h" Guid="27DADB8F-DE60-4391-A169-CC3F27167033">
+                                    <File Id="hmac.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\hmac.h" />
+                                </Component>
+                                <Component Id="idea.h" Guid="4B44AB2F-144F-40FD-AE86-62BE0A9E4B2E">
+                                    <File Id="idea.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\idea.h" />
+                                </Component>
+                                <Component Id="kdf.h" Guid="D4BC01DC-55D3-4C1D-8F83-F5A3C241FCB2">
+                                    <File Id="kdf.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\kdf.h" />
+                                </Component>
+                                <Component Id="lhash.h" Guid="C9DF9F47-49C0-4305-BFEE-6665631D72AD">
+                                    <File Id="lhash.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\lhash.h" />
+                                </Component>
+                                <Component Id="md2.h" Guid="86F5C34E-878A-45BF-A2ED-C005CF6CD07C">
+                                    <File Id="md2.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\md2.h" />
+                                </Component>
+                                <Component Id="md4.h" Guid="8F5449BE-0C96-4C01-BE24-048C82E5E934">
+                                    <File Id="md4.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\md4.h" />
+                                </Component>
+                                <Component Id="md5.h" Guid="B4189255-B75D-4AF8-9DDA-475BB3F2AE9D">
+                                    <File Id="md5.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\md5.h" />
+                                </Component>
+                                <Component Id="mdc2.h" Guid="DE2A061D-8FD1-4D1B-8DA9-B39569692D28">
+                                    <File Id="mdc2.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\mdc2.h" />
+                                </Component>
+                                <Component Id="modes.h" Guid="3F96D000-8342-4344-B864-2FDD6A147852">
+                                    <File Id="modes.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\modes.h" />
+                                </Component>
+                                <Component Id="objects.h" Guid="AEEE7C2C-A9E4-4507-B1C6-2A467F0714A1">
+                                    <File Id="objects.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\objects.h" />
+                                </Component>
+                                <Component Id="obj_mac.h" Guid="C48E6337-0519-4B70-BA96-6162B4225C6A">
+                                    <File Id="obj_mac.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\obj_mac.h" />
+                                </Component>
+                                <Component Id="ocsp.h" Guid="1C1696DA-E585-415D-AEBF-41F6E2611854">
+                                    <File Id="ocsp.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\ocsp.h" />
+                                </Component>
+                                <Component Id="opensslconf.h" Guid="784B1B0A-5ACE-436C-9764-9D5EC4038B33">
+                                    <File Id="opensslconf.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\opensslconf.h" />
+                                </Component>
+                                <Component Id="opensslv.h" Guid="B505190D-EF36-4A17-95D8-A4AA3C6E2A00">
+                                    <File Id="opensslv.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\opensslv.h" />
+                                </Component>
+                                <Component Id="ossl_typ.h" Guid="88E66EC9-5EE3-49AB-8F1B-2C8B66D4F9DC">
+                                    <File Id="ossl_typ.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\ossl_typ.h" />
+                                </Component>
+                                <Component Id="pem.h" Guid="2B24AF96-9A77-4F74-AFC7-13136D7B28D9">
+                                    <File Id="pem.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\pem.h" />
+                                </Component>
+                                <Component Id="pem2.h" Guid="D860C6BE-6C5A-453C-9E73-69F3BE74F50F">
+                                    <File Id="pem2.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\pem2.h" />
+                                </Component>
+                                <Component Id="pkcs12.h" Guid="10073473-6A3B-41AD-829C-6762CB77B191">
+                                    <File Id="pkcs12.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\pkcs12.h" />
+                                </Component>
+                                <Component Id="pkcs7.h" Guid="49B39C24-4D2E-46BB-AD52-D2FEAF026ED6">
+                                    <File Id="pkcs7.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\pkcs7.h" />
+                                </Component>
+                                <Component Id="rand.h" Guid="00460B72-9387-4878-AD0A-C2B378FB6E24">
+                                    <File Id="rand.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\rand.h" />
+                                </Component>
+                                <Component Id="rc2.h" Guid="0E1B88B2-F79A-4D71-BD9A-3C5B10DEC3E1">
+                                    <File Id="rc2.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\rc2.h" />
+                                </Component>
+                                <Component Id="rc4.h" Guid="97A9AA94-CEE8-4664-B9D7-E38513148B3A">
+                                    <File Id="rc4.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\rc4.h" />
+                                </Component>
+                                <Component Id="rc5.h" Guid="5FF9EAB1-A71D-4638-A88D-F3894D583B5E">
+                                    <File Id="rc5.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\rc5.h" />
+                                </Component>
+                                <Component Id="ripemd.h" Guid="E2779400-8AC4-4E23-BFF2-416B48541415">
+                                    <File Id="ripemd.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\ripemd.h" />
+                                </Component>
+                                <Component Id="rsa.h" Guid="B716CB5F-8CCB-440B-9EFD-724218B9E856">
+                                    <File Id="rsa.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\rsa.h" />
+                                </Component>
+                                <Component Id="safestack.h" Guid="9B7859C8-9C9C-44BD-B879-2951F6B37792">
+                                    <File Id="safestack.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\safestack.h" />
+                                </Component>
+                                <Component Id="seed.h" Guid="33A24701-558A-47CC-88D7-47842F018E60">
+                                    <File Id="seed.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\seed.h" />
+                                </Component>
+                                <Component Id="sha.h" Guid="6B8C44F9-C143-423F-A821-FD83111E193A">
+                                    <File Id="sha.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\sha.h" />
+                                </Component>
+                                <Component Id="srp.h" Guid="89C9CD44-2711-405D-8FE5-FA22D0D44A4D">
+                                    <File Id="srp.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\srp.h" />
+                                </Component>
+                                <Component Id="srtp.h" Guid="4041CCE3-F24A-49F4-8EEE-7C55BA3966FA">
+                                    <File Id="srtp.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\srtp.h" />
+                                </Component>
+                                <Component Id="ssl.h" Guid="C7B0964B-6B50-42E0-B3F2-A9DE3127FC2F">
+                                    <File Id="ssl.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\ssl.h" />
+                                </Component>
+                                <Component Id="ssl2.h" Guid="0ECE59A4-F14F-448E-83F4-D2A7CBAC6756">
+                                    <File Id="ssl2.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\ssl2.h" />
+                                </Component>
+                                <Component Id="ssl3.h" Guid="ECB7B466-8C0F-459F-92D7-3231DB65185E">
+                                    <File Id="ssl3.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\ssl3.h" />
+                                </Component>
+                                <Component Id="stack.h" Guid="E27007D5-A745-447B-8739-10BEF89067D5">
+                                    <File Id="stack.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\stack.h" />
+                                </Component>
+                                <Component Id="symhacks.h" Guid="288F10C4-A094-4110-8161-34E904AC498B">
+                                    <File Id="symhacks.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\symhacks.h" />
+                                </Component>
+                                <Component Id="tls1.h" Guid="6B41E1D7-7F7E-4584-890B-B382552D1BCC">
+                                    <File Id="tls1.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\tls1.h" />
+                                </Component>
+                                <Component Id="ts.h" Guid="3D634522-0C59-4C81-8064-C5AD5B12DC55">
+                                    <File Id="ts.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\ts.h" />
+                                </Component>
+                                <Component Id="txt_db.h" Guid="F214E35D-0045-4652-9D50-368C2A2EEF18">
+                                    <File Id="txt_db.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\txt_db.h" />
+                                </Component>
+                                <Component Id="ui.h" Guid="C26EB3CF-996F-43F9-82C7-6C0E98A5E7AB">
+                                    <File Id="ui.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\ui.h" />
+                                </Component>
+                                <Component Id="whrlpool.h" Guid="144B7AA8-A1B0-4C16-BB51-E63594EFD4A4">
+                                    <File Id="whrlpool.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\whrlpool.h" />
+                                </Component>
+                                <Component Id="x509.h" Guid="B4471ABB-B4F1-4898-AEF2-A6BB009D7AC3">
+                                    <File Id="x509.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\x509.h" />
+                                </Component>
+                                <Component Id="x509v3.h" Guid="A74FDFC9-3726-4F24-B8D6-2F3D351EAB9A">
+                                    <File Id="x509v3.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\x509v3.h" />
+                                </Component>
+                                <Component Id="x509_vfy.h" Guid="8B427D89-E6E7-4FB3-B021-CC2726D9C994">
+                                    <File Id="x509_vfy.h" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\x509_vfy.h" />
+                                </Component>
+                                <Component Id="__DECC_INCLUDE_EPILOGUE.H" Guid="2B8C2BF3-1AAF-4F62-92C5-2A704F0FCBEF">
+                                    <File Id="__DECC_INCLUDE_EPILOGUE.H" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\__DECC_INCLUDE_EPILOGUE.H" />
+                                </Component>
+                                <Component Id="__DECC_INCLUDE_PROLOGUE.H" Guid="E768E9FF-E124-4C5F-9BE6-68A11D196ED3">
+                                    <File Id="__DECC_INCLUDE_PROLOGUE.H" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\include\openssl\__DECC_INCLUDE_PROLOGUE.H" />
+                                </Component>
+                            </Directory>
+                        </Directory>
+                        <Directory Id="lib" Name="lib">
+                            <Component Id="libcrypto.lib" Guid="7486A8FC-8860-48A6-8EF5-0C5A7F8EC1F9">
+                                <File Id="libcrypto.lib" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\lib\libcrypto.lib" />
+                            </Component>
+                            <Component Id="libssl.lib" Guid="AC4621EA-9829-4D6C-A52E-01BB2364FAF2">
+                                <File Id="libssl.lib" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\lib\libssl.lib" />
+                            </Component>
+                            <Directory Id="engines_1_1" Name="engines-1_1">
+                                <Component Id="capi.dll" Guid="115DFE4B-453C-4924-8E3F-40A67A5634ED">
+                                    <File Id="capi.dll" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\lib\engines-1_1\capi.dll" />
+                                </Component>
+                                <Component Id="capi.pdb" Guid="D24CC867-FB2E-4856-83AF-B5EECDBD5CF4">
+                                    <File Id="capi.pdb" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\lib\engines-1_1\capi.pdb" />
+                                </Component>
+                                <Component Id="padlock.dll" Guid="9BA37A02-4EDE-4512-B8F3-D5CCD8F1E9D9">
+                                    <File Id="padlock.dll" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\lib\engines-1_1\padlock.dll" />
+                                </Component>
+                                <Component Id="padlock.pdb" Guid="18A6FE45-F530-4830-8A50-E1A17A4648A7">
+                                    <File Id="padlock.pdb" KeyPath="yes" Source="$(var.MySource)\tools\openssl-64\lib\engines-1_1\padlock.pdb" />
+                                </Component>
+                            </Directory>
+                        </Directory>
+                    </Directory>
+                    <Directory Id="sqlite3" Name="sqlite3">
+                        <Component Id="sqlite3.def" Guid="5BA4BDE3-ED2C-4A40-A2EE-0C6093EF30B7">
+                            <File Id="sqlite3.def" KeyPath="yes" Source="$(var.MySource)\tools\sqlite3\sqlite3.def" />
+                        </Component>
+                        <Component Id="sqlite3.dll" Guid="0F71F37C-DC64-4863-B61E-11BD4D8E5515">
+                            <File Id="sqlite3.dll" KeyPath="yes" Source="$(var.MySource)\tools\sqlite3\sqlite3.dll" />
+                        </Component>
+                        <Component Id="sqlite3.exp" Guid="B15CF29A-239E-43AC-A2EA-4F7FEA3BD6FA">
+                            <File Id="sqlite3.exp" KeyPath="yes" Source="$(var.MySource)\tools\sqlite3\sqlite3.exp" />
+                        </Component>
+                        <Component Id="sqlite3.lib" Guid="D99292EA-C272-4F6E-A3F8-FA66D62D93BD">
+                            <File Id="sqlite3.lib" KeyPath="yes" Source="$(var.MySource)\tools\sqlite3\sqlite3.lib" />
+                        </Component>
+                        <Directory Id="include_1" Name="include">
+                            <Component Id="shell.c" Guid="ED85BE15-421B-436E-9446-5B37728434C5">
+                                <File Id="shell.c" KeyPath="yes" Source="$(var.MySource)\tools\sqlite3\include\shell.c" />
+                            </Component>
+                            <Component Id="sqlite3.c" Guid="DA93099B-8250-4D84-892D-2D610ED4DFCC">
+                                <File Id="sqlite3.c" KeyPath="yes" Source="$(var.MySource)\tools\sqlite3\include\sqlite3.c" />
+                            </Component>
+                            <Component Id="sqlite3.h" Guid="C3EAC647-574D-414A-8CDC-1843E8EEFACC">
+                                <File Id="sqlite3.h" KeyPath="yes" Source="$(var.MySource)\tools\sqlite3\include\sqlite3.h" />
+                            </Component>
+                            <Component Id="sqlite3ext.h" Guid="4B86B403-BC51-4A95-B99F-246ADE5F67AA">
+                                <File Id="sqlite3ext.h" KeyPath="yes" Source="$(var.MySource)\tools\sqlite3\include\sqlite3ext.h" />
+                            </Component>
+                        </Directory>
+                    </Directory>
+                </Directory>
+                <Directory Id="TrustBase_PolicyEngine" Name="TrustBase-PolicyEngine">
+                    <Directory Id="PythonPluginFiles" Name="PythonPluginFiles">
+                        <Component Id="crlset.dll" Guid="F8DC2B50-3000-4D3F-BABC-C39B1BCF3536">
+                            <File Id="crlset.dll" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\PythonPluginFiles\crlset.dll" />
+                        </Component>
+                        <Component Id="crlset_revocation.py" Guid="2B56EEDC-10E8-4574-B4C0-07086482A436">
+                            <File Id="crlset_revocation.py" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\PythonPluginFiles\crlset_revocation.py" />
+                        </Component>
+                        <Component Id="crlset_revocation.pyc" Guid="70ADDC92-59D4-4CBA-9CDC-FB94A25CF45A">
+                            <File Id="crlset_revocation.pyc" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\PythonPluginFiles\crlset_revocation.pyc" />
+                        </Component>
+                        <Component Id="test_plugin.py" Guid="0BFA9CBD-A394-425D-831D-C944B2628214">
+                            <File Id="test_plugin.py" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\PythonPluginFiles\test_plugin.py" />
+                        </Component>
+                        <Component Id="test_plugin.pyc" Guid="2D767E67-AD6A-45BA-8D75-68950D1D115C">
+                            <File Id="test_plugin.pyc" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\PythonPluginFiles\test_plugin.pyc" />
+                        </Component>
+                        <Component Id="trusthub_python.py" Guid="0210A9E7-8ECE-4A50-BF3B-1EEBE6F5409D">
+                            <File Id="trusthub_python.py" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\PythonPluginFiles\trusthub_python.py" />
+                        </Component>
+                        <Component Id="trusthub_python.pyc" Guid="A48BACC5-F765-4905-ABBB-F3784B751589">
+                            <File Id="trusthub_python.pyc" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\PythonPluginFiles\trusthub_python.pyc" />
+                        </Component>
+                    </Directory>
+                    <Directory Id="Release_bin" Name="Release-bin">
+                        <Component Id="cert_pinning.dll" Guid="F6B6D322-3BC8-42B0-BDDC-64B6ECCF79A7">
+                            <File Id="cert_pinning.dll" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\cert_pinning.dll" />
+                        </Component>
+                        <Component Id="cert_pinning.exp" Guid="89129D2B-8D68-46D6-9896-A09BBB33BBF2">
+                            <File Id="cert_pinning.exp" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\cert_pinning.exp" />
+                        </Component>
+                        <Component Id="cert_pinning.iobj" Guid="EC7B2399-B825-403B-A35E-F5A59E4D15E8">
+                            <File Id="cert_pinning.iobj" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\cert_pinning.iobj" />
+                        </Component>
+                        <Component Id="cert_pinning.ipdb" Guid="EB59BED6-962D-4B6C-8ED1-0BE987506A51">
+                            <File Id="cert_pinning.ipdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\cert_pinning.ipdb" />
+                        </Component>
+                        <Component Id="cert_pinning.lib" Guid="9F7B9748-F0E9-4BAA-8F09-4912E2C4D227">
+                            <File Id="cert_pinning.lib" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\cert_pinning.lib" />
+                        </Component>
+                        <Component Id="cert_pinning.pdb" Guid="3A0FC78C-FC19-4FB6-9BDC-0FF5179F6ABB">
+                            <File Id="cert_pinning.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\cert_pinning.pdb" />
+                        </Component>
+                        <Component Id="cipher_suite.dll" Guid="3BB88086-83F4-403F-9168-614D545ACF36">
+                            <File Id="cipher_suite.dll" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\cipher_suite.dll" />
+                        </Component>
+                        <Component Id="cipher_suite.exp" Guid="1DDE918D-FF72-42E3-87BA-9568806FE620">
+                            <File Id="cipher_suite.exp" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\cipher_suite.exp" />
+                        </Component>
+                        <Component Id="cipher_suite.iobj" Guid="EAC3FC7F-15C2-4687-B885-27C65D509CE9">
+                            <File Id="cipher_suite.iobj" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\cipher_suite.iobj" />
+                        </Component>
+                        <Component Id="cipher_suite.ipdb" Guid="382C2609-596E-46B3-B45A-160F01509954">
+                            <File Id="cipher_suite.ipdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\cipher_suite.ipdb" />
+                        </Component>
+                        <Component Id="cipher_suite.lib" Guid="7A63758B-8CEC-4326-BC43-FA4C52271866">
+                            <File Id="cipher_suite.lib" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\cipher_suite.lib" />
+                        </Component>
+                        <Component Id="cipher_suite.pdb" Guid="DE1EBB51-C13B-4086-B590-D04E89A3009B">
+                            <File Id="cipher_suite.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\cipher_suite.pdb" />
+                        </Component>
+                        <Component Id="libconfig__.dll" Guid="AAB7545D-0B8F-426A-AC1F-EC45D1D25C22">
+                            <File Id="libconfig__.dll" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\libconfig++.dll" />
+                        </Component>
+                        <Component Id="libconfig__.exp" Guid="12903EC5-C529-46A1-B475-F33C4DC41971">
+                            <File Id="libconfig__.exp" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\libconfig++.exp" />
+                        </Component>
+                        <Component Id="libconfig__.iobj" Guid="6905963D-73E4-4835-88F5-6B38D73618B2">
+                            <File Id="libconfig__.iobj" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\libconfig++.iobj" />
+                        </Component>
+                        <Component Id="libconfig__.ipdb" Guid="47D8B019-8683-4987-80A4-85E488111509">
+                            <File Id="libconfig__.ipdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\libconfig++.ipdb" />
+                        </Component>
+                        <Component Id="libconfig__.lib" Guid="4E4DAFCA-C8B3-4280-96A4-BCA5DE88F915">
+                            <File Id="libconfig__.lib" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\libconfig++.lib" />
+                        </Component>
+                        <Component Id="libconfig__.pdb" Guid="DA910A28-801F-4191-BAA2-7C114FD8D445">
+                            <File Id="libconfig__.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\libconfig++.pdb" />
+                        </Component>
+                        <Component Id="libcrypto_1_1_x64.dll_1" Guid="F6FE6F77-1788-4D5A-93CA-54283F95C293">
+                            <File Id="libcrypto_1_1_x64.dll_1" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\libcrypto-1_1-x64.dll" />
+                        </Component>
+                        <Component Id="libcrypto_1_1_x64.pdb_1" Guid="D63D1850-9C6E-4CA7-B4BC-723C7B641784">
+                            <File Id="libcrypto_1_1_x64.pdb_1" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\libcrypto-1_1-x64.pdb" />
+                        </Component>
+                        <Component Id="OCSP.dll" Guid="F5E501DE-DF0E-42EA-870F-491108EC5B34">
+                            <File Id="OCSP.dll" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\OCSP.dll" />
+                        </Component>
+                        <Component Id="OCSP.exp" Guid="32E3ADA2-4755-4D7A-B13F-8BBFC8109A74">
+                            <File Id="OCSP.exp" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\OCSP.exp" />
+                        </Component>
+                        <Component Id="OCSP.iobj" Guid="E16BE16F-E3C5-4C84-AF60-DADBE6A11F92">
+                            <File Id="OCSP.iobj" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\OCSP.iobj" />
+                        </Component>
+                        <Component Id="OCSP.ipdb" Guid="58C97225-6E9A-4C95-9836-89BC71265D3C">
+                            <File Id="OCSP.ipdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\OCSP.ipdb" />
+                        </Component>
+                        <Component Id="OCSP.lib" Guid="8625F909-A8B9-47F7-B08B-E9D5685CF080">
+                            <File Id="OCSP.lib" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\OCSP.lib" />
+                        </Component>
+                        <Component Id="OCSP.pdb" Guid="E29D48C8-ECCD-44F1-8031-A513763ABF9E">
+                            <File Id="OCSP.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\OCSP.pdb" />
+                        </Component>
+                        <Component Id="openssl_test.dll" Guid="7A7BA776-95B9-4730-88FA-0EBA0D798F4F">
+                            <File Id="openssl_test.dll" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\openssl_test.dll" />
+                        </Component>
+                        <Component Id="openssl_test.exp" Guid="17037936-AC6A-4172-81BE-E25878E35B17">
+                            <File Id="openssl_test.exp" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\openssl_test.exp" />
+                        </Component>
+                        <Component Id="openssl_test.iobj" Guid="EAA67675-39F1-4F80-B100-15B9BFFE3552">
+                            <File Id="openssl_test.iobj" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\openssl_test.iobj" />
+                        </Component>
+                        <Component Id="openssl_test.ipdb" Guid="12AC382F-2F4A-47D0-BF18-347F5B102580">
+                            <File Id="openssl_test.ipdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\openssl_test.ipdb" />
+                        </Component>
+                        <Component Id="openssl_test.lib" Guid="0FE187D4-D76F-4746-AD80-FC3E658F97F3">
+                            <File Id="openssl_test.lib" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\openssl_test.lib" />
+                        </Component>
+                        <Component Id="openssl_test.pdb" Guid="5FDAD1E9-4F0A-418C-A2CA-18ABAF2EEF31">
+                            <File Id="openssl_test.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\openssl_test.pdb" />
+                        </Component>
+                        <Component Id="pinned_certs.db" Guid="FDABEF50-E5D3-4F6A-953A-9715D384F88D">
+                            <File Id="pinned_certs.db" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\pinned_certs.db" />
+                        </Component>
+                        <Component Id="PolicyEngine.exe" Guid="7B9E68EA-2123-43B3-8C02-DABB35273A57">
+                            <File Id="PolicyEngine.exe" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\PolicyEngine.exe" />
+                        </Component>
+                        <Component Id="PolicyEngine.exp" Guid="F7EE1439-14AC-4B81-9242-1BEC75739329">
+                            <File Id="PolicyEngine.exp" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\PolicyEngine.exp" />
+                        </Component>
+                        <Component Id="PolicyEngine.iobj" Guid="E81B8F6C-D9B1-4FA0-820F-8C9416F38127">
+                            <File Id="PolicyEngine.iobj" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\PolicyEngine.iobj" />
+                        </Component>
+                        <Component Id="PolicyEngine.ipdb" Guid="1F3E1986-4DF7-4767-8E11-8615AE9A4302">
+                            <File Id="PolicyEngine.ipdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\PolicyEngine.ipdb" />
+                        </Component>
+                        <Component Id="PolicyEngine.lib" Guid="9AC7D2FA-8729-401C-B755-98C8845E102F">
+                            <File Id="PolicyEngine.lib" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\PolicyEngine.lib" />
+                        </Component>
+                        <Component Id="PolicyEngine.pdb" Guid="533CCA18-C85E-4A2B-8630-C398BA7D1DBB">
+                            <File Id="PolicyEngine.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\PolicyEngine.pdb" />
+                        </Component>
+                        <Component Id="policy_engine.log" Guid="CF64C693-9A56-4D44-90D7-24356A849F64">
+                            <File Id="policy_engine.log" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\policy_engine.log" />
+                        </Component>
+                        <Component Id="preinstall.exe" Guid="406F23A1-2F6D-4517-B7B1-8AFD8EC39A6D">
+                            <File Id="preinstall.exe" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\preinstall.exe" />
+                        </Component>
+                        <Component Id="python_plugins.dll" Guid="F6D8DB0F-F63C-4E49-B432-890756919421">
+                            <File Id="python_plugins.dll" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\python_plugins.dll" />
+                        </Component>
+                        <Component Id="python_plugins.exp" Guid="F989AB24-FEE7-46C5-BD41-C588480C96A3">
+                            <File Id="python_plugins.exp" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\python_plugins.exp" />
+                        </Component>
+                        <Component Id="python_plugins.iobj" Guid="A6D5340E-9DB1-493F-AF5D-C75881B4CD12">
+                            <File Id="python_plugins.iobj" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\python_plugins.iobj" />
+                        </Component>
+                        <Component Id="python_plugins.ipdb" Guid="5B3D8D2F-243E-4210-89A7-890D556BD872">
+                            <File Id="python_plugins.ipdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\python_plugins.ipdb" />
+                        </Component>
+                        <Component Id="python_plugins.lib" Guid="27BE5FC7-F5A8-4B63-A3EF-D24EA28226E2">
+                            <File Id="python_plugins.lib" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\python_plugins.lib" />
+                        </Component>
+                        <Component Id="python_plugins.pdb" Guid="0AFD8903-3ED2-4BBF-8D5F-881AF92D04F5">
+                            <File Id="python_plugins.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\python_plugins.pdb" />
+                        </Component>
+                        <Component Id="raw_test.dll" Guid="87C9E530-E8C4-497A-BC62-45F1726BE2BD">
+                            <File Id="raw_test.dll" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\raw_test.dll" />
+                        </Component>
+                        <Component Id="raw_test.exp" Guid="00707922-EA31-4FED-BA3E-619A244C2222">
+                            <File Id="raw_test.exp" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\raw_test.exp" />
+                        </Component>
+                        <Component Id="raw_test.iobj" Guid="E53425CE-527B-4EDD-90F4-1A6C141F139A">
+                            <File Id="raw_test.iobj" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\raw_test.iobj" />
+                        </Component>
+                        <Component Id="raw_test.ipdb" Guid="3B87EE47-7D09-4A20-B2E2-EE567706810C">
+                            <File Id="raw_test.ipdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\raw_test.ipdb" />
+                        </Component>
+                        <Component Id="raw_test.lib" Guid="F41DE24A-50D8-4BF5-AC32-2887A7E886D4">
+                            <File Id="raw_test.lib" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\raw_test.lib" />
+                        </Component>
+                        <Component Id="raw_test.pdb" Guid="BD4E8F8F-2116-4099-AFA9-B8B5D00391DA">
+                            <File Id="raw_test.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\raw_test.pdb" />
+                        </Component>
+                        <Component Id="SimplePlugin1.dll" Guid="8B5453A3-EBAB-4467-AE3C-3B5BD0BC273A">
+                            <File Id="SimplePlugin1.dll" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\SimplePlugin1.dll" />
+                        </Component>
+                        <Component Id="SimplePlugin1.exp" Guid="C3CE43D6-3B01-40E5-A404-68A0598C64FC">
+                            <File Id="SimplePlugin1.exp" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\SimplePlugin1.exp" />
+                        </Component>
+                        <Component Id="SimplePlugin1.iobj" Guid="79D420D0-BF8F-4BC3-A16E-5FC96D94323A">
+                            <File Id="SimplePlugin1.iobj" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\SimplePlugin1.iobj" />
+                        </Component>
+                        <Component Id="SimplePlugin1.ipdb" Guid="9BC3C6B4-3031-42E3-9B1F-CABBE40FDBC9">
+                            <File Id="SimplePlugin1.ipdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\SimplePlugin1.ipdb" />
+                        </Component>
+                        <Component Id="SimplePlugin1.lib" Guid="A89FC613-C902-4610-949F-CED116A007DA">
+                            <File Id="SimplePlugin1.lib" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\SimplePlugin1.lib" />
+                        </Component>
+                        <Component Id="SimplePlugin1.pdb" Guid="68A2AF52-F165-4B4A-BA40-359D003485B7">
+                            <File Id="SimplePlugin1.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\SimplePlugin1.pdb" />
+                        </Component>
+                        <Component Id="SimplePlugin2.dll" Guid="EB7C8EAA-4CE1-4EF7-AD53-FFAACBBBADA5">
+                            <File Id="SimplePlugin2.dll" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\SimplePlugin2.dll" />
+                        </Component>
+                        <Component Id="SimplePlugin2.exp" Guid="F6A40838-13A1-498D-BA6C-18222EB8B968">
+                            <File Id="SimplePlugin2.exp" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\SimplePlugin2.exp" />
+                        </Component>
+                        <Component Id="SimplePlugin2.iobj" Guid="3D57E939-9F4C-4FFD-B238-55AC3F2E4808">
+                            <File Id="SimplePlugin2.iobj" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\SimplePlugin2.iobj" />
+                        </Component>
+                        <Component Id="SimplePlugin2.ipdb" Guid="37DCBD44-DF42-4CE6-937A-D79985B37F25">
+                            <File Id="SimplePlugin2.ipdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\SimplePlugin2.ipdb" />
+                        </Component>
+                        <Component Id="SimplePlugin2.lib" Guid="4BD38421-0A1C-42BE-BEFD-6FFBFAB941D0">
+                            <File Id="SimplePlugin2.lib" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\SimplePlugin2.lib" />
+                        </Component>
+                        <Component Id="SimplePlugin2.pdb" Guid="D9CE006C-BA09-47E2-80FA-FEB672473231">
+                            <File Id="SimplePlugin2.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\SimplePlugin2.pdb" />
+                        </Component>
+                        <Component Id="sqlite3.dll_1" Guid="65EA36D4-1575-47F3-9306-B2A3B0C16FDC">
+                            <File Id="sqlite3.dll_1" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\sqlite3.dll" />
+                        </Component>
+                        <Component Id="storedCerts.bin" Guid="BF78B195-4B75-46D5-81A0-0E6B7DA41A07">
+                            <File Id="storedCerts.bin" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\storedCerts.bin" />
+                        </Component>
+                        <Component Id="trustbase.cfg" Guid="7EBBC61E-25A2-4B59-90D6-4633F56D7C8A">
+                            <File Id="trustbase.cfg" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\trustbase.cfg" />
+                        </Component>
+                        <Component Id="TrustBaseService.exe" Guid="5E390199-07AA-4752-B007-905ACBC98CA3">
+                            <File Id="TrustBaseService.exe" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\TrustBaseService.exe" />
+                        </Component>
+                        <Component Id="TrustBaseService.iobj" Guid="4A7AF8FF-0BC0-451C-AC51-B9F97E42497C">
+                            <File Id="TrustBaseService.iobj" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\TrustBaseService.iobj" />
+                        </Component>
+                        <Component Id="TrustBaseService.ipdb" Guid="C82D7567-DDC4-40F4-A36E-9F94C9938384">
+                            <File Id="TrustBaseService.ipdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\TrustBaseService.ipdb" />
+                        </Component>
+                        <Component Id="TrustBaseService.pdb" Guid="7044DB9C-27B7-4B8A-A387-CD10E4681F88">
+                            <File Id="TrustBaseService.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\TrustBaseService.pdb" />
+                        </Component>
+                        <Component Id="TrustBaseWin.cer" Guid="64B8ABEC-697C-4FE2-BA3A-2FC73692D3A1">
+                            <File Id="TrustBaseWin.cer" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\TrustBaseWin.cer" />
+                        </Component>
+                        <Component Id="TrustBaseWin.inf" Guid="98E27EC2-0474-433B-B834-F0C53C049A99">
+                            <File Id="TrustBaseWin.inf" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\TrustBaseWin.inf" />
+                        </Component>
+                        <Component Id="TrustBaseWin.pdb" Guid="EA6B8C42-7F6D-4220-927F-96EC1F067662">
+                            <File Id="TrustBaseWin.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\TrustBaseWin.pdb" />
+                        </Component>
+                        <Component Id="TrustBaseWin.sys" Guid="0792AA89-C4BC-497C-9873-EA82B8088E39">
+                            <File Id="TrustBaseWin.sys" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\TrustBaseWin.sys" />
+                        </Component>
+                        <Component Id="UserspaceTest.exe" Guid="2DB8A54F-40B5-4B19-A880-303ED74B1F21">
+                            <File Id="UserspaceTest.exe" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\UserspaceTest.exe" />
+                        </Component>
+                        <Component Id="UserspaceTest.iobj" Guid="5F53A67C-73AE-4B42-9153-E48FCB4655D6">
+                            <File Id="UserspaceTest.iobj" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\UserspaceTest.iobj" />
+                        </Component>
+                        <Component Id="UserspaceTest.ipdb" Guid="C2422190-FF61-4875-B44F-31D270550CD9">
+                            <File Id="UserspaceTest.ipdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\UserspaceTest.ipdb" />
+                        </Component>
+                        <Component Id="UserspaceTest.pdb" Guid="FD9F2BF1-3214-4873-9572-29BD39C9DBAC">
+                            <File Id="UserspaceTest.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\UserspaceTest.pdb" />
+                        </Component>
+                        <Component Id="whitelist.dll" Guid="AE76B03B-A8DB-4584-BAD2-AD719F0A0B8B">
+                            <File Id="whitelist.dll" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\whitelist.dll" />
+                        </Component>
+                        <Component Id="whitelist.exp" Guid="0F269DCD-92DC-4F45-9FEE-F6E7BC050CFF">
+                            <File Id="whitelist.exp" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\whitelist.exp" />
+                        </Component>
+                        <Component Id="whitelist.iobj" Guid="0E9CE3B6-56E5-433A-AFF9-AEE108C97270">
+                            <File Id="whitelist.iobj" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\whitelist.iobj" />
+                        </Component>
+                        <Component Id="whitelist.ipdb" Guid="A6796AB1-E8C5-4BC2-A48E-21FEC72A5EBA">
+                            <File Id="whitelist.ipdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\whitelist.ipdb" />
+                        </Component>
+                        <Component Id="whitelist.lib" Guid="54DB3A16-2A05-4C11-80FC-545DDAD08D25">
+                            <File Id="whitelist.lib" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\whitelist.lib" />
+                        </Component>
+                        <Component Id="whitelist.pdb" Guid="FFE3846D-1DC2-4B3D-A745-6BDAC7AC4D9B">
+                            <File Id="whitelist.pdb" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\whitelist.pdb" />
+                        </Component>
+                        <Directory Id="plugin_config" Name="plugin-config">
+                            <Component Id="cipher_suite.cfg" Guid="30AC38FA-3930-4F3A-B423-AB2558CED089">
+                                <File Id="cipher_suite.cfg" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\plugin-config\cipher_suite.cfg" />
+                            </Component>
+                        </Directory>
+                        <Directory Id="whitelist" Name="whitelist">
+                            <Component Id="pma.phoenixteam.pem" Guid="168616F2-EA5B-4BB8-B1AD-C7E6C4063439">
+                                <File Id="pma.phoenixteam.pem" KeyPath="yes" Source="$(var.MySource)\TrustBase-PolicyEngine\Release-bin\whitelist\pma.phoenixteam.pem" />
+                            </Component>
+                        </Directory>
+                    </Directory>
+                </Directory>
+                <Directory Id="TrustBase_TrafficInterceptor" Name="TrustBase-TrafficInterceptor">
+                    <Directory Id="release" Name="release">
+                        <Component Id="trustbasewin.cat" Guid="AE5DB9B2-1173-4DFB-9D3A-28F32E5E916D">
+                            <File Id="trustbasewin.cat" KeyPath="yes" Source="$(var.MySource)\TrustBase-TrafficInterceptor\release\trustbasewin.cat" />
+                        </Component>
+                        <Component Id="TrustBaseWin.inf_1" Guid="F28DBA8E-645D-4C06-974B-41525FFD57EC">
+                            <File Id="TrustBaseWin.inf_1" KeyPath="yes" Source="$(var.MySource)\TrustBase-TrafficInterceptor\release\TrustBaseWin.inf" />
+                        </Component>
+                        <Component Id="TrustBaseWin.sys_1" Guid="E987F8E0-11EB-4F3F-8A92-718B04F0A683">
+                            <File Id="TrustBaseWin.sys_1" KeyPath="yes" Source="$(var.MySource)\TrustBase-TrafficInterceptor\release\TrustBaseWin.sys" />
+                        </Component>
+                    </Directory>
+                </Directory>
+            </Directory>
+        </DirectoryRef>
+    </Fragment>
+    <Fragment>
+        <ComponentGroup Id="TrustBaseComponent">
+            <ComponentRef Id="readme.txt" />
+            <ComponentRef Id="runadmin.bat" />
+            <ComponentRef Id="dirent.h" />
+            <ComponentRef Id="c_rehash.pl" />
+            <ComponentRef Id="libcrypto_1_1_x64.dll" />
+            <ComponentRef Id="libcrypto_1_1_x64.pdb" />
+            <ComponentRef Id="libssl_1_1_x64.dll" />
+            <ComponentRef Id="libssl_1_1_x64.pdb" />
+            <ComponentRef Id="openssl.exe" />
+            <ComponentRef Id="openssl.pdb" />
+            <ComponentRef Id="aes.h" />
+            <ComponentRef Id="applink.c" />
+            <ComponentRef Id="asn1.h" />
+            <ComponentRef Id="asn1t.h" />
+            <ComponentRef Id="asn1_mac.h" />
+            <ComponentRef Id="async.h" />
+            <ComponentRef Id="bio.h" />
+            <ComponentRef Id="blowfish.h" />
+            <ComponentRef Id="bn.h" />
+            <ComponentRef Id="buffer.h" />
+            <ComponentRef Id="camellia.h" />
+            <ComponentRef Id="cast.h" />
+            <ComponentRef Id="cmac.h" />
+            <ComponentRef Id="cms.h" />
+            <ComponentRef Id="comp.h" />
+            <ComponentRef Id="conf.h" />
+            <ComponentRef Id="conf_api.h" />
+            <ComponentRef Id="crypto.h" />
+            <ComponentRef Id="ct.h" />
+            <ComponentRef Id="des.h" />
+            <ComponentRef Id="dh.h" />
+            <ComponentRef Id="dsa.h" />
+            <ComponentRef Id="dtls1.h" />
+            <ComponentRef Id="ebcdic.h" />
+            <ComponentRef Id="ec.h" />
+            <ComponentRef Id="ecdh.h" />
+            <ComponentRef Id="ecdsa.h" />
+            <ComponentRef Id="engine.h" />
+            <ComponentRef Id="err.h" />
+            <ComponentRef Id="evp.h" />
+            <ComponentRef Id="e_os2.h" />
+            <ComponentRef Id="hmac.h" />
+            <ComponentRef Id="idea.h" />
+            <ComponentRef Id="kdf.h" />
+            <ComponentRef Id="lhash.h" />
+            <ComponentRef Id="md2.h" />
+            <ComponentRef Id="md4.h" />
+            <ComponentRef Id="md5.h" />
+            <ComponentRef Id="mdc2.h" />
+            <ComponentRef Id="modes.h" />
+            <ComponentRef Id="objects.h" />
+            <ComponentRef Id="obj_mac.h" />
+            <ComponentRef Id="ocsp.h" />
+            <ComponentRef Id="opensslconf.h" />
+            <ComponentRef Id="opensslv.h" />
+            <ComponentRef Id="ossl_typ.h" />
+            <ComponentRef Id="pem.h" />
+            <ComponentRef Id="pem2.h" />
+            <ComponentRef Id="pkcs12.h" />
+            <ComponentRef Id="pkcs7.h" />
+            <ComponentRef Id="rand.h" />
+            <ComponentRef Id="rc2.h" />
+            <ComponentRef Id="rc4.h" />
+            <ComponentRef Id="rc5.h" />
+            <ComponentRef Id="ripemd.h" />
+            <ComponentRef Id="rsa.h" />
+            <ComponentRef Id="safestack.h" />
+            <ComponentRef Id="seed.h" />
+            <ComponentRef Id="sha.h" />
+            <ComponentRef Id="srp.h" />
+            <ComponentRef Id="srtp.h" />
+            <ComponentRef Id="ssl.h" />
+            <ComponentRef Id="ssl2.h" />
+            <ComponentRef Id="ssl3.h" />
+            <ComponentRef Id="stack.h" />
+            <ComponentRef Id="symhacks.h" />
+            <ComponentRef Id="tls1.h" />
+            <ComponentRef Id="ts.h" />
+            <ComponentRef Id="txt_db.h" />
+            <ComponentRef Id="ui.h" />
+            <ComponentRef Id="whrlpool.h" />
+            <ComponentRef Id="x509.h" />
+            <ComponentRef Id="x509v3.h" />
+            <ComponentRef Id="x509_vfy.h" />
+            <ComponentRef Id="__DECC_INCLUDE_EPILOGUE.H" />
+            <ComponentRef Id="__DECC_INCLUDE_PROLOGUE.H" />
+            <ComponentRef Id="libcrypto.lib" />
+            <ComponentRef Id="libssl.lib" />
+            <ComponentRef Id="capi.dll" />
+            <ComponentRef Id="capi.pdb" />
+            <ComponentRef Id="padlock.dll" />
+            <ComponentRef Id="padlock.pdb" />
+            <ComponentRef Id="sqlite3.def" />
+            <ComponentRef Id="sqlite3.dll" />
+            <ComponentRef Id="sqlite3.exp" />
+            <ComponentRef Id="sqlite3.lib" />
+            <ComponentRef Id="shell.c" />
+            <ComponentRef Id="sqlite3.c" />
+            <ComponentRef Id="sqlite3.h" />
+            <ComponentRef Id="sqlite3ext.h" />
+            <ComponentRef Id="crlset.dll" />
+            <ComponentRef Id="crlset_revocation.py" />
+            <ComponentRef Id="crlset_revocation.pyc" />
+            <ComponentRef Id="test_plugin.py" />
+            <ComponentRef Id="test_plugin.pyc" />
+            <ComponentRef Id="trusthub_python.py" />
+            <ComponentRef Id="trusthub_python.pyc" />
+            <ComponentRef Id="cert_pinning.dll" />
+            <ComponentRef Id="cert_pinning.exp" />
+            <ComponentRef Id="cert_pinning.iobj" />
+            <ComponentRef Id="cert_pinning.ipdb" />
+            <ComponentRef Id="cert_pinning.lib" />
+            <ComponentRef Id="cert_pinning.pdb" />
+            <ComponentRef Id="cipher_suite.dll" />
+            <ComponentRef Id="cipher_suite.exp" />
+            <ComponentRef Id="cipher_suite.iobj" />
+            <ComponentRef Id="cipher_suite.ipdb" />
+            <ComponentRef Id="cipher_suite.lib" />
+            <ComponentRef Id="cipher_suite.pdb" />
+            <ComponentRef Id="libconfig__.dll" />
+            <ComponentRef Id="libconfig__.exp" />
+            <ComponentRef Id="libconfig__.iobj" />
+            <ComponentRef Id="libconfig__.ipdb" />
+            <ComponentRef Id="libconfig__.lib" />
+            <ComponentRef Id="libconfig__.pdb" />
+            <ComponentRef Id="libcrypto_1_1_x64.dll_1" />
+            <ComponentRef Id="libcrypto_1_1_x64.pdb_1" />
+            <ComponentRef Id="OCSP.dll" />
+            <ComponentRef Id="OCSP.exp" />
+            <ComponentRef Id="OCSP.iobj" />
+            <ComponentRef Id="OCSP.ipdb" />
+            <ComponentRef Id="OCSP.lib" />
+            <ComponentRef Id="OCSP.pdb" />
+            <ComponentRef Id="openssl_test.dll" />
+            <ComponentRef Id="openssl_test.exp" />
+            <ComponentRef Id="openssl_test.iobj" />
+            <ComponentRef Id="openssl_test.ipdb" />
+            <ComponentRef Id="openssl_test.lib" />
+            <ComponentRef Id="openssl_test.pdb" />
+            <ComponentRef Id="pinned_certs.db" />
+            <ComponentRef Id="PolicyEngine.exe" />
+            <ComponentRef Id="PolicyEngine.exp" />
+            <ComponentRef Id="PolicyEngine.iobj" />
+            <ComponentRef Id="PolicyEngine.ipdb" />
+            <ComponentRef Id="PolicyEngine.lib" />
+            <ComponentRef Id="PolicyEngine.pdb" />
+            <ComponentRef Id="policy_engine.log" />
+            <ComponentRef Id="preinstall.exe" />
+            <ComponentRef Id="python_plugins.dll" />
+            <ComponentRef Id="python_plugins.exp" />
+            <ComponentRef Id="python_plugins.iobj" />
+            <ComponentRef Id="python_plugins.ipdb" />
+            <ComponentRef Id="python_plugins.lib" />
+            <ComponentRef Id="python_plugins.pdb" />
+            <ComponentRef Id="raw_test.dll" />
+            <ComponentRef Id="raw_test.exp" />
+            <ComponentRef Id="raw_test.iobj" />
+            <ComponentRef Id="raw_test.ipdb" />
+            <ComponentRef Id="raw_test.lib" />
+            <ComponentRef Id="raw_test.pdb" />
+            <ComponentRef Id="SimplePlugin1.dll" />
+            <ComponentRef Id="SimplePlugin1.exp" />
+            <ComponentRef Id="SimplePlugin1.iobj" />
+            <ComponentRef Id="SimplePlugin1.ipdb" />
+            <ComponentRef Id="SimplePlugin1.lib" />
+            <ComponentRef Id="SimplePlugin1.pdb" />
+            <ComponentRef Id="SimplePlugin2.dll" />
+            <ComponentRef Id="SimplePlugin2.exp" />
+            <ComponentRef Id="SimplePlugin2.iobj" />
+            <ComponentRef Id="SimplePlugin2.ipdb" />
+            <ComponentRef Id="SimplePlugin2.lib" />
+            <ComponentRef Id="SimplePlugin2.pdb" />
+            <ComponentRef Id="sqlite3.dll_1" />
+            <ComponentRef Id="storedCerts.bin" />
+            <ComponentRef Id="trustbase.cfg" />
+            <ComponentRef Id="TrustBaseService.exe" />
+            <ComponentRef Id="TrustBaseService.iobj" />
+            <ComponentRef Id="TrustBaseService.ipdb" />
+            <ComponentRef Id="TrustBaseService.pdb" />
+            <ComponentRef Id="TrustBaseWin.cer" />
+            <ComponentRef Id="TrustBaseWin.inf" />
+            <ComponentRef Id="TrustBaseWin.pdb" />
+            <ComponentRef Id="TrustBaseWin.sys" />
+            <ComponentRef Id="UserspaceTest.exe" />
+            <ComponentRef Id="UserspaceTest.iobj" />
+            <ComponentRef Id="UserspaceTest.ipdb" />
+            <ComponentRef Id="UserspaceTest.pdb" />
+            <ComponentRef Id="whitelist.dll" />
+            <ComponentRef Id="whitelist.exp" />
+            <ComponentRef Id="whitelist.iobj" />
+            <ComponentRef Id="whitelist.ipdb" />
+            <ComponentRef Id="whitelist.lib" />
+            <ComponentRef Id="whitelist.pdb" />
+            <ComponentRef Id="cipher_suite.cfg" />
+            <ComponentRef Id="pma.phoenixteam.pem" />
+            <ComponentRef Id="trustbasewin.cat" />
+            <ComponentRef Id="TrustBaseWin.inf_1" />
+            <ComponentRef Id="TrustBaseWin.sys_1" />
+        </ComponentGroup>
+    </Fragment>
+</Wix>

@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<?define ProductVersion = "0.0.1"?>
+<?define ProductUpgradeCode = "414267d1-fe61-420e-a540-c23f9bed35ee"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="*" UpgradeCode="$(var.ProductUpgradeCode)" Name="Trusbase" Version="$(var.ProductVersion)" Manufacturer="BYU ISRL" Language="1033">
+        <Package InstallerVersion="300" Compressed="yes"/>
+        <Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFilesFolder">
+                <Directory Id="INSTALLFOLDER" Name="TrustBase"/>
+            </Directory>
+            <Directory Id="ProgramMenuFolder">
+                <Directory Id="ApplicationProgramsFolder" Name="TrustBase"/>
+            </Directory>
+        </Directory>
+        <DirectoryRef Id="ApplicationProgramsFolder">
+            <Component Id="TrustBaseShortcut" Guid="a45dda9c-6a80-4248-a554-58ed58bc0366">
+                <Shortcut Id="TrustBaseStartMenuShortcut" Name="Run TrustBase" Description="BYU IRSL TrustBase Program" Target="[!runadmin.bat]" WorkingDirectory="$(var.MySource)"/>
+                <Shortcut Id="UninstallTrustBase" Name="Uninstall TrustBase" Description="Uninstalls TrustBase from account" Target="[System64Folder]msiexec.exe" Arguments="/x [ProductCode]"/>
+                <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall"/>
+                <RegistryValue Root="HKCU" Key="Software\Microsoft\MyApplicationName" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+            </Component>
+        </DirectoryRef>
+        <Feature Id="TrustbaseFeature" Level="1">
+            <ComponentGroupRef Id="TrustBaseComponent"/>
+            <ComponentRef Id="TrustBaseShortcut"/>
+        </Feature>
+        <UI>
+            <UIRef Id="WixUI_InstallDir"/>
+            <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication">
+                WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed
+            </Publish>
+        </UI>
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER"/>
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch My Application" />
+        <Property Id="WixShellExecTarget" Value="[!runadmin.bat]" />
+        <CustomAction Id="LaunchApplication" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
+    </Product>
+</Wix>
