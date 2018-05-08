@@ -101,6 +101,24 @@ namespace TrustBase_Manager
             //SET UP LOG EVENT HANDLER
             //=========================
 
+            //====================
+            //CHECK IF RUNNING AS ADMIN
+            //====================
+            if (IsRunningAsAdmin)
+            {
+                this.SimulateLogMenuItem.IsEnabled = true;
+                this.ClearLogMenuItem.IsEnabled = true;
+
+                //check if log exists. Creating this can only be done as admin.
+                if (!EventLog.SourceExists("TrustBase Manager"))
+                    EventLog.CreateEventSource("TrustBase Manager", "TrustBaseLog");
+            }
+            else
+            {
+                this.SimulateLogMenuItem.IsEnabled = false;
+                this.ClearLogMenuItem.IsEnabled = false;
+            }
+
             myLog.Log = "TrustBaseLog";
             myLog.EnableRaisingEvents = true;
             myLog.EntryWritten += notify;
@@ -157,24 +175,6 @@ namespace TrustBase_Manager
             //====================
             this.Closing += this.closing;
             this.notifyCheckBox.Click += CheckBox_Click;
-
-            //====================
-            //CHECK IF RUNNING AS ADMIN
-            //====================
-            if(IsRunningAsAdmin)
-            {
-                this.SimulateLogMenuItem.IsEnabled = true;
-                this.ClearLogMenuItem.IsEnabled = true;
-
-                //check if log exists. Creating this can only be done as admin.
-                if (!EventLog.SourceExists("TrustBase Manager"))
-                    EventLog.CreateEventSource("TrustBase Manager", "TrustBaseLog");
-            }
-            else
-            {
-                this.SimulateLogMenuItem.IsEnabled = false;
-                this.ClearLogMenuItem.IsEnabled = false;
-            }
 
             //====================
             //DISPLAY UAC SHIELD
