@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2020
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrustBase Manager", "TrustBase Manager\TrustBase Manager\TrustBase Manager.csproj", "{22B1B127-04C3-412A-B589-450885104010}"
 EndProject
@@ -94,7 +94,6 @@ Global
 		{C2CB3A95-3143-495C-90E7-1344730C65CD}.Release|ARM64.ActiveCfg = Release|Any CPU
 		{C2CB3A95-3143-495C-90E7-1344730C65CD}.Release|ARM64.Build.0 = Release|Any CPU
 		{C2CB3A95-3143-495C-90E7-1344730C65CD}.Release|x64.ActiveCfg = Release|Any CPU
-		{C2CB3A95-3143-495C-90E7-1344730C65CD}.Release|x64.Build.0 = Release|Any CPU
 		{C2CB3A95-3143-495C-90E7-1344730C65CD}.Release|x86.ActiveCfg = Release|Any CPU
 		{C2CB3A95-3143-495C-90E7-1344730C65CD}.Release|x86.Build.0 = Release|Any CPU
 		{C021AF95-4458-44CC-9B0C-0E8B833DAB5E}.Debug|Any CPU.ActiveCfg = Debug|Win32
@@ -108,7 +107,6 @@ Global
 		{C021AF95-4458-44CC-9B0C-0E8B833DAB5E}.Release|ARM.ActiveCfg = Release|Win32
 		{C021AF95-4458-44CC-9B0C-0E8B833DAB5E}.Release|ARM64.ActiveCfg = Release|Win32
 		{C021AF95-4458-44CC-9B0C-0E8B833DAB5E}.Release|x64.ActiveCfg = Release|x64
-		{C021AF95-4458-44CC-9B0C-0E8B833DAB5E}.Release|x64.Build.0 = Release|x64
 		{C021AF95-4458-44CC-9B0C-0E8B833DAB5E}.Release|x86.ActiveCfg = Release|Win32
 		{C021AF95-4458-44CC-9B0C-0E8B833DAB5E}.Release|x86.Build.0 = Release|Win32
 		{DF65D77E-8EC7-4281-A1BD-F4871D630533}.Debug|Any CPU.ActiveCfg = Debug|x64
@@ -288,7 +286,6 @@ Global
 		{61D251AA-9A73-41C1-9D45-5C8D195246D8}.Release|ARM.ActiveCfg = Release|Win32
 		{61D251AA-9A73-41C1-9D45-5C8D195246D8}.Release|ARM64.ActiveCfg = Release|Win32
 		{61D251AA-9A73-41C1-9D45-5C8D195246D8}.Release|x64.ActiveCfg = Release|x64
-		{61D251AA-9A73-41C1-9D45-5C8D195246D8}.Release|x64.Build.0 = Release|x64
 		{61D251AA-9A73-41C1-9D45-5C8D195246D8}.Release|x86.ActiveCfg = Release|Win32
 		{61D251AA-9A73-41C1-9D45-5C8D195246D8}.Release|x86.Build.0 = Release|Win32
 		{D62E487B-7660-403A-8D35-567514301664}.Debug|Any CPU.ActiveCfg = Debug|Win32
@@ -302,7 +299,6 @@ Global
 		{D62E487B-7660-403A-8D35-567514301664}.Release|ARM.ActiveCfg = Release|Win32
 		{D62E487B-7660-403A-8D35-567514301664}.Release|ARM64.ActiveCfg = Release|Win32
 		{D62E487B-7660-403A-8D35-567514301664}.Release|x64.ActiveCfg = Debug|x64
-		{D62E487B-7660-403A-8D35-567514301664}.Release|x64.Build.0 = Debug|x64
 		{D62E487B-7660-403A-8D35-567514301664}.Release|x86.ActiveCfg = Release|Win32
 		{D62E487B-7660-403A-8D35-567514301664}.Release|x86.Build.0 = Release|Win32
 		{7E068D2F-0DC7-4AE3-8616-DA7A09C8BAF8}.Debug|Any CPU.ActiveCfg = Debug|Win32
@@ -316,7 +312,6 @@ Global
 		{7E068D2F-0DC7-4AE3-8616-DA7A09C8BAF8}.Release|ARM.ActiveCfg = Release|Win32
 		{7E068D2F-0DC7-4AE3-8616-DA7A09C8BAF8}.Release|ARM64.ActiveCfg = Release|Win32
 		{7E068D2F-0DC7-4AE3-8616-DA7A09C8BAF8}.Release|x64.ActiveCfg = Debug|x64
-		{7E068D2F-0DC7-4AE3-8616-DA7A09C8BAF8}.Release|x64.Build.0 = Debug|x64
 		{7E068D2F-0DC7-4AE3-8616-DA7A09C8BAF8}.Release|x86.ActiveCfg = Release|Win32
 		{7E068D2F-0DC7-4AE3-8616-DA7A09C8BAF8}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
@@ -333,5 +328,8 @@ Global
 		{00F41694-D8D7-410A-8248-7E79AD135519} = {149FF6CD-D3AE-4833-BA19-5C08EC5C92B8}
 		{3DCEBBF9-BB99-49F2-B80F-066EC11B391C} = {737B3D9E-DF00-4D64-B5BC-A1C2D960CA5D}
 		{DB24B6CE-7B98-44AC-86B3-6E3E020292D0} = {149FF6CD-D3AE-4833-BA19-5C08EC5C92B8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9B11E949-8D22-4021-95E9-51DFA8ABA9B4}
 	EndGlobalSection
 EndGlobal

@@ -3,7 +3,6 @@
 ###################
 *.com
 *.class
-*.dll
 *.exe
 *.o
 *.so
@@ -59,9 +58,6 @@ Thumbs.db
 *Debug/
 *Release/
 *obj/
-
-#Tools#
-*tools/
 
 #This very file     #
 #####################

@@ -101,12 +101,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../TrustBaseNativeClient/;C:\Users\ilab\Source\Repos\trustbase-windows\TrustBaseWin\tools\openssl-64\include;..\tools\openssl-64-debug\lib;..\tools\openssl-64-debug\include;..\libconfig;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../TrustBaseNativeClient/;C:\Users\ilab\Source\Repos\trustbase-windows\TrustBaseWin\tools\openssl-64\include;..\tools\openssl-64\lib;..\tools\openssl-64\include;..\libconfig;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>../x64/Debug/TrustBaseNativeClient.lib;../tools/openssl-64-debug/lib/libcrypto.lib;../tools/openssl-64-debug/lib/libssl.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../x64/Debug/TrustBaseNativeClient.lib;../tools/openssl-64/lib/libcrypto.lib;../tools/openssl-64/lib/libssl.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
