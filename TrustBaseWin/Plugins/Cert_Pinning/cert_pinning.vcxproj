@@ -85,6 +85,9 @@
       <AdditionalLibraryDirectories>..\..\tools\openssl-64\lib;..\..\tools\sqlite3;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcrypto.lib;sqlite3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /y $(ProjectDir)pinned_certs.db $(OutDir)pinned_certs.db</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

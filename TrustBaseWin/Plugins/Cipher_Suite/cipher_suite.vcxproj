@@ -93,6 +93,10 @@
       <AdditionalLibraryDirectories>..\..\tools\openssl-64\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcrypto.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>if not exist $(OutDir)plugin-config\ mkdir $(OutDir)plugin-config\
+copy /y $(ProjectDir)plugin-config\cipher_suite.cfg  $(OutDir)plugin-config\cipher_suite.cfg</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

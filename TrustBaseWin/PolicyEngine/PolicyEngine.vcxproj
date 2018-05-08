@@ -159,7 +159,8 @@
     </Link>
 	<PostBuildEvent>
       <Command>xcopy /y $(SolutionDir)tools\openssl-64\bin\libcrypto-1_1-x64.dll  $(OutDir) 
-	  xcopy /y $(SolutionDir)tools\sqlite3\sqlite3.dll  $(OutDir)</Command>
+	  xcopy /y $(SolutionDir)tools\sqlite3\sqlite3.dll  $(OutDir)
+	  xcopy /y $(ProjectDir)trustbase.cfg  $(OutDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

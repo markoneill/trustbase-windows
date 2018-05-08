@@ -88,6 +88,10 @@
       <AdditionalLibraryDirectories>..\..\tools\openssl-64\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcrypto.lib;libssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>if not exist $(OutDir)whitelist\ mkdir $(OutDir)whitelist\
+copy /y $(ProjectDir)whitelist\pma.phoenixteam.pem  $(OutDir)whitelist\pma.phoenixteam.pem</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
