@@ -30,7 +30,7 @@ powershell -Command "Start-Process .\preinstall.exe -Verb RunAs -Wait" 1>nul 2>n
 cd %pwd%
 
 :starttrustbase
-start /W runas /user:%username% pnputil /install /add-driver .\TrustBase-TrafficInterceptor\release\TrustBaseWin.inf
+RUNDLL32.EXE SETUPAPI.DLL,InstallHinfSection DefaultInstall 132 .\TrustBase-TrafficInterceptor\release\TrustBaseWin.inf
 powershell -Command "Start-Process cmd -Verb RunAs -ArgumentList '/c net start TrustBaseWin'"
 powershell -Command "Start-Process cmd -Verb RunAs -ArgumentList '/k cd %cwd% && PolicyEngine.exe'"
 exit
