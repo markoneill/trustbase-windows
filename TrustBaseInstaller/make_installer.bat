@@ -12,6 +12,7 @@ set bin=%snapshot%\TrustBase-PolicyEngine\Release-bin
 set failure=0
 
 :prepareInstall
+:: We use this to not corrupt the data structure of preinstall.wxs
 xcopy %snapshot%\"Install me" "Install me" /Y /E /I
 
 :runpreinstall
