@@ -6,9 +6,13 @@
 ::We use && so that if candle fails it will not execute light
 @ECHO OFF
 setlocal
+set wkdir=cd
 set snapshot=TrustBase_SNAPSHOT_MARCH_19_2018
 set bin=%snapshot%\TrustBase-PolicyEngine\Release-bin
 set failure=0
+
+:prepareInstall
+xcopy %snapshot%\"Install me" "Install me" /Y /E /I
 
 :runpreinstall
 cd PreInstall
