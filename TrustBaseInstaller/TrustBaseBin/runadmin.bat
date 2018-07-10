@@ -33,4 +33,5 @@ cd %pwd%
 RUNDLL32.EXE SETUPAPI.DLL,InstallHinfSection DefaultInstall 132 .\TrustBase-TrafficInterceptor\release\TrustBaseWin.inf
 powershell -Command "Start-Process cmd -Verb RunAs -ArgumentList '/c net start TrustBaseWin'"
 powershell -Command "Start-Process cmd -Verb RunAs -ArgumentList '/k cd %cwd% && PolicyEngine.exe'"
+pause
 exit

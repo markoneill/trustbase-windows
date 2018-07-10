@@ -44,6 +44,7 @@ if %failure% neq 0(
     del "TrustBase.msi" 2>nul
     goto :preinstallerror
 )
+pause
 goto :EOF
 
 :preinstallerror
@@ -51,4 +52,5 @@ goto :EOF
 cd %bin%
 del "preinstall.exe" 2>nul
 cd ..
+pause
 goto :EOF
