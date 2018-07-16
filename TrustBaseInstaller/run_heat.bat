@@ -9,4 +9,3 @@
 @ECHO ON
 heat dir %snapshot% -dr "INSTALLFOLDER" -var var.MySource -g1 -gg -sfrag -sreg -suid -cg "TrustBaseComponent" -template fragment -out dir.wxs
 @ECHO OFF
-pause

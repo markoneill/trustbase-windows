@@ -6,24 +6,23 @@
 ::We use && so that if candle fails it will not execute light
 @ECHO OFF
 setlocal
-set wkdir=%cd%
-set snapshot=TrustBase_SNAPSHOT_MARCH_19_2018
-set bin=%snapshot%\TrustBase-PolicyEngine\Release-bin
-set failure=0
+call set_dependencies.bat
 
 :prepareInstall
-:: We use this to not corrupt the data structure of preinstall.wxs
-xcopy %snapshot%\"Install me" "Install me" /Y /E /I
+:: Move the installme folder to the current working directory
+if %move_installme% EQU %true% (
+    xcopy %installme% "Install me" /Y /E /I
+)
 
 :runpreinstall
 cd PreInstall
-call preinstall.bat || set failure=1
+call preinstall.bat || set failure=%true%
 
 :removepreinstall
 del "preinstall.wixobj" 2>nul
 del "preinstall.wixpdb" 2>nul
 cd ..
-if %failure% neq 0 (
+if %failure% EQU %true% (
     goto :preinstallerror
 )
 
@@ -32,15 +31,15 @@ call run_heat.bat
 
 :runtrustbase
 @ECHO ON
-candle trustbase.wxs dir.wxs -ext WixUIExtension -ext WixUtilExtension -dMySource=%snapshot% || set failure=1 && goto :removetrustbase
-light -ext WixUIExtension -ext WixUtilExtension -dWixUILicenseRtf=./TrustBase.rtf trustbase.wixobj dir.wixobj -out TrustBase || set failure=1 && goto :removetrustbase
+candle trustbase.wxs dir.wxs -ext WixUIExtension -ext WixUtilExtension -dMySource=%snapshot% || set failure=%true% && goto :removetrustbase
+light -ext WixUIExtension -ext WixUtilExtension -dWixUILicenseRtf=./TrustBase.rtf trustbase.wixobj dir.wixobj -out TrustBase || set failure=%true% && goto :removetrustbase
 
 :removetrustbase
 @ECHO OFF
 del "dir.wixobj" 2>nul
 del "trustbase.wixobj" 2>nul
 del "trustbase.wixpdb" 2>nul
-if %failure% neq 0(
+if %failure% EQU %true%(
     del "TrustBase.msi" 2>nul
     goto :preinstallerror
 )
@@ -52,5 +51,4 @@ goto :EOF
 cd %bin%
 del "preinstall.exe" 2>nul
 cd ..
-pause
 goto :EOF
