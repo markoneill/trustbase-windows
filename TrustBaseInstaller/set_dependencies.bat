@@ -1,6 +1,4 @@
 :: Save the dependencies for the bat files
-setlocal
-
 :: Status Codes
 set true=0
 set false=1
