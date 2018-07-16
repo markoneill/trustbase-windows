@@ -43,7 +43,6 @@ if %failure% EQU %true%(
     del "TrustBase.msi" 2>nul
     goto :preinstallerror
 )
-pause
 goto :EOF
 
 :preinstallerror
