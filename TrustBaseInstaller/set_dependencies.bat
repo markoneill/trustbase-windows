@@ -8,6 +8,6 @@ set move_installme=%true%
 
 :: File Dependencies
 set wkdir=%cd%
-set snapshot=%wkdir%\TrustBase_SNAPSHOT_MARCH_19_2018
-set bin=%snapshot%\TrustBase-PolicyEngine\Release-bin
+set snapshot=%wkdir%\May_11th_Snapshot
+set bin=%snapshot%\Release
 set installme=%snapshot%\"Install me"
