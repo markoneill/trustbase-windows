@@ -4,7 +4,7 @@
 @ECHO ON
 candle preinstall.wxs -ext WixBalExtension -ext WixUtilExtension || goto :error
 light preinstall.wixobj -ext WixBalExtension -ext WixUtilExtension || goto :error
-move preinstall.exe %bin% || goto :error
+move preinstall.exe ..\%bin% || goto :error
 @ECHO OFF
 goto :EOF
 
