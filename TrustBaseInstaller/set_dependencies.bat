@@ -11,28 +11,38 @@ set output=_dep_routes.bat
 
 :: Actual Locations for Dependencies
 :: These are the dependencies for the make_installer file to work
-set actual_snapshot=Extras\May_11th_Snapshot
+set actual_snapshot=TrustBaseBin\May_11th_Snapshot
 set actual_bin=%actual_snapshot%\Release
-set actual_installme=Extras\"Install me"
+set actual_installme=TrustBaseBin\"Install me"
+set actual_runadmin=TrustBaseBin\runadmin.bat
 
 :: Assumed Locations for Dependencies
 set assumed_snapshot=snapshot
 set assumed_bin=%assumed_snapshot%\release
 set assumed_installme=PreInstall\Dependencies
+set assumed_runadmin=runadmin.bat
 
 :DefineDepMap
 :: Sets up dependencies map
 set dep[0,name]=snapshot
 set dep[0,assumed]=%assumed_snapshot%
 set dep[0,actual]=%actual_snapshot%
+set dep[0,isfile]=%false%
 
 set dep[1,name]=bin
 set dep[1,assumed]=%assumed_bin%
 set dep[1,actual]=%actual_bin%
+set dep[1,isfile]=%false%
 
 set dep[2,name]=installme
 set dep[2,assumed]=%assumed_installme%
 set dep[2,actual]=%actual_installme%
+set dep[2,isfile]=%false%
+
+set dep[3,name]=runadmin
+set dep[3,assumed]=%assumed_runadmin%
+set dep[3,actual]=%actual_runadmin%
+set dep[3,isfile]=%true%
 
 set "x=0"
 
@@ -62,7 +72,7 @@ if %failure% EQU %true% (
 :: Create Files in expected directories for the installer to use
 for /l %%i in (0,1,%numIters%) do (
   if %failure% EQU %false% (
-    call :EnsureExistance !dep[%%i,assumed]! !dep[%%i,actual]!
+    call :EnsureExistance !dep[%%i,assumed]! !dep[%%i,actual]! !dep[%%i,isfile]!
   )
 )
 
@@ -99,6 +109,7 @@ exit /B 0
 :EnsureExistance
 set assumed=%~1
 set actual=%~2
+set isfile=%~3
 
 if %assumed% EQU %actual% (
     echo These are the same
@@ -112,12 +123,20 @@ if %assumed% EQU %actual% (
 	)
 	
 	rem Ensure the file is where it needs to be
-	>nul xcopy %actual% %assumed% /Y /E /I
+	if %isfile% EQU %true% (
+		echo F | xcopy %actual% %assumed% /Y /E /I >nul
+	) else (
+		>nul xcopy %actual% %assumed% /Y /E /I
+	)
+	
 )
+
+exit /B 0
 
 :AddRoute
 set name=%~1
 set value=%~2
+
 echo set %name%=%value% >> %output%
 
 
