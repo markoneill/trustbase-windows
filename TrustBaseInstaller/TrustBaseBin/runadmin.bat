@@ -1,5 +1,7 @@
 @ECHO OFF
 SETLOCAL
+set base_dir=%~dp0
+cd %base_dir%
 set cwd=%cd%\release
 set python=HKEY_CURRENT_USER\SOFTWARE\Python\PythonCore\2.7\
 set vsdist=HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Installer\Dependencies\Microsoft.VS.VC_RuntimeAdditionalVSU_amd64,v14\
