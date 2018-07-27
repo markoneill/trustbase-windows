@@ -139,9 +139,10 @@ set value=%~2
 
 echo set %name%=%value% >> %output%
 
-
 exit /B 0
 
 :VerificationError
-echo set failure=%true% > %output%
+echo @ECHO OFF > %output%
+echo set true=%true% >> %output%
+echo set failure=%true% >> %output%
 GOTO :EOF
