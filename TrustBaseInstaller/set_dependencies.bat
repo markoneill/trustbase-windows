@@ -20,7 +20,7 @@ set actual_runadmin=TrustBaseBin\runadmin.bat
 set assumed_snapshot=snapshot
 set assumed_bin=%assumed_snapshot%\release
 set assumed_installme=PreInstall\Dependencies
-set assumed_runadmin=runadmin.bat
+set assumed_runadmin=%assumed_snapshot%\runadmin.bat
 
 :DefineDepMap
 :: Sets up dependencies map

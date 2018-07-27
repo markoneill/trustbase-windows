@@ -1,6 +1,6 @@
 @ECHO OFF
 SETLOCAL
-set cwd=%cd%\TrustBase-PolicyEngine\Release-bin
+set cwd=%cd%\release
 set python=HKEY_CURRENT_USER\SOFTWARE\Python\PythonCore\2.7\
 set vsdist=HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Installer\Dependencies\Microsoft.VS.VC_RuntimeAdditionalVSU_amd64,v14\
 set err=0
@@ -30,7 +30,7 @@ powershell -Command "Start-Process .\preinstall.exe -Verb RunAs -Wait" 1>nul 2>n
 cd %pwd%
 
 :starttrustbase
-RUNDLL32.EXE SETUPAPI.DLL,InstallHinfSection DefaultInstall 132 .\TrustBase-TrafficInterceptor\release\TrustBaseWin.inf
+RUNDLL32.EXE SETUPAPI.DLL,InstallHinfSection DefaultInstall 132 .\release\TrustBaseWin\TrustBaseWin.inf
 powershell -Command "Start-Process cmd -Verb RunAs -ArgumentList '/c net start TrustBaseWin'"
 powershell -Command "Start-Process cmd -Verb RunAs -ArgumentList '/k cd %cwd% && PolicyEngine.exe'"
 exit
