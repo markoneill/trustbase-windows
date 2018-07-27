@@ -100,9 +100,6 @@ exit /B 0
 set assumed=%~1
 set actual=%~2
 
-echo %assumed%
-echo %actual%
-
 if %assumed% EQU %actual% (
     echo These are the same
 ) else (
@@ -110,12 +107,12 @@ if %assumed% EQU %actual% (
 	rem If there is a case insensitivity error, correct it
     if exist %assumed% (
 		rem xcopy %assumed% %assumed%_1 /Y /E /I
-		del %assumed% /Q /F /S
-		rmdir %assumed% /S /Q
+		>nul del %assumed% /Q /F /S
+		>nul rmdir %assumed% /S /Q
 	)
 	
 	rem Ensure the file is where it needs to be
-	xcopy %actual% %assumed% /Y /E /I
+	>nul xcopy %actual% %assumed% /Y /E /I
 )
 
 :AddRoute

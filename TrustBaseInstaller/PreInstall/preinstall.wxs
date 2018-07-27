@@ -22,12 +22,12 @@
 		
 		<Chain>
 			<MsiPackage Id="MainPackage" 
-				SourceFile="../Install me/python-2.7.13.amd64.msi" 
+				SourceFile="Dependencies/python-2.7.13.amd64.msi" 
 				Vital="yes" 
 				InstallCondition="NOT pythonExists"
 				/>
 			<ExePackage
-				SourceFile="../Install me/vc_redist.x64.exe"
+				SourceFile="Dependencies/vc_redist.x64.exe"
 				DetectCondition="ExeDetectedVariable"
 				InstallCommand="/q /ACTION=Install"
 				RepairCommand="/q ACTION=Repair /hideconsole"
