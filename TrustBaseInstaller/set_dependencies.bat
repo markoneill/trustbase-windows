@@ -1,4 +1,4 @@
-ECHO OFF
+@ECHO OFF
 setlocal enabledelayedexpansion
 
 :: Save the dependencies for the bat files
@@ -139,24 +139,20 @@ set assumed=%~1
 set actual=%~2
 set isfile=%~3
 
-if %assumed% EQU %actual% (
-    echo These are the same
-) else (
+if %assumed% NEQ %actual% (
 
-	rem If there is a case insensitivity error, correct it
-    if exist %assumed% (
-		rem xcopy %assumed% %assumed%_1 /Y /E /I
-		>nul del %assumed% /Q /F /S
-		>nul rmdir %assumed% /S /Q
-	)
-	
 	rem Ensure the file is where it needs to be
 	if %isfile% EQU %true% (
+		if exist %assumed% (
+			>nul del %assumed% /Q /F /S
+		)
 		echo F | xcopy %actual% %assumed% /Y /E /I >nul
 	) else (
+		if exist %assumed% (
+			>nul rmdir %assumed% /S /Q
+		)
 		>nul xcopy %actual% %assumed% /Y /E /I
 	)
-	
 )
 
 exit /B 0
