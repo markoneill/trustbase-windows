@@ -6,13 +6,11 @@
 ::We use && so that if candle fails it will not execute light
 @ECHO OFF
 setlocal
-call set_dependencies.bat
 
-:prepareInstall
-:: Move the installme folder to the current working directory
-if %move_installme% EQU %true% (
-    xcopy %installme% "Install me" /Y /E /I
-)
+:setupdependencies
+call set_dependencies.bat
+call _dep_routes.bat || goto :EOF
+del %dependencies_output_file% /Q /F /S
 
 :runpreinstall
 cd PreInstall
