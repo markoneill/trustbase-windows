@@ -13,8 +13,7 @@ call _dep_routes.bat
 del _dep_routes.bat /Q /F /S
 
 if %failure% EQU %true% (
-  echo Failed to configure dependencies, please check set_dependencies.bat to make sure the actual_ locations are correct (line 14)
-  goto :EOF
+  echo Failed to configure dependencies, please check set_dependencies.bat to make sure the actual_ locations are correct
 )
 
 :runpreinstall
