@@ -15,12 +15,20 @@ set actual_snapshot=TrustBaseBin\May_11th_Snapshot
 set actual_bin=%actual_snapshot%\Release
 set actual_installme=TrustBaseBin\"Install me"
 set actual_runadmin=TrustBaseBin\runadmin.bat
+set actual_TrustBaseWin_CAT=%actual_bin%\TrustBaseWin\trustbasewin.cat
+set actual_TrustBaseWin_CER=%actual_bin%\TrustBaseWin\TrustBaseWin.cer
+set actual_TrustBaseWin_INF=%actual_bin%\TrustBaseWin\TrustBaseWin.inf
+set actual_TrustBaseWin_SYS=%actual_bin%\TrustBaseWin\TrustBaseWin.sys
 
 :: Assumed Locations for Dependencies
 set assumed_snapshot=snapshot
 set assumed_bin=%assumed_snapshot%\release
 set assumed_installme=PreInstall\Dependencies
 set assumed_runadmin=%assumed_snapshot%\runadmin.bat
+set assumed_TrustBaseWin_CAT=%assumed_bin%\TrustBaseWin\TrustBaseWin.cat
+set assumed_TrustBaseWin_CER=%assumed_bin%\TrustBaseWin\TrustBaseWin.cer
+set assumed_TrustBaseWin_INF=%assumed_bin%\TrustBaseWin\TrustBaseWin.inf
+set assumed_TrustBaseWin_SYS=%assumed_bin%\TrustBaseWin\TrustBaseWin.sys
 
 :DefineDepMap
 :: Sets up dependencies map
@@ -43,6 +51,26 @@ set dep[3,name]=runadmin
 set dep[3,assumed]=%assumed_runadmin%
 set dep[3,actual]=%actual_runadmin%
 set dep[3,isfile]=%true%
+
+set dep[4,name]=trustbasewin_CAT
+set dep[4,assumed]=%assumed_TrustBaseWin_CAT%
+set dep[4,actual]=%actual_TrustBaseWin_CAT%
+set dep[4,isfile]=%true%
+
+set dep[5,name]=trustbasewin_CER
+set dep[5,assumed]=%assumed_TrustBaseWin_CER%
+set dep[5,actual]=%actual_TrustBaseWin_CER%
+set dep[5,isfile]=%true%
+
+set dep[6,name]=trustbasewin_INF
+set dep[6,assumed]=%assumed_TrustBaseWin_INF%
+set dep[6,actual]=%actual_TrustBaseWin_INF%
+set dep[6,isfile]=%true%
+
+set dep[7,name]=trustbasewin_SYS
+set dep[7,assumed]=%assumed_TrustBaseWin_SYS%
+set dep[7,actual]=%actual_TrustBaseWin_SYS%
+set dep[7,isfile]=%true%
 
 set "x=0"
 
