@@ -9,8 +9,13 @@ setlocal
 
 :setupdependencies
 call set_dependencies.bat
-call _dep_routes.bat || goto :EOF
-del %dependencies_output_file% /Q /F /S
+call _dep_routes.bat
+del _dep_routes.bat /Q /F /S
+
+if %failure% EQU %true% (
+  echo Failed to configure dependencies, please check set_dependencies.bat to make sure the actual_ locations are correct (line 14)
+  goto :EOF
+)
 
 :runpreinstall
 cd PreInstall

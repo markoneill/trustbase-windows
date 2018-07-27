@@ -71,7 +71,7 @@ if %failure% EQU %true% (
 )
 
 :: Create BatFile to load dependencies
-echo ECHO OFF > %output%
+echo @ECHO OFF > %output%
 for /l %%i in (0,1,%numIters%) do (
   call :AddRoute !dep[%%i,name]! !dep[%%i,assumed]!
 )
