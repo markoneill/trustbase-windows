@@ -32,8 +32,11 @@ powershell -Command "Start-Process .\preinstall.exe -Verb RunAs -Wait" 1>nul 2>n
 cd %pwd%
 
 :starttrustbase
+
+set short_name=
+for %I in (.) do set short_name=%short_name%%~sI
 rem RUNDLL32.EXE SETUPAPI.DLL,InstallHinfSection DefaultInstall 132 .\release\TrustBaseWin\TrustBaseWin.inf
-powershell -Command "Start-Process cmd -Verb RunAs -ArgumentList '/C cd \`"%base_dir%\`" && RUNDLL32.EXE SETUPAPI.DLL,InstallHinfSection DefaultInstall 132 .\release\TrustBaseWin\TrustBaseWin.inf'"
+powershell -Command "Start-Process cmd -Verb RunAs -ArgumentList '/C cd \`"%short_name%\`" && RUNDLL32.EXE SETUPAPI.DLL,InstallHinfSection DefaultInstall 132 .\release\TrustBaseWin\TrustBaseWin.inf'"
 powershell -Command "Start-Process cmd -Verb RunAs -ArgumentList '/c net start TrustBaseWin'"
 powershell -Command "Start-Process cmd -Verb RunAs -ArgumentList '/k cd %cwd% && PolicyEngine.exe'"
 exit
