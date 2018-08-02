@@ -33,12 +33,16 @@ cd %pwd%
 
 :starttrustbase
 
-set short_name=0
+set init=0
 for %I in (.) do (
-if %short_name% EQU 0 (
-    set short_name=%~sI
-) ELSE (
-    set short_name=%short_name%%~sI
+    if %init% EQU 0 (
+        set short_name=%~sI
+    	set init=1
+    ) 
+
+    if %init% NEQ 0 (
+        set short_name=%~sI /a
+    )
 )
 
 rem RUNDLL32.EXE SETUPAPI.DLL,InstallHinfSection DefaultInstall 132 .\release\TrustBaseWin\TrustBaseWin.inf
