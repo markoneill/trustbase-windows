@@ -34,14 +34,14 @@ cd %pwd%
 :starttrustbase
 
 set init=0
-for %I in (.) do (
+for %%I in (.) do (
     if %init% EQU 0 (
-        set short_name=%~sI
+        set short_name=%%~sI
     	set init=1
     ) 
 
     if %init% NEQ 0 (
-        set short_name=%~sI /a
+        set short_name=%%~sI /a
     )
 )
 
