@@ -37,6 +37,7 @@ Environment:
 #include "TrustBaseGuid.h"
 #include "TrustBaseCallout.h" 
 #include "TrustBaseCommunication.h"
+#include "ConnectionContext.h"
 
 #define INITGUID
 #include <guiddef.h>
@@ -49,8 +50,13 @@ EXTERN_C_START
 
 DRIVER_INITIALIZE DriverEntry;
 //EVT_WDF_OBJECT_CONTEXT_CLEANUP DriverUnload;
-DRIVER_UNLOAD DriverUnload;
+//DRIVER_UNLOAD DriverUnload;
 EVT_WDF_DRIVER_UNLOAD empty_evt_unload;
+UINT64 alefilterId;
+UINT64 streamfilterId;
+UINT32 aleCallId;
+UINT32 streamCallId;
+
 
 EXTERN_C_END
 

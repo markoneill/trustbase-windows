@@ -5,23 +5,39 @@
 #include "TrustBaseCallout.h"
 #include "TrustBaseCommunication.h"
 #include "TrustBaseMessage.h"
+#include <time.h>
+
 
 // static helper functions
 static void NTAPI debugReadStreamFlags(FWPS_STREAM_DATA *dataStream, FWPS_CLASSIFY_OUT *classifyOut);
 static NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext* context, IN UINT64 flowHandle, IN UINT16 layerId);
+
 
 void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, const FWPS_INCOMING_METADATA_VALUES * inMetaValues, void * layerData, const void * classifyContext, const FWPS_FILTER * filter, UINT64 flowContext, FWPS_CLASSIFY_OUT * classifyOut) {
 	FWPS_STREAM_CALLOUT_IO_PACKET *ioPacket;
 	FWPS_STREAM_DATA *dataStream;
 	REQUESTED_ACTION requestedAction;
 	ConnectionFlowContext *context;
+	//ULONG64 time = 0;
+	//LARGE_INTEGER PerformanceFrequency;
+	LARGE_INTEGER frequency;
+	LARGE_INTEGER start;
+	ULONG64 interval;
+
+
 	UNREFERENCED_PARAMETER(inFixedValues);
 	UNREFERENCED_PARAMETER(classifyContext);
 	UNREFERENCED_PARAMETER(filter);
 
+
+	start = KeQueryPerformanceCounter(&frequency);
+	interval = (ULONG64)(start.QuadPart) / frequency.QuadPart;
+
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "______Classify Called______\r\n");
 
-	// Get any filter context data from filter->context
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Current Time: %llu\r\n", interval);
+
+	// Get any filter context data from filter->contexts
 
 	// Get any flow context data from flowContext
 	if (flowContext == 0) {
@@ -30,12 +46,14 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 		classifyOut->actionType = FWP_ACTION_PERMIT;
 		return;
 	}
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow Handle = %d\r\n", inMetaValues->flowHandle);
+
 	// We shouldnt have to check if there is a context or not, because we have the FWP_CALLOUT_FLAG_CONDITIONAL_ON_FLOW;
 	context = (ConnectionFlowContext*)flowContext;
 	if (context->processPath.size > 0) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Connection with %S (%x)\r\n", context->processPath.data, inMetaValues->flowHandle);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Connection with %S (%x)\r\n", context->processPath.data, inMetaValues->flowHandle);
 	} else {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Connection with flow %x\r\n", inMetaValues->flowHandle);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Connection with flow %x\r\n", inMetaValues->flowHandle);
 	}
 
 	// Find what metadata we have access to
@@ -58,15 +76,15 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 	}
 
 	// See if we should already have the answer
-	if (context->currentState == PS_DONE) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got called for PS_DONE\r\n", inMetaValues->processId);
+	if (context->currentState == PS_DONE) {   //When can we get a PS_DONE???????????????
 		// find the response in the table
 		if (context->answer == WAITING_ON_RESPONSE) {
-			if (!NT_SUCCESS(TbPopResponse(&TBResponses, inMetaValues->flowHandle, &(context->answer)))) {
+			if (!NT_SUCCESS(TbPopResponse(&TBResponses, inMetaValues->flowHandle, &(context->answer)))) { //This errors out often. What if we don't pop the response?
 				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error! Could not pop the response");
-				context->answer = RESPONSE_ALLOW; // Default to allow on error
+				context->answer = RESPONSE_ALLOW; 
+				//requestedAction = RA_ERROR; 
 			}
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Read the answer as %x", context->answer);
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Read the answer as %x\r\n", context->answer);
 		}
 		if (context->answer == RESPONSE_BLOCK) {
 			requestedAction = RA_BLOCK; // stop this connection
@@ -92,13 +110,13 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 		ioPacket->countBytesRequired = 0;
 		//ioPacket->countBytesEnforced = dataStream->dataLength;
 		ioPacket->countBytesEnforced = context->bytesRead;
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Continuing: req %x, read %x\r\n", ioPacket->countBytesRequired, ioPacket->countBytesEnforced);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Continuing: req %x, read %x\r\n", ioPacket->countBytesRequired, ioPacket->countBytesEnforced);
 		// Set the action to continue to the next filter
 		classifyOut->actionType = FWP_ACTION_CONTINUE;
 
 		// reset bytes read
 		context->bytesRead = 0;
-
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished classify with RA_CONTINUE\r\n");
 		return;
 	}
 
@@ -108,9 +126,10 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 		ioPacket->streamAction = FWPS_STREAM_ACTION_NEED_MORE_DATA;
 		ioPacket->countBytesRequired = context->bytesToRead;
 		ioPacket->countBytesEnforced = context->bytesRead;
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Waiting for more: req %x, read %x\r\n", ioPacket->countBytesRequired, ioPacket->countBytesEnforced);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Waiting for more: req %x, read %x\r\n", ioPacket->countBytesRequired, ioPacket->countBytesEnforced);
 		// An action of NONE is required for NEED_MORE_DATA stuff
 		classifyOut->actionType = FWP_ACTION_NONE;
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished classify with RA_NEED_MORE\r\n");
 
 		// don't reset bytes read
 
@@ -126,10 +145,15 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 		// Let the filter engine know we are good
 		ioPacket->streamAction = FWPS_STREAM_ACTION_ALLOW_CONNECTION;
 		ioPacket->countBytesRequired = 0;
-		ioPacket->countBytesEnforced = 0;
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Done with this stream\r\n");
+		//ioPacket->countBytesEnforced = 0;
+		ioPacket->countBytesEnforced = 20000;
+
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Done with this stream\r\n");
 		// Set the action to permit
-		classifyOut->actionType = FWP_ACTION_NONE; // need this to permit
+		classifyOut->actionType = FWP_ACTION_PERMIT; // need this to permit   ---------------- check this ---------- Doesn't actually permit??
+		//classifyOut->actionType = FWP_ACTION_NONE; // need this to permit   ---------------- check this ----------
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished classify with RA_NOT_INTERESTED OR RA_ERROR - SHOULD ALLOW STREAM\r\n");
+
 		return;
 	}
 
@@ -138,11 +162,12 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Blocking this stream\r\n");
 		ioPacket->streamAction = FWPS_STREAM_ACTION_DROP_CONNECTION;
 		classifyOut->actionType = FWP_ACTION_NONE; // need this to drop
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished classify with RA_BLOCK\r\n");
 		return;
 	}
 
 	// if we are at the certificate and need to send it before we decide to allow this stream
-	if (requestedAction == RA_WAIT) {
+	if (requestedAction == RA_WAIT) {															//We are in this state so often
 		sendCertificate(dataStream, context, inMetaValues->flowHandle, inFixedValues->layerId);
 		context->currentState = PS_DONE; // set this so next time we get called, we finish
 		context->answer = WAITING_ON_RESPONSE;
@@ -151,12 +176,13 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 
 		ioPacket->countBytesRequired = 0;
 		ioPacket->countBytesEnforced = 0;
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Waiting on handle %x\r\n", inMetaValues->flowHandle);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Waiting on handle %x\r\n", inMetaValues->flowHandle);
 		// Set the action to continue to the next filter
 		classifyOut->actionType = FWP_ACTION_NONE;
 
 		// reset bytes read
 		context->bytesRead = 0;
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished classify with RA_WAIT\r\n");
 
 		return;
 	}
@@ -172,14 +198,25 @@ NTSTATUS NTAPI trustbaseCalloutNotify(FWPS_CALLOUT_NOTIFY_TYPE notifyType, const
 void NTAPI trustbaseCalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64 flowContext) {
 	UNREFERENCED_PARAMETER(layerId);
 	UNREFERENCED_PARAMETER(calloutId);
-	UNREFERENCED_PARAMETER(flowContext);
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "FlowDelete Called\r\n");
-	cleanupConnectionFlowContext((ConnectionFlowContext*)flowContext);
-}
+	ConnectionFlowContext* context;
+
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow Delete Called\r\n");
+	context = (ConnectionFlowContext*)flowContext;
+	//Remove the flow context from the array. There must be a way that is %100 effective and fast. The context->message is null lots of times.
+	if (context->message != NULL) {
+		if (context->message->flowHandle != 0) {
+			contextArray[context->message->flowHandle % MAX_C] = 0;
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Handle in flow delete %d\r\n", context->message->flowHandle);
+		}
+	}
+	else {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow handle in flow delete was NULL\r\n");
+	}
+	cleanupConnectionFlowContext(context);
+} 
 
 
-// ALE Callouts
-
+// ALE Callouts 
 void NTAPI trustbaseALECalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, const FWPS_INCOMING_METADATA_VALUES * inMetaValues, void * layerData, const void * classifyContext, const FWPS_FILTER * filter, UINT64 flowContext, FWPS_CLASSIFY_OUT * classifyOut) {
 	UNREFERENCED_PARAMETER(classifyContext);
 	UNREFERENCED_PARAMETER(filter);
@@ -193,16 +230,19 @@ void NTAPI trustbaseALECalloutClassify(const FWPS_INCOMING_VALUES * inFixedValue
 	// Get any metadata fields from inMetaValues
 	// Process Path
 	if (inMetaValues->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_PATH) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Process Path = %S\r\n", inMetaValues->processPath->data);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Process Path = %S\r\n", inMetaValues->processPath->data);
 	} else {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "No Process Path in metadata\r\n");
 	}
 	// Process Id
 	if (inMetaValues->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Process ID = %x\r\n", inMetaValues->processId);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Process ID = %x\r\n", inMetaValues->processId);
 	} else {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "No Process ID in metadata\r\n");
 	}
+
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow Handle = %d\r\n", inMetaValues->flowHandle);
+
 
 	// Get the data fields from inFixedValues
 
@@ -211,8 +251,9 @@ void NTAPI trustbaseALECalloutClassify(const FWPS_INCOMING_VALUES * inFixedValue
 	// Get any flow context data from flowContext
 	if (flowContext == 0) {
 		//create the flow context
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Creating a Connection Context from ALE Callout\r\n");
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Creating a Connection Context from ALE Callout\r\n");
 		context = createConnectionFlowContext(inFixedValues, inMetaValues);
+		
 	} else {
 		context = (ConnectionFlowContext*)flowContext;
 	}
@@ -233,7 +274,7 @@ void NTAPI trustbaseALECalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT6
 	UNREFERENCED_PARAMETER(layerId);
 	UNREFERENCED_PARAMETER(calloutId);
 	UNREFERENCED_PARAMETER(flowContext);
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "ALE FlowDelete Called\r\n");
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "ALE FlowDelete Called\r\n");
 }
 
 NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext* context, IN UINT64 flowHandle, IN UINT16 layerId) {
@@ -255,7 +296,7 @@ NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowConte
 	context->message = NULL;
 
 	// Use our workitem to open our read queue
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added query message to the message queue, enabling read queue\r\n");
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added query message to the message queue, enabling read queue\r\n");
 	WdfWorkItemEnqueue(TBReadyReadItem);
 
 	return status;

@@ -5,12 +5,14 @@ static NTSTATUS allocateConnectionFlowContext(OUT ConnectionFlowContext** flowCo
 
 VOID cleanupConnectionFlowContext(IN ConnectionFlowContext* context) {
 	// message should be freed from TbIoRead
+
 	context->message = NULL;
 	if (context->processPath.data) {
 		ExFreePoolWithTag(context->processPath.data, TB_POOL_TAG);
 	}
 	ExFreePoolWithTag(context, TB_POOL_TAG);
 }
+
 
 NTSTATUS allocateConnectionFlowContext (OUT ConnectionFlowContext** flowContextOut)
 {
@@ -82,10 +84,12 @@ ConnectionFlowContext* createConnectionFlowContext (
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Couldn't allocate a context for flow %x\r\n", inMetaValues->flowHandle);
 	}
 
-	if (flowContext) {
-		NTSTATUS addStatus = FwpsFlowAssociateContext(inMetaValues->flowHandle, FWPS_LAYER_STREAM_V4, TrustBase_callout_id, (UINT64)flowContext);
+	if (flowContext) {					//Associate contexts with the TrustBase_callout_stream_id since it will be the one doing things with the context
+		NTSTATUS addStatus = FwpsFlowAssociateContext(inMetaValues->flowHandle, FWPS_LAYER_STREAM_V4, TrustBase_callout_stream_id, (UINT64)flowContext);
 		if (NT_SUCCESS(addStatus)) {
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added a flow context to flow %x\r\n", inMetaValues->flowHandle);
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added a flow context to flow %x\r\n", inMetaValues->flowHandle);
+			contextArray[inMetaValues->flowHandle % MAX_C] = inMetaValues->flowHandle;
+
 		} else {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Unable to add a flow context to flow %x\r\n", inMetaValues->flowHandle);
 		}

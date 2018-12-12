@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "communications.h"
+#include <ctime>
+
 
 namespace Communications {
 	HANDLE file;
@@ -22,7 +24,7 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 		return true;
 	}
 	else{
-		tblog() << "about to respond with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << flowHandle;
+		tblog() << "about to respond with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << " for handle" <<flowHandle;
 		//Using Overlapped to allow async read/write. We only allow upto a single read and single write at the same time. 
 		//This allows the ReadFile call to block on its own  thread, without also blocking the WriteFile function. 
 		OVERLAPPED overlappedWrite = { 0 };
@@ -35,9 +37,16 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 			return false;
 		}
 		overlappedWrite.Offset = 0;
+		std::time_t t = std::time(0);
+		bool writeFileSuccessful = WriteFile(file, response_buf, 0x10, NULL, NULL);
+		std::time_t e = std::time(0);
+		tblog() << "Current Time after write " << e-t;
 
-		bool writeFileSuccessful = WriteFile(file, response_buf, 0x10, NULL, &overlappedWrite);
-		DWORD dwWaitRes = WaitForSingleObject(overlappedWrite.hEvent, INFINITE);
+
+		//bool writeFileSuccessful = WriteFile(file, response_buf, 0x10, NULL, &overlappedWrite);
+		/*
+		DWORD dwWaitRes = WaitForSingleObject(overlappedWrite.hEvent, INFINITE); //Could wait forever
+		//DWORD dwWaitRes = WaitForSingleObject(overlappedWrite.hEvent, 5000);
 		if (dwWaitRes == WAIT_FAILED){
 			//bad
 			tblog() << "WAIT_FAILED";
@@ -53,7 +62,7 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 				return false;
 			}
 			else {
-				writeFileSuccessful = (bool)GetOverlappedResult(file, &overlappedWrite, &dwBytesWritten, true);
+				writeFileSuccessful = (bool)GetOverlappedResult(file, &overlappedWrite, &dwBytesWritten, true); //Doesn't get the overlapped result when run in the VM
 			}
 		}
 
@@ -63,6 +72,16 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 		}
 		else{
 			tblog() << "Unsuccessfully ";
+		}
+		*/
+
+		if (!writeFileSuccessful) {
+			if (GetLastError() != ERROR_IO_PENDING) {
+				tblog() << "Unsuccessfully ";
+				tblog() << "NOT ERROR_IOPENDING ";
+				tblog() << "quitting write function";
+				return false;
+			}
 		}
 
 		if (overlappedWrite.hEvent){

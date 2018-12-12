@@ -13,7 +13,7 @@ The Kernel Driver uses the 'Windows Filtering Platform' to identify TLS connecti
 ### Driver Setup
 
 The Driver is mainly initialized in 'Driver.c'. The `DriverEntry` function is called when the driver is loaded. The driver must register a device `WDFDEVICE`, which will be a instance of the driver. We do that in `THInitDriverAndDevice`. There we also create a symbolic link so our driver can be 'read' and 'written' to as a file by the Policy Engine. Also IO queues, Message queues, and Work Items are all set up here, which we will explain later.
-
+ 
 ### Callout Layers
 
 The function `THRegisterCallouts` in 'Driver.c' is where we prepare the Windows Filtering Platform's engine. The Windows Filtering Platform allows us to insert into different network layers and inspect, modify, allow, or disallow the connection. The network pipeline is divided in layers and sublayers. We add filters to the layers we want to inspect. When the filters find a match, they trigger our callout. We are using the 'Classify', 'Notify', and 'Flow Delete' callout types. The registered callout functions are all defined in the 'TrustHubCallout.c' file.
@@ -99,7 +99,7 @@ Congressed plugins form a fraction, and if the fraction of valid responses is no
 
 All of Trustbase on Windows is contained in a single Visual Studio solution.
 
-We are using Visual Studio 2015.
+We  are using Visual Studio 2015.
 The Windows SDK version 10.0.x.x must be installed.
 
 #### Policy Engine
@@ -273,7 +273,7 @@ For Debug version:
 
     (for the certificate pinning plugin)
     pinned_certs.db - A copy of this file is located in the PolicyEngine project folder
-
+ 
     (for the cipher suite plugin)
     a folder called "plugin-config". Inside this folder include a cipher_suite.cfg. A copy of this file is located in the PolicyEngine project folder
 
@@ -299,24 +299,24 @@ For Debug version:
 
 ##### Kernel Driver
 
-- [ ] Pass IP and Port to Policy Engine
+- [ ] Pass IP and Port to Policy Engine  
 - [ ] Unload driver properly
 - [ ] Remove connections from the queue to be validated if the flow is deleted
 
 ##### Policy Engine
 
-- [x] Python Addon Integration
+- [x] Python Addon Integration                          
 - [x?] Python Addons use multiple threads 
 - [x] Proxy/Inserting Certificates into Root Store
-- [] Certs from GoDaddy (4 chain length, maybe the problem) are not trusted by evaluate function in UnbrakeableCrypto. So any time we see one, the user sees "do you want to add this to the root store"
-#### Testing TODO
+- [] Certs from GoDaddy (4 chain length, maybe the problem) are not trusted by evaluate function in UnbrakeableCrypto. So any time we see one, the user sees "do you want to add this to the root store" (I still see this. Ask if it has been fixed!!)                                                                                           
+#### Testing TODO    
 
 ##### Kernel Driver
 
 - [ ] Test Large Client Hello
-- [ ] Large number of synchronous connections (Chrome)
+- [ ] Large number of synchronous connections (Chrome) -- (Are they saying they just want us to test this? Well we can test and then see if this is a problem or not)
 - [ ] While Kernel Driver is active, and no policy engine is running, don't crash windows (I think it had to do with a buffer overflow).
-- [ ] Be able to start, stop, then start "net start TrustHubWin"
-##### Policy Engine
+- [ ] Be able to start, stop, then start "net start TrustHubWin" ---- Replace any instance of "TrustHubWin" with "TrustBaseWin""
+##### Policy Engine		
 
 - [ ] Valgrind for leaks

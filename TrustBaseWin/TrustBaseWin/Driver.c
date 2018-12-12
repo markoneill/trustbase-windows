@@ -10,7 +10,7 @@ Abstract:
 
 Environment:
 
-    Kernel-mode Driver Framework
+    Kernel-mode Driver Framework a
 
 --*/
 
@@ -37,6 +37,7 @@ NTSTATUS TBInitDriverAndDevice(IN DRIVER_OBJECT * driver_obj, IN UNICODE_STRING 
 	WDFDEVICE device;
 	PWDFDEVICE_INIT device_init = NULL;
 	PDEVICE_OBJECT wdm_device = NULL;
+
 
 	WDF_DRIVER_CONFIG_INIT(&config, WDF_NO_EVENT_CALLBACK); //WDF_NO_EVENT_CALLBACK = NULL, this means there is no callback when WdfDriverCreate is called.
 	config.DriverInitFlags |= WdfDriverInitNonPnpDriver; //WdfDriverInitNonPnpDriver means this driver does not support plug and play. "If this value is set, the driver must not supply an EvtDriverDeviceAdd callback function" in other words use WDF_NO_EVENT_CALLBACK
@@ -127,6 +128,7 @@ NTSTATUS TBInitDriverAndDevice(IN DRIVER_OBJECT * driver_obj, IN UNICODE_STRING 
 	WdfControlFinishInitializing(device);
 
 	wdm_device = WdfDeviceWdmGetDeviceObject(device);
+	g_wdm_device = device; //use device instead of wdm_device - need to keep track of it to clean it up later
 
 	// Register callouts
 	status = TBRegisterCallouts(wdm_device);
@@ -147,10 +149,12 @@ NTSTATUS TBRegisterCallouts(IN DEVICE_OBJECT * wdm_device) {
 	HANDLE engineHandle;
 	FWPM_SUBLAYER tbSubLayer;
 
+
 	// Open Engine
 	session.flags = FWPM_SESSION_FLAG_DYNAMIC;
 
 	status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &engineHandle);
+	g_EngineHandle = engineHandle;
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not open engine\r\n");
 		return status;
@@ -190,6 +194,7 @@ NTSTATUS TBRegisterCallouts(IN DEVICE_OBJECT * wdm_device) {
 	}
 
 	// TCP stream layer callouts for data inspection
+	
 	status = TBRegisterStreamCallout(wdm_device, engineHandle);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not set Stream callouts\r\n");
@@ -198,12 +203,17 @@ NTSTATUS TBRegisterCallouts(IN DEVICE_OBJECT * wdm_device) {
 	// Outbound transport layer for delaying response, and ip information
 
 	// Commit our transaction
+	
 	status = FwpmTransactionCommit(engineHandle);
+	if (status) {
+		__debugbreak();
+	}
 
 	return status;
 }
 
 NTSTATUS TBRegisterALECallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engineHandle) {
+
 	NTSTATUS status = STATUS_SUCCESS;
 	FWPS_CALLOUT sCallout = { 0 };
 	FWPM_CALLOUT mCallout = { 0 };
@@ -217,12 +227,12 @@ NTSTATUS TBRegisterALECallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engineHan
 	sCallout.notifyFn = trustbaseALECalloutNotify;
 	sCallout.flowDeleteFn = trustbaseALECalloutFlowDelete;
 	sCallout.flags |=  FWP_CALLOUT_FLAG_ALLOW_OFFLOAD;
-	status = FwpsCalloutRegister((void *)wdm_device, &sCallout, &TrustBase_callout_id);
+	status = FwpsCalloutRegister((void *)wdm_device, &sCallout, &TrustBase_callout_ale_id); 
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not register ALE callouts\r\n");
-		if (TrustBase_callout_id) {
-			FwpsCalloutUnregisterById(TrustBase_callout_id);
-			TrustBase_callout_id = 0;
+		if (TrustBase_callout_ale_id) {
+			FwpsCalloutUnregisterById(TrustBase_callout_ale_id);
+			TrustBase_callout_ale_id = 0;
 		}
 		return status;
 	}
@@ -234,7 +244,7 @@ NTSTATUS TBRegisterALECallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engineHan
 	mCallout.displayData = displayData;
 	mCallout.calloutKey = TRUSTBASE_ALE_CALLOUT_V4;
 	mCallout.applicableLayer = FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4;
-	status = FwpmCalloutAdd(engineHandle, &mCallout, NULL, NULL);
+	status = FwpmCalloutAdd(engineHandle, &mCallout, NULL, &aleCallId);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add ALE callouts\r\n\r\n");
 		if (engineHandle) {
@@ -264,7 +274,7 @@ NTSTATUS TBRegisterALECallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engineHan
 	filterConditions[0].conditionValue.type = FWP_UINT8;
 	filterConditions[0].conditionValue.uint8 = IPPROTO_TCP;
 
-	status = FwpmFilterAdd(engineHandle, &filter, NULL, NULL);
+	status = FwpmFilterAdd(engineHandle, &filter, NULL, &alefilterId);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add ALE filter\r\n");
 		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
@@ -285,6 +295,7 @@ NTSTATUS TBRegisterStreamCallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engine
 	FWPM_FILTER filter;
 	FWPM_FILTER_CONDITION filterConditions[1];
 
+
 	// Register a new Callout with the Filter Engine using the provided callout functions
 	sCallout.calloutKey = TRUSTBASE_STREAM_CALLOUT_V4;
 	sCallout.classifyFn = trustbaseCalloutClassify;
@@ -292,12 +303,12 @@ NTSTATUS TBRegisterStreamCallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engine
 	sCallout.flowDeleteFn = trustbaseCalloutFlowDelete;
 	sCallout.flags |= FWP_CALLOUT_FLAG_ALLOW_MID_STREAM_INSPECTION;
 	sCallout.flags |= FWP_CALLOUT_FLAG_CONDITIONAL_ON_FLOW; // only get called if our ALE callout has set a context already
-	status = FwpsCalloutRegister((void *)wdm_device, &sCallout, &TrustBase_callout_id);
+	status = FwpsCalloutRegister((void *)wdm_device, &sCallout, &TrustBase_callout_stream_id);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not register callouts\r\n");
-		if (TrustBase_callout_id) {
-			FwpsCalloutUnregisterById(TrustBase_callout_id);
-			TrustBase_callout_id = 0;
+		if (TrustBase_callout_stream_id) {
+			FwpsCalloutUnregisterById(TrustBase_callout_stream_id);
+			TrustBase_callout_stream_id = 0;
 		}
 		return status;
 	}
@@ -309,7 +320,7 @@ NTSTATUS TBRegisterStreamCallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engine
 	mCallout.displayData = displayData;
 	mCallout.calloutKey = TRUSTBASE_STREAM_CALLOUT_V4;
 	mCallout.applicableLayer = FWPM_LAYER_STREAM_V4;
-	status = FwpmCalloutAdd(engineHandle, &mCallout, NULL, NULL);
+	status = FwpmCalloutAdd(engineHandle, &mCallout, NULL, &streamCallId);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add callouts\r\n\r\n");
 		if (engineHandle) {
@@ -334,7 +345,7 @@ NTSTATUS TBRegisterStreamCallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engine
 	RtlZeroMemory(filterConditions, sizeof(filterConditions));
 	filter.filterCondition = filterConditions;
 
-	status = FwpmFilterAdd(engineHandle, &filter, NULL, NULL);
+	status = FwpmFilterAdd(engineHandle, &filter, NULL, &streamfilterId);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not add Stream Filter\r\n");
 		if (!NT_SUCCESS(FwpmTransactionAbort(engineHandle))) {
@@ -348,14 +359,46 @@ NTSTATUS TBRegisterStreamCallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engine
 }
 
 NTSTATUS unregister_trustbase_callouts() {
-	return FwpsCalloutUnregisterById(TrustBase_callout_id);
+	NTSTATUS status1;
+	NTSTATUS status2;
+
+	//Call remove context on all of the active flows
+	int i;
+	for (i = 0; i < MAX_C; i++) {
+		if (contextArray[i] != 0) {
+			FwpsFlowRemoveContext(contextArray[i], FWPS_LAYER_STREAM_V4, TrustBase_callout_stream_id);
+		}
+	}
+
+	//Unregister the Stream callout
+	do {
+		status2 = FwpsCalloutUnregisterById(TrustBase_callout_stream_id);
+	} while (status2 == STATUS_DEVICE_BUSY);
+
+	if (status2) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Stream callout could not be unregistered, last error = %d\r\n", status2);
+	}
+	else {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Stream callout unregistered! \r\n");
+	}
+
+	//Unregister the ALE callout
+	status1 = FwpsCalloutUnregisterById(TrustBase_callout_ale_id);
+	if (status1) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "ALE callout could not be unregistered, last error = %d\r\n", status1);
+	}
+	else {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "ALE callout unregistered! \r\n");
+	}
+
+	return STATUS_SUCCESS;
 }
 
 /*++
 Routine Description:
-DriverEntry initializes the driver and is the first routine called by the
+DriverEntry initializes the driver and is the first routine called by the  
 system after the driver is loaded. DriverEntry specifies the other entry
-points in the function driver, such as EvtDevice and DriverUnload.
+points in the function driver, such as EvtDevice and tbdriver_evt_unload.
 
 Parameters Description:
 
@@ -377,11 +420,15 @@ STATUS_UNSUCCESSFUL otherwise.
 NTSTATUS DriverEntry(IN PDRIVER_OBJECT  DriverObject, IN PUNICODE_STRING RegistryPath) {
 
     NTSTATUS status;
-
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "DriverEntry In\r\n");
 
-    // Register a cleanup callback so that we can call WPP_CLEANUP when
-    // the framework driver object is deleted during driver unload.
+	//Initialize an array to keep track of flow contexts so we may clean up properly afterward
+	int i = 0;
+	for (i = 0; i < MAX_C; i++) {
+		contextArray[i] = 0;
+	}
+	
+	cleanup = 0; //cleanup false
 
 	//create the driver and device object
 	status = TBInitDriverAndDevice(DriverObject, RegistryPath);
@@ -395,21 +442,52 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT  DriverObject, IN PUNICODE_STRING Registr
     return status;
 }
 
-// Clean up the Driver
-void DriverUnload(IN PDRIVER_OBJECT driver_obj) {
-	UNREFERENCED_PARAMETER(driver_obj);
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- TrustBaseWin driver unload ---\r\n");
+VOID TBCleanUp() {
+	ULONG QueueRequests;
+	ULONG DriverRequests;
+	WDF_IO_QUEUE_STATE state;
+	state = WdfIoQueueGetState(TBReadQueue, &QueueRequests, &DriverRequests);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of read requests in queue = %d\r\n", QueueRequests);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of read requests at the driver = %d\r\n", DriverRequests);
+	state = WdfIoQueueGetState(TBWriteQueue, &QueueRequests, &DriverRequests);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of write requests in queue = %d\r\n", QueueRequests);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of write requests at the driver = %d\r\n", DriverRequests);
+	WdfIoQueuePurgeSynchronously(TBReadQueue);
+	WdfIoQueuePurgeSynchronously(TBWriteQueue);
+	state = WdfIoQueueGetState(TBReadQueue, &QueueRequests, &DriverRequests);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of read requests in queue = %d\r\n", QueueRequests);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of read requests at the driver = %d\r\n", DriverRequests);
+	state = WdfIoQueueGetState(TBWriteQueue, &QueueRequests, &DriverRequests);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of write requests in queue = %d\r\n", QueueRequests);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of write requests at the driver = %d\r\n", DriverRequests);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "PURGED THE QUEUES!!!!!!!!!!!!!\r\n");
 	return;
 }
 
+// Clean up the Driver -- Similiar to DriverUnload(IN PDRIVER_OBJECT driver_obj)
 void tbdriver_evt_unload(IN WDFDRIVER Driver) {
 	UNREFERENCED_PARAMETER(Driver);
 	UNICODE_STRING symlink = { 0 };
+	NTSTATUS status;
+	cleanup = 1;
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- TrustBaseWin unload event ---\r\n");
-	unregister_trustbase_callouts();
-	RtlInitUnicodeString(&symlink, TRUSTBASE_SYMNAME);
-	IoDeleteSymbolicLink(&symlink);
+	
+	TBCleanUp();
+	status = unregister_trustbase_callouts();	
+	if (status != 0) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- Couldn't unregister all callouts! ---\r\n");
+	}
 
+	RtlInitUnicodeString(&symlink, TRUSTBASE_SYMNAME);
+	status = IoDeleteSymbolicLink(&symlink); //Delete the symbolic link
+	if (status != 0) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- ERROR!!!!Symbolic link failed to delete sucessfully ---\r\n");
+	}
+
+	FwpmEngineClose(g_EngineHandle);	//Close the handle to the Filter Engine
+	WdfObjectDelete(g_wdm_device);      //This device is actually a WDFdevice. Device must be deleted before the driver can be stopped
 	return;
+
+	//Handshake handler has some intel specific code inside that needs to be changed?
 }

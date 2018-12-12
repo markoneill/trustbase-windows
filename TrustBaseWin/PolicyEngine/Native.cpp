@@ -139,7 +139,7 @@ void WINAPI NativeAPI::readCompletion(DWORD err, DWORD bytesread, OVERLAPPED* ov
 			// TODO possibly keep looping if you wanted to do one query per connection
 			return;
 		} else {
-			tblog() << "Error during GetOberlappedResult";
+			tblog() << "Error during GetOverlappedResult";
 			return;
 		}
 	}
@@ -170,6 +170,7 @@ bool NativeAPI::send_response(int result, HANDLE hPipe, int id) {
 	resp.reply = result;
 	bool success = true;
 
+	tblog() << "Sending a response using the NATIVE API send response";
 	// try to send the response on the pipe
 	//TODO change this to async? Possibly WriteFileEx
 	if (!WriteFile(hPipe, &resp, sizeof(native_response), &bytesout, NULL)) {

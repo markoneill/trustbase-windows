@@ -91,6 +91,10 @@ VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	UNREFERENCED_PARAMETER(Queue);
 	UNREFERENCED_PARAMETER(Length);
 	PAGED_CODE();
+
+	//UNREFERENCED_PARAMETER(Request);
+
+	
 	size_t bufsize;
 	NTSTATUS status = STATUS_SUCCESS;
 	TBMessage* message;
@@ -126,7 +130,7 @@ VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 
 	// remove the message if we have read it all out
 	if (NT_SUCCESS(TbFinishedMessage(message))) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished with this message\r\n");
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished with this message\r\n");
 		TbRemMessage(&TBOutputQueue);
 		// stop if we have responded to all current to be reads
 		if (IsListEmpty(&((&TBOutputQueue)->ListHead))) {
@@ -135,21 +139,25 @@ VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 		}
 	}
 	WdfRequestCompleteWithInformation(Request, status, len);
+	
 }
 
 // Called when the framework receives IRP_MJ_WRITE
 VOID TbIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
+
 	UNREFERENCED_PARAMETER(Queue);
 	UNREFERENCED_PARAMETER(Length);
 	PAGED_CODE();
+
 	NTSTATUS status = STATUS_SUCCESS;
+
 	size_t bufsize;
 	void* buffer;
 	UINT8* cursor;
 	UINT64 flowhandle;
 	TBResponseType response;
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "File Write Called\r\n");
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "File Write Called\r\n");
 
 	status = WdfRequestRetrieveInputBuffer(Request, TBRESPONSE_MESSAGE_SIZE, &buffer, &bufsize);
 	if (!NT_SUCCESS(status)) {
@@ -170,11 +178,14 @@ VOID TbIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	TbHandleResponse(&TBResponses, flowhandle, response);
 
 	WdfRequestComplete(Request, status);
+	
 }
 
 VOID TBReadyRead(IN WDFWORKITEM WorkItem) {
 	UNREFERENCED_PARAMETER(WorkItem);
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "WorkItem Called\r\n");
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "WorkItem Called\r\n");
 	WdfIoQueueStart(TBReadQueue);
 	// We reuse this workitem, so we don't have to delete it
 }
+
+

@@ -166,7 +166,7 @@ NTSTATUS TbCopyMessage(IN UINT8* buffer, size_t bufsize, TBMessage* message, siz
 
 	TbSizeMessage(message, &len);
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Copying message:\r\n");
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Copying message:\r\n");
 	
 	cursor = buffer;
 	bufend = buffer + bufsize;
@@ -176,25 +176,25 @@ NTSTATUS TbCopyMessage(IN UINT8* buffer, size_t bufsize, TBMessage* message, siz
 		if (cursor + sizeof(UINT64) > bufend) break;
 		*(UINT64 UNALIGNED *)cursor = (UINT64)(len);
 		cursor += sizeof(UINT64);
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Len:%x\r\n", len);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Len:%x\r\n", len);
 
 	case TBMESSAGE_OFFSET_FLOWHANDLE:
 		if (cursor + sizeof(UINT64) > bufend) break;
 		*(UINT64 UNALIGNED *)cursor = message->flowHandle;
 		cursor += sizeof(UINT64);
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "flowHandle:%x\r\n", message->flowHandle);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "flowHandle:%x\r\n", message->flowHandle);
 
 	case TBMESSAGE_OFFSET_PROCESSID:
 		if (cursor + sizeof(UINT64) > bufend) break;
 		*(UINT64 UNALIGNED *)cursor = message->processID;
 		cursor += sizeof(UINT64);
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "PID:%x\r\n", message->processID);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "PID:%x\r\n", message->processID);
 
 	case TBMESSAGE_OFFSET_PROCESSPATHSIZE:
 		if (cursor + sizeof(UINT32) > bufend) break;
 		*(UINT32 UNALIGNED *)cursor = message->processPathSize;
 		cursor += sizeof(UINT32);
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "PathSize:%x\r\n", message->processPathSize);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "PathSize:%x\r\n", message->processPathSize);
 
 	case TBMESSAGE_OFFSET_PROCESSPATH:
 		if (cursor + message->processPathSize > bufend) {
@@ -203,7 +203,7 @@ NTSTATUS TbCopyMessage(IN UINT8* buffer, size_t bufsize, TBMessage* message, siz
 		}
 		RtlCopyMemory(cursor, message->processPath, message->processPathSize);
 		cursor += message->processPathSize;
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Path:%S\r\n", message->processPath);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Path:%S\r\n", message->processPath);
 
 	default:
 		loc_clienthellosize = TBMESSAGE_OFFSET_PROCESSPATH + message->processPathSize;
@@ -218,7 +218,7 @@ NTSTATUS TbCopyMessage(IN UINT8* buffer, size_t bufsize, TBMessage* message, siz
 			if (cursor + sizeof(UINT32) > bufend) break;
 			*(UINT32 UNALIGNED *)cursor = message->clientHelloSize;
 			cursor += sizeof(UINT32);
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Client Hello Size:%x\r\n", message->clientHelloSize);
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Client Hello Size:%x\r\n", message->clientHelloSize);
 		}
 
 		// write client hello
@@ -245,7 +245,7 @@ NTSTATUS TbCopyMessage(IN UINT8* buffer, size_t bufsize, TBMessage* message, siz
 			if (cursor + sizeof(UINT32) > bufend) break;
 			*(UINT32 UNALIGNED *)cursor = message->serverHelloSize;
 			cursor += sizeof(UINT32);
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Server Hello Size:%x\r\n", message->serverHelloSize);
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Server Hello Size:%x\r\n", message->serverHelloSize);
 		}
 
 		// write server hello
@@ -272,7 +272,7 @@ NTSTATUS TbCopyMessage(IN UINT8* buffer, size_t bufsize, TBMessage* message, siz
 			if (cursor + sizeof(UINT32) > bufend) break;
 			*(UINT32 UNALIGNED *)cursor = message->dataSize;
 			cursor += sizeof(UINT32);
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Data Size:%x\r\n", message->dataSize);
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Data Size:%x\r\n", message->dataSize);
 		}
 
 		// write data
@@ -290,9 +290,20 @@ NTSTATUS TbCopyMessage(IN UINT8* buffer, size_t bufsize, TBMessage* message, siz
 				break;
 			}
 			// write it all
-			RtlCopyMemory(cursor, message->data + offset, len);
+
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Cursor %x\r\n", cursor);
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Message->data %x\r\n", message->data);
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "len %d\r\n", len);
+
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "before potential break\r\n");
+			
+			//message->data was NULL, WHY??????? Look at the windbg outputaaaa
+
+			RtlCopyMemory(cursor, message->data + offset, len);									 //Failed on this line in the past ------------------------------------- memcpy error
+																								
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "after potential break\r\n");
 			cursor += len;
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished sending Certificate\r\n");
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished sending Certificate\r\n");
 		}
 
 
@@ -392,9 +403,16 @@ NTSTATUS TbHandleResponse(IN TBResponseTable* table, IN UINT64 flowHandle, IN TB
 		return STATUS_NOT_FOUND;
 	}
 
-	response->response = answer;
+	response->response = answer; //Write the answer to the GenericTableAvl
 
-	status = FwpsStreamContinue(flowHandle, TrustBase_callout_id, response->layerId, response->streamFlags);
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added %d as a response\r\n", response->response);
+
+	
+	status = FwpsStreamContinue(flowHandle, TrustBase_callout_stream_id, response->layerId, response->streamFlags);
+	if (status != STATUS_SUCCESS) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "NOT SUCCESSFUL - Continuing stream was NOT SUCCESSFUL for flow handle %x\r\n", flowHandle);
+		return status;
+	}
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Continuing stream for flow handle %x\r\n", flowHandle);
 	return status;
 }
@@ -409,11 +427,20 @@ NTSTATUS TbPopResponse(IN TBResponseTable* table, IN UINT64 flowHandle, OUT TBRe
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not find the response to handle");
 		return STATUS_NOT_FOUND;
 	}
+	if (response->response != WAITING_ON_RESPONSE) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Actually popping something good: response = %d\r\n", response->response);
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Lets see the flow handle = %d\r\n", flowHandle);
+	}
+
 
 	*answer = response->response;
-	if (response->response == WAITING_ON_RESPONSE) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error! TbPopResponse was called too soon");
-		return STATUS_WAIT_0;
+
+	if (response->response == WAITING_ON_RESPONSE) {     //We error out and basically say success. We don't pop it out of the table. BAD?
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error! TbPopResponse was called too soon\r\n");
+		//if (cleanup == 1) {
+		//	return STATUS_NOT_FOUND               //We couldn't pop the response so should we just error? 
+		//
+		return STATUS_WAIT_0; // Basically status success if you take it as zero 
 	}
 
 	if (!RtlDeleteElementGenericTableAvl(table, (PVOID)&lookup_response)) {

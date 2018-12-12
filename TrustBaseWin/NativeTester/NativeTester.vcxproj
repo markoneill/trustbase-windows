@@ -22,7 +22,7 @@
     <ProjectGuid>{7E068D2F-0DC7-4AE3-8616-DA7A09C8BAF8}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>NativeTester</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

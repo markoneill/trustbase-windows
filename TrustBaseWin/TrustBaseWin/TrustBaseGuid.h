@@ -32,4 +32,10 @@ DEFINE_GUID(
 
 #define TB_POOL_TAG 'bubt'
 
-UINT32 TrustBase_callout_id;
+UINT32 TrustBase_callout_ale_id;
+UINT32 TrustBase_callout_stream_id;
+HANDLE g_EngineHandle;
+WDFDEVICE g_wdm_device;
+int cleanup;
+
+
