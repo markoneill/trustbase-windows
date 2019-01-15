@@ -33,8 +33,11 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 	start = KeQueryPerformanceCounter(&frequency);
 	interval = (ULONG64)(start.QuadPart) / frequency.QuadPart;
 
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered trustbaseCalloutClassify - Time=%llu\r\n", getTime());
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "______Classify Called______\r\n");
+	queueStats(TBWriteQueue);
 
+	
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Current Time: %llu\r\n", interval);
 
 	// Get any filter context data from filter->contexts
@@ -44,6 +47,7 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error! No context for this flow!\r\n");
 		// Set the action to permit
 		classifyOut->actionType = FWP_ACTION_PERMIT;
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited trustbaseCalloutClassify - Time=%llu\r\n", getTime());
 		return;
 	}
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow Handle = %d\r\n", inMetaValues->flowHandle);
@@ -72,6 +76,7 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 	if (dataStream == NULL) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Data stream is null\r\n", inMetaValues->processId);
 		ioPacket->streamAction = FWPS_STREAM_ACTION_NONE;
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited trustbaseCalloutClassify - Time=%llu\r\n", getTime());
 		return;
 	}
 
@@ -117,6 +122,7 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 		// reset bytes read
 		context->bytesRead = 0;
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished classify with RA_CONTINUE\r\n");
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited trustbaseCalloutClassify - Time=%llu\r\n", getTime());
 		return;
 	}
 
@@ -130,6 +136,7 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 		// An action of NONE is required for NEED_MORE_DATA stuff
 		classifyOut->actionType = FWP_ACTION_NONE;
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished classify with RA_NEED_MORE\r\n");
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited trustbaseCalloutClassify - Time=%llu\r\n", getTime());
 
 		// don't reset bytes read
 
@@ -153,6 +160,7 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 		classifyOut->actionType = FWP_ACTION_PERMIT; // need this to permit   ---------------- check this ---------- Doesn't actually permit??
 		//classifyOut->actionType = FWP_ACTION_NONE; // need this to permit   ---------------- check this ----------
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished classify with RA_NOT_INTERESTED OR RA_ERROR - SHOULD ALLOW STREAM\r\n");
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited trustbaseCalloutClassify - Time=%llu\r\n", getTime());
 
 		return;
 	}
@@ -163,6 +171,8 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 		ioPacket->streamAction = FWPS_STREAM_ACTION_DROP_CONNECTION;
 		classifyOut->actionType = FWP_ACTION_NONE; // need this to drop
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished classify with RA_BLOCK\r\n");
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited trustbaseCalloutClassify - Time=%llu\r\n", getTime());
+
 		return;
 	}
 
@@ -183,6 +193,7 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 		// reset bytes read
 		context->bytesRead = 0;
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished classify with RA_WAIT\r\n");
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited trustbaseCalloutClassify - Time=%llu\r\n", getTime());
 
 		return;
 	}
@@ -191,7 +202,9 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 NTSTATUS NTAPI trustbaseCalloutNotify(FWPS_CALLOUT_NOTIFY_TYPE notifyType, const GUID * filterKey, const FWPS_FILTER * filter) {
 	UNREFERENCED_PARAMETER(filterKey);
 	UNREFERENCED_PARAMETER(filter);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered trustbaseCalloutNotify - Time=%llu\r\n", getTime());
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Stream Notify Called : Notify Type = %s\r\n", (notifyType==FWPS_CALLOUT_NOTIFY_ADD_FILTER)?"Filter Add":(notifyType==FWPS_CALLOUT_NOTIFY_DELETE_FILTER)?"Filter Delete":"Other");
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited trustbaseCalloutNotify - Time=%llu\r\n", getTime());
 	return STATUS_SUCCESS;
 }
 
@@ -199,10 +212,10 @@ void NTAPI trustbaseCalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64 f
 	UNREFERENCED_PARAMETER(layerId);
 	UNREFERENCED_PARAMETER(calloutId);
 	ConnectionFlowContext* context;
-
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered trustbaseCalloutFlowDelete - Time=%llu\r\n", getTime());
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow Delete Called\r\n");
 	context = (ConnectionFlowContext*)flowContext;
-	//Remove the flow context from the array. There must be a way that is %100 effective and fast. The context->message is null lots of times.
+	//Remove the flow context from the array. The context->message is null lots of times. Take a look at refactoring this  -vvvvv-
 	if (context->message != NULL) {
 		if (context->message->flowHandle != 0) {
 			contextArray[context->message->flowHandle % MAX_C] = 0;
@@ -213,6 +226,7 @@ void NTAPI trustbaseCalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64 f
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow handle in flow delete was NULL\r\n");
 	}
 	cleanupConnectionFlowContext(context);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited trustbaseCalloutFlowDelete - Time=%llu\r\n", getTime());
 } 
 
 
@@ -223,7 +237,9 @@ void NTAPI trustbaseALECalloutClassify(const FWPS_INCOMING_VALUES * inFixedValue
 	UNREFERENCED_PARAMETER(layerData);
 	ConnectionFlowContext *context;
 
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered trustbaseALECalloutClassify - Time=%llu\r\n", getTime());
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "______ALE Classify Called______\r\n");
+	queueStats(TBWriteQueue);
 
 	// Find what metadata we have access to
 	// What does currentL2MetadataValues do?
@@ -260,13 +276,16 @@ void NTAPI trustbaseALECalloutClassify(const FWPS_INCOMING_VALUES * inFixedValue
 	
 	// Set the action to continue with the next filter
 	classifyOut->actionType = FWP_ACTION_CONTINUE;
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited trustbaseALECalloutClassify - Time=%llu\r\n", getTime());
 	return;
 }
 
 NTSTATUS NTAPI trustbaseALECalloutNotify(FWPS_CALLOUT_NOTIFY_TYPE notifyType, const GUID * filterKey, const FWPS_FILTER * filter) {
 	UNREFERENCED_PARAMETER(filterKey);
 	UNREFERENCED_PARAMETER(filter);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered trustbaseALECalloutNotify - Time=%llu\r\n", getTime());
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "ALE Notify Called : Notify Type = %s\r\n", (notifyType == FWPS_CALLOUT_NOTIFY_ADD_FILTER) ? "Filter Add" : (notifyType == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) ? "Filter Delete" : "Other");
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited trustbaseALECalloutNotify - Time=%llu\r\n", getTime());
 	return STATUS_SUCCESS;
 }
 
@@ -274,12 +293,16 @@ void NTAPI trustbaseALECalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT6
 	UNREFERENCED_PARAMETER(layerId);
 	UNREFERENCED_PARAMETER(calloutId);
 	UNREFERENCED_PARAMETER(flowContext);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered trustbaseALECalloutFlowDelete\r\n");
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited trustbaseALECalloutDelete\r\n");
+
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "ALE FlowDelete Called\r\n");
 }
 
 NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext* context, IN UINT64 flowHandle, IN UINT16 layerId) {
 	NTSTATUS status;
 	status = STATUS_SUCCESS;
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered sendCertificate\r\n");
 
 	TbPrintMessage(context->message);
 
@@ -290,6 +313,7 @@ NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowConte
 	status = TbAddMessage(&TBOutputQueue, context->message);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Had a problem adding the certificate to the message queue\r\n");
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited sendCertificate - Time=%llu\r\n", getTime());
 		return STATUS_NOT_FOUND;
 	}
 	// Now that the message is in the queue, make sure we don't keep a reference in the context
@@ -298,7 +322,7 @@ NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowConte
 	// Use our workitem to open our read queue
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added query message to the message queue, enabling read queue\r\n");
 	WdfWorkItemEnqueue(TBReadyReadItem);
-
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited sendCertificate - Time=%llu\r\n", getTime());
 	return status;
 }
 

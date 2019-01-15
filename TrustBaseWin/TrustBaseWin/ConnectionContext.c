@@ -5,12 +5,30 @@ static NTSTATUS allocateConnectionFlowContext(OUT ConnectionFlowContext** flowCo
 
 VOID cleanupConnectionFlowContext(IN ConnectionFlowContext* context) {
 	// message should be freed from TbIoRead
+	TBMessage* message = context->message;
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered cleanupConnectionFlowContext - Time=%llu\r\n", getTime());
 
+	if (message) {
+		if (message->serverHello) {
+			ExFreePoolWithTag(message->serverHello, TB_POOL_TAG);
+		}
+		if (message->clientHello) {
+			ExFreePoolWithTag(message->clientHello, TB_POOL_TAG);
+		}
+		if (message->data) {
+			ExFreePoolWithTag(message->data, TB_POOL_TAG);
+		}
+		if (message->processPath) {
+			ExFreePoolWithTag(message->processPath, TB_POOL_TAG);
+		}
+		ExFreePoolWithTag(message, TB_POOL_TAG);
+	}
 	context->message = NULL;
 	if (context->processPath.data) {
 		ExFreePoolWithTag(context->processPath.data, TB_POOL_TAG);
 	}
 	ExFreePoolWithTag(context, TB_POOL_TAG);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited cleanupConnectionFlowContext - Time=%llu\r\n", getTime());
 }
 
 
@@ -18,6 +36,7 @@ NTSTATUS allocateConnectionFlowContext (OUT ConnectionFlowContext** flowContextO
 {
 	NTSTATUS status = STATUS_SUCCESS;
 	ConnectionFlowContext* flowContext = NULL;
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered allocateConnectionFlowContext - Time=%llu\r\n", getTime());
 
 	*flowContextOut = NULL;
 
@@ -38,6 +57,7 @@ NTSTATUS allocateConnectionFlowContext (OUT ConnectionFlowContext** flowContextO
 			ExFreePoolWithTag(flowContext, TB_POOL_TAG);
 		}
 	}
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited allocateConnectionFlowContext - Time=%llu\r\n", getTime());
 	return status;
 }
 
@@ -49,6 +69,8 @@ ConnectionFlowContext* createConnectionFlowContext (
 
 	ConnectionFlowContext* flowContext = NULL;
 	NTSTATUS status;
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered createConnectionFlowContext - Time=%llu\r\n", getTime());
+
 
 	status = allocateConnectionFlowContext(&flowContext);
 	if (NT_SUCCESS(status)) {
@@ -95,6 +117,6 @@ ConnectionFlowContext* createConnectionFlowContext (
 		}
 	}
 
-
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited createConnectionFlowContext - Time=%llu\r\n", getTime());
 	return flowContext;
 }

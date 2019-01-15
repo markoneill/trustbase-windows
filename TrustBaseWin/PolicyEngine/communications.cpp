@@ -37,14 +37,19 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 			return false;
 		}
 		overlappedWrite.Offset = 0;
+		/*
 		std::time_t t = std::time(0);
 		bool writeFileSuccessful = WriteFile(file, response_buf, 0x10, NULL, NULL);
 		std::time_t e = std::time(0);
 		tblog() << "Current Time after write " << e-t;
+		*/
 
+		std::time_t t = std::time(0);
+		bool writeFileSuccessful = WriteFile(file, response_buf, 0x10, NULL, &overlappedWrite);
+		std::time_t e = std::time(0);
+		tblog() << "Current Time after write " << e - t;
 
-		//bool writeFileSuccessful = WriteFile(file, response_buf, 0x10, NULL, &overlappedWrite);
-		/*
+		
 		DWORD dwWaitRes = WaitForSingleObject(overlappedWrite.hEvent, INFINITE); //Could wait forever
 		//DWORD dwWaitRes = WaitForSingleObject(overlappedWrite.hEvent, 5000);
 		if (dwWaitRes == WAIT_FAILED){
@@ -53,6 +58,7 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 			tblog() << "quitting write function";
 			return false;
 		}
+		
 		//is write done? if not, we need to wait for overlapped async write
 		if (!writeFileSuccessful) {
 			if (GetLastError() != ERROR_IO_PENDING) {
@@ -73,7 +79,6 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 		else{
 			tblog() << "Unsuccessfully ";
 		}
-		*/
 
 		if (!writeFileSuccessful) {
 			if (GetLastError() != ERROR_IO_PENDING) {
@@ -101,7 +106,7 @@ bool Communications::recv_query() {
 	UINT8* bufcur;
 
 	bufcur = buf;
-	
+	/*
 	while (true) {
 		// read until we have read a whole query
 		// We don't have to do an overlapped read here, because the write it is in it's own thread
@@ -137,10 +142,11 @@ bool Communications::recv_query() {
 			bufcur = bufcur + Read; // should never happen really
 		}
 	}
+	*/
 	
 
 	
-	/*while (true) {
+	while (true) {
 		// read until we have read a whole query
 
 		//Using Overlapped to allow async read/write. We only allow upto a single read and single write at the same time. 
@@ -216,7 +222,7 @@ bool Communications::recv_query() {
 		if (overlappedRead.hEvent){
 			CloseHandle(overlappedRead.hEvent);
 		}
-	}*/
+	}
 	
 	// parse the message
 	Query* query = parse_query(buf, Read);
@@ -452,8 +458,8 @@ bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) 
 	}
 
 	// this is the old way to open it with OVERLAPPED
-	//file = CreateFileW(TRUSTBASEKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
-	file = CreateFileW(TRUSTBASEKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+	file = CreateFileW(TRUSTBASEKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+	//file = CreateFileW(TRUSTBASEKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (file == NULL ||  file == INVALID_HANDLE_VALUE) {
 		tblog(LOG_ERROR) << "Couldn't open trustbase kernel file.";
 		tblog(LOG_ERROR) << GetLastError();

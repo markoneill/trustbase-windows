@@ -128,7 +128,7 @@ NTSTATUS TBInitDriverAndDevice(IN DRIVER_OBJECT * driver_obj, IN UNICODE_STRING 
 	WdfControlFinishInitializing(device);
 
 	wdm_device = WdfDeviceWdmGetDeviceObject(device);
-	g_wdm_device = device; //use device instead of wdm_device - need to keep track of it to clean it up later
+	g_wdm_device = device; //use device instead of wdm_device - keep track of the device to clean it up later
 
 	// Register callouts
 	status = TBRegisterCallouts(wdm_device);
@@ -421,6 +421,7 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT  DriverObject, IN PUNICODE_STRING Registr
 
     NTSTATUS status;
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "DriverEntry In\r\n");
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Registry Path %ws\r\n", RegistryPath);
 
 	//Initialize an array to keep track of flow contexts so we may clean up properly afterward
 	int i = 0;
@@ -450,15 +451,15 @@ VOID TBCleanUp() {
 	state = WdfIoQueueGetState(TBReadQueue, &QueueRequests, &DriverRequests);
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of read requests in queue = %d\r\n", QueueRequests);
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of read requests at the driver = %d\r\n", DriverRequests);
-	state = WdfIoQueueGetState(TBWriteQueue, &QueueRequests, &DriverRequests);
+	//state = WdfIoQueueGetState(TBWriteQueue, &QueueRequests, &DriverRequests);
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of write requests in queue = %d\r\n", QueueRequests);
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of write requests at the driver = %d\r\n", DriverRequests);
 	WdfIoQueuePurgeSynchronously(TBReadQueue);
 	WdfIoQueuePurgeSynchronously(TBWriteQueue);
-	state = WdfIoQueueGetState(TBReadQueue, &QueueRequests, &DriverRequests);
+	//state = WdfIoQueueGetState(TBReadQueue, &QueueRequests, &DriverRequests);
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of read requests in queue = %d\r\n", QueueRequests);
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of read requests at the driver = %d\r\n", DriverRequests);
-	state = WdfIoQueueGetState(TBWriteQueue, &QueueRequests, &DriverRequests);
+	//state = WdfIoQueueGetState(TBWriteQueue, &QueueRequests, &DriverRequests);
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of write requests in queue = %d\r\n", QueueRequests);
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of write requests at the driver = %d\r\n", DriverRequests);
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "PURGED THE QUEUES!!!!!!!!!!!!!\r\n");

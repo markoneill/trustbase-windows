@@ -94,3 +94,5 @@ NTSTATUS TbPopResponse(IN TBResponseTable* table, IN UINT64 flowHandle, OUT TBRe
 RTL_GENERIC_COMPARE_RESULTS TbResponseCompare(IN TBResponseTable* table, IN PVOID firstStruct, IN PVOID secondStruct);
 PVOID TbResponseAllocate(IN TBResponseTable* table, IN CLONG byteSize);
 VOID TbResponseFree(IN TBResponseTable table, IN PVOID buffer);
+ULONG64 getTime(VOID);
+VOID queueStats(WDFQUEUE queue);
