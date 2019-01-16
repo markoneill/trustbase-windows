@@ -36,7 +36,6 @@ NTSTATUS allocateConnectionFlowContext (OUT ConnectionFlowContext** flowContextO
 {
 	NTSTATUS status = STATUS_SUCCESS;
 	ConnectionFlowContext* flowContext = NULL;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered allocateConnectionFlowContext - Time=%llu\r\n", getTime());
 
 	*flowContextOut = NULL;
 
@@ -57,7 +56,6 @@ NTSTATUS allocateConnectionFlowContext (OUT ConnectionFlowContext** flowContextO
 			ExFreePoolWithTag(flowContext, TB_POOL_TAG);
 		}
 	}
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited allocateConnectionFlowContext - Time=%llu\r\n", getTime());
 	return status;
 }
 
@@ -69,7 +67,6 @@ ConnectionFlowContext* createConnectionFlowContext (
 
 	ConnectionFlowContext* flowContext = NULL;
 	NTSTATUS status;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered createConnectionFlowContext - Time=%llu\r\n", getTime());
 
 
 	status = allocateConnectionFlowContext(&flowContext);
@@ -117,6 +114,5 @@ ConnectionFlowContext* createConnectionFlowContext (
 		}
 	}
 
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited createConnectionFlowContext - Time=%llu\r\n", getTime());
 	return flowContext;
 }

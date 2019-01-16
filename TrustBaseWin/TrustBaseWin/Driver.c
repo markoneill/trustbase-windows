@@ -445,24 +445,8 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT  DriverObject, IN PUNICODE_STRING Registr
 
 
 VOID TBCleanUp() {
-	ULONG QueueRequests;
-	ULONG DriverRequests;
-	WDF_IO_QUEUE_STATE state;
-	state = WdfIoQueueGetState(TBReadQueue, &QueueRequests, &DriverRequests);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of read requests in queue = %d\r\n", QueueRequests);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of read requests at the driver = %d\r\n", DriverRequests);
-	//state = WdfIoQueueGetState(TBWriteQueue, &QueueRequests, &DriverRequests);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of write requests in queue = %d\r\n", QueueRequests);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of write requests at the driver = %d\r\n", DriverRequests);
 	WdfIoQueuePurgeSynchronously(TBReadQueue);
 	WdfIoQueuePurgeSynchronously(TBWriteQueue);
-	//state = WdfIoQueueGetState(TBReadQueue, &QueueRequests, &DriverRequests);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of read requests in queue = %d\r\n", QueueRequests);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of read requests at the driver = %d\r\n", DriverRequests);
-	//state = WdfIoQueueGetState(TBWriteQueue, &QueueRequests, &DriverRequests);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of write requests in queue = %d\r\n", QueueRequests);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Number of write requests at the driver = %d\r\n", DriverRequests);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "PURGED THE QUEUES!!!!!!!!!!!!!\r\n");
 	return;
 }
 
@@ -490,5 +474,5 @@ void tbdriver_evt_unload(IN WDFDRIVER Driver) {
 	WdfObjectDelete(g_wdm_device);      //This device is actually a WDFdevice. Device must be deleted before the driver can be stopped
 	return;
 
-	//Handshake handler has some intel specific code inside that needs to be changed?
+	//Handshake handler has some intel specific code that needs to be changed to work cross platform
 }

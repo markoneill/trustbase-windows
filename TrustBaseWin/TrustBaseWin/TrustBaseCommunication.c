@@ -103,10 +103,8 @@ VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	size_t len = MAX_PATH; // they should at least fit the biggest process path, but should actually be much bigger
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered IoRead Time=%llu\r\n", getTime());
 	
-	
-	//TODO TODO TODO  print read queue
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Print read Queue\r\n");
-	queueStats(TBReadQueue);
+	//queueStats(TBReadQueue);
 
 
 	// get the message
@@ -114,7 +112,6 @@ VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	if (!NT_SUCCESS(status) || message == NULL) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not retrieve message on read request\r\n");
 		WdfRequestCompleteWithInformation(Request, STATUS_UNSUCCESSFUL, 0);
-		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited IoRead Time=%llu\r\n", getTime());
 		return;
 	}
 
@@ -123,7 +120,6 @@ VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not retrieve output buffer on read request\r\n");
 		WdfRequestCompleteWithInformation(Request, STATUS_CANCELLED, 0); // set len so they know the size we want?
-		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited IoRead Time=%llu\r\n", getTime());
 		// the buffer wasn't big enough probably
 		return;
 	}
@@ -133,7 +129,6 @@ VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not copy message to output buffer\r\n");
 		WdfRequestCompleteWithInformation(Request, STATUS_UNSUCCESSFUL, 0);
-		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited IoRead Time=%llu\r\n", getTime());
 		return;
 	}
 
@@ -148,7 +143,6 @@ VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 		}
 	}
 	WdfRequestCompleteWithInformation(Request, status, len);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited IoRead Time=%llu\r\n", getTime());
 	return;
 }
 
@@ -166,14 +160,12 @@ VOID TbIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	UINT8* cursor;
 	UINT64 flowhandle;
 	TBResponseType response;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered IoWrite Time=%llu\r\n", getTime());
-	queueStats(TBWriteQueue);
+	//queueStats(TBWriteQueue);
 
 	status = WdfRequestRetrieveInputBuffer(Request, TBRESPONSE_MESSAGE_SIZE, &buffer, &bufsize);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Didn't get a whole response\r\n");
 		WdfRequestComplete(Request, STATUS_UNSUCCESSFUL);
-		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited IoWrite Time=%llu\r\n", getTime());
 		return;
 	}
 
@@ -189,17 +181,13 @@ VOID TbIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	TbHandleResponse(&TBResponses, flowhandle, response);
 
 	WdfRequestComplete(Request, status);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited IoWrite Time=%llu\r\n", getTime());
 	return;
 	
 }
 
 VOID TBReadyRead(IN WDFWORKITEM WorkItem) {
 	UNREFERENCED_PARAMETER(WorkItem);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "WorkItem Called\r\n");
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered ReadyRead Time=%llu\r\n", getTime());
 	WdfIoQueueStart(TBReadQueue);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited ReadyRead Time=%llu\r\n", getTime());
 	// We reuse this workitem, so we don't have to delete it
 }
 

@@ -48,7 +48,7 @@ class danePlugin(TrustHubPlugin):
         elif record.usage == 3:
             checkEnd(chain, record, False)
         else:
-        return toReturn
+            return toReturn
     
     def checkCA(self, chain, record):
             # Check if any CA in the chain has this either 0 certificate or 1 public key
@@ -58,7 +58,7 @@ class danePlugin(TrustHubPlugin):
                     return RESPONSE_VALID
             return RESPONSE_INVALID # TODO I think that only one of the CAs need to match it
 
-    def checkEnd(self, chain, record, PKIX)
+    def checkEnd(self, chain, record, PKIX):
         # Check if the end certificate matches 0 certificate or 1 public key
         if not match(getContent(chain[0], record.selector), record.cert, record.mtype):
             return RESPONSE_INVALID

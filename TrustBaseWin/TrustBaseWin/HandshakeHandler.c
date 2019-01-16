@@ -27,7 +27,6 @@ NTSTATUS copyData(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *con
 REQUESTED_ACTION NTAPI updateState(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context ) {
 	REQUESTED_ACTION ra;
 	ra = RA_NEED_MORE;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered updateState - Time=%llu\r\n", getTime());
 
 	printData(dataStream);
 
@@ -46,15 +45,12 @@ REQUESTED_ACTION NTAPI updateState(IN FWPS_STREAM_DATA *dataStream, IN Connectio
 			ra = handleStateHandshakeLayer(dataStream, context);
 			break;
 		case PS_CERTIFICATE:
-			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited updateState - Time=%llu\r\n", getTime());
 			return ra;
 		default:
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Bad connection state\r\n");
-			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited updateState - Time=%llu\r\n", getTime());
 			return ra;
 		}
 	}
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited updateState - Time=%llu\r\n", getTime());
 	return ra;
 }
 
@@ -69,7 +65,6 @@ NTSTATUS copyData(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *con
 	UINT8* buf;
 
 	*data = NULL;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered copyData - Time=%llu\r\n", getTime());
 
 	// seek to the certificate
 	currentList = dataStream->netBufferListChain;
@@ -89,13 +84,11 @@ NTSTATUS copyData(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *con
 		status = nextNetBuffer(currentBuffer, currentList, &currentBuffer, &currentList, &datalen);
 		if (!NT_SUCCESS(status)) {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error, did not get Certificate, could not get the next net buffer\r\n");
-			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited copyData - Time=%llu\r\n", getTime());
 			return STATUS_NOT_FOUND;
 		}
 	}
 	if (datalen == 0) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error, did not get Certificate\r\n");
-		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited copyData - Time=%llu\r\n", getTime());
 		return STATUS_NOT_FOUND;
 	}
 	// we now have the correct buffer, but we may have to keep traversing multiple buffers to get all the data
@@ -111,7 +104,6 @@ NTSTATUS copyData(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *con
 			if (buf == NULL) {
 				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error, did not get Certificate, could not get the data buffer while copying\r\n");
 				*data = NULL;
-				//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited copyData - Time=%llu\r\n", getTime());
 				return STATUS_NOT_FOUND;
 			}
 			RtlCopyMemory(&((*data)[copied]), &(buf[offset]), copy_len - copied);
@@ -122,7 +114,6 @@ NTSTATUS copyData(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *con
 			if (buf == NULL) {
 				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error, did not get Certificate, could not get the data buffer while copying a portion\r\n");
 				*data = NULL;
-				//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited copyData - Time=%llu\r\n", getTime());
 				return STATUS_NOT_FOUND;
 			}
 			RtlCopyMemory(&((*data)[copied]), &(buf[offset]), datalen - offset);
@@ -134,44 +125,37 @@ NTSTATUS copyData(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *con
 		if (!NT_SUCCESS(status)) {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error, did not get Certificate, could not get the next net buffer while copying\r\n");
 			*data = NULL;
-			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited copyData - Time=%llu\r\n", getTime());
 			return STATUS_NOT_FOUND;
 		}
 	}
 
 	context->bytesRead += copy_len;
 	context->bytesToRead -= copy_len;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited copyData - Time=%llu\r\n", getTime());
 	return status;
 }
 
 REQUESTED_ACTION NTAPI handleStateUnknown(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered handleStateUnkown - Time=%llu\r\n", getTime());
 	byte nbyte = peekByte(dataStream, context);
 	if (nbyte == TB_TLS_HANDSHAKE_IDENTIFIER) {
 		context->currentState = PS_RECORD_LAYER;
 		context->bytesToRead = TB_TLS_RECORD_HEADER_SIZE;
-		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited handleStateUnkown - Time=%llu\r\n", getTime());
 		return RA_NEED_MORE;
 	} else {
 		context->currentState = PS_IRRELEVANT;
 		context->bytesToRead = 0;
 	}
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited handleStateUnkown - Time=%llu\r\n", getTime());
 	return RA_NOT_INTERESTED;
 }
 
 REQUESTED_ACTION NTAPI handleStateRecordLayer(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	byte nbyte;
 	UINT16 record_length;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered handleStateRecordLayer - Time=%llu\r\n", getTime());
 
 	nbyte = nextByte(dataStream, context);
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "From record: see first byte as %x\r\n", nbyte);
 	if (nbyte != TB_TLS_HANDSHAKE_IDENTIFIER) {
 		context->currentState = PS_IRRELEVANT;
 		context->bytesToRead = 0;
-		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited handleStateRecordLayer - Time=%llu\r\n", getTime());
 		return RA_NOT_INTERESTED;
 	}
 
@@ -187,7 +171,6 @@ REQUESTED_ACTION NTAPI handleStateRecordLayer(IN FWPS_STREAM_DATA *dataStream, I
 	context->bytesToRead = record_length;
 	context->recordLength = record_length;
 	context->currentState = PS_HANDSHAKE_LAYER;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited handleStateRecordLayer - Time=%llu\r\n", getTime());
 	return RA_NEED_MORE;
 }
 
@@ -196,7 +179,6 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(IN FWPS_STREAM_DATA *dataStream
 	byte nbyte;
 	UINT24 handshake_message_length;
 	unsigned int copy_len = 0;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered handleStateHandshakeLayer - Time=%llu\r\n", getTime());
 
 	while (context->bytesToRead > 0) { // read all the records we can
 		nbyte = nextByte(dataStream, context);
@@ -216,7 +198,6 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(IN FWPS_STREAM_DATA *dataStream
 			// Expect a header next packet
 			context->bytesToRead = TB_TLS_RECORD_HEADER_SIZE;
 			context->currentState = PS_RECORD_LAYER;
-			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited handleStateHandshakeLayer - Time=%llu\r\n", getTime());
 			return RA_CONTINUE; // we don't care about the rest of this record
 		} else if (nbyte == TYPE_SERVER_HELLO) {
 			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Received a Server Hello\r\n");
@@ -231,7 +212,6 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(IN FWPS_STREAM_DATA *dataStream
 			if (context->bytesRead <= (unsigned)(context->recordLength + TB_TLS_RECORD_HEADER_SIZE)) {
 				context->bytesToRead = TB_TLS_RECORD_HEADER_SIZE;
 				context->currentState = PS_RECORD_LAYER;
-				//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited handleStateHandshakeLayer - Time=%llu\r\n", getTime());
 				return RA_NEED_MORE;
 			}
 		} else if (nbyte == TYPE_CERTIFICATE) {
@@ -246,57 +226,45 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(IN FWPS_STREAM_DATA *dataStream
 			copy_len = handshake_message_length + 3;
 			status = copyData(dataStream, context, copy_len, &(context->message->data));
 			if (status == STATUS_NOT_FOUND) {
-				//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited handleStateHandshakeLayer - Time=%llu\r\n", getTime());
 				return RA_ERROR;
 			}
-			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited handleStateHandshakeLayer - Time=%llu\r\n", getTime());
 			return RA_WAIT;
 
 		} else if (nbyte == TYPE_CERTIFICATE_VERIFY || nbyte == TYPE_CLIENT_KEY_EXCHANGE) {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got handshake message type verify or key exchange, and we should not have gotten here.\r\n");
 			context->bytesToRead = 0;
 			context->currentState = PS_ERROR;
-			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited handleStateHandshakeLayer - Time=%llu\r\n", getTime());
 			return RA_ERROR; // we don't care about the rest of this record
 		} else {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got an unknown record type\r\n");
 			context->bytesToRead = 0;
 			context->currentState = PS_ERROR;
-			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited handleStateHandshakeLayer - Time=%llu\r\n", getTime());
 			return RA_ERROR;
 		}
 	}
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited handleStateHandshakeLayer - Time=%llu\r\n", getTime());
 
 	return RA_ERROR;
 }
 
 BOOL stateCanTransition(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Can transition? State %x, b2r %x, br %x, dl %x\r\n", context->currentState, context->bytesToRead, context->bytesRead, dataStream->dataLength);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered stateCanTransition\r\n");
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited stateCanTransition\r\n");
 	return ((context->bytesToRead > 0) && (context->bytesRead < dataStream->dataLength) && (context->bytesToRead <= dataStream->dataLength - context->bytesRead));
 }
 
 byte peekByte(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered peekByte\r\n");
 	byte retbyte = nextByte(dataStream, context);
 	context->bytesRead -= 1;
 	context->bytesToRead += 1;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited peekByte\r\n");
 	return retbyte;
 }
 
 
 void ffBytes(IN ConnectionFlowContext *context, IN int amount) {
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered ffBytes\r\n");
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited ffBytes\r\n");
 	context->bytesRead += amount;
 }
 
 UINT16 nextUint16(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	// TODO: change this to something not intel specific
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered nextUint16\r\n");
 
 	UINT16 ret = 0;
 	UINT16 piece;
@@ -304,13 +272,11 @@ UINT16 nextUint16(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *con
 	piece = (UINT16)nextByte(dataStream, context);
 	ret = piece << 8;
 	ret |= (UINT16)nextByte(dataStream, context);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited nextUint16\r\n");
 	return ret;
 }
 
 UINT24 nextUint24(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	// TODO: change this to something not intel specific
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered nextUint24\r\n");
 
 	UINT24 ret = 0;
 	UINT24 piece;
@@ -319,14 +285,12 @@ UINT24 nextUint24(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *con
 	piece = (UINT24)nextByte(dataStream, context);
 	ret |= piece << 8;
 	ret |= (UINT24)nextByte(dataStream, context);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited nextUint24\r\n");
 
 	return ret;
 }
 
 UINT32 nextUint32(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context) {
 	// TODO: change this to something not intel specific
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered nextUint32\r\n");
 
 	UINT32 ret = 0;
 	UINT32 piece;
@@ -337,7 +301,6 @@ UINT32 nextUint32(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *con
 	piece = (UINT24)nextByte(dataStream, context);
 	ret |= piece << 8;
 	ret |= (UINT24)nextByte(dataStream, context);
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited nextUint32\r\n");
 
 	return ret;
 }
@@ -349,7 +312,6 @@ byte nextByte(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context
 	byte retbyte;
 	ULONG datalen = 0;
 	ULONG traversed = 0;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered nextByte\r\n");
 
 	currentList = dataStream->netBufferListChain;
 
@@ -378,13 +340,11 @@ byte nextByte(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowContext *context
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error, did not get a byte\r\n");
 		retbyte = 0x0;
 	}
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited nextByte\r\n");
 	return retbyte;
 }
 
 NTSTATUS nextNetBuffer(IN NET_BUFFER* currentBuffer, IN NET_BUFFER_LIST* currentList, OUT NET_BUFFER** newBuffer, OUT NET_BUFFER_LIST** newList, OUT ULONG* newLen) {
 	NTSTATUS status = STATUS_SUCCESS;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered nextNetBuffer\r\n");
 
 	(*newBuffer) = NET_BUFFER_NEXT_NB(currentBuffer);
 	if ((*newBuffer) == NULL) {
@@ -395,7 +355,6 @@ NTSTATUS nextNetBuffer(IN NET_BUFFER* currentBuffer, IN NET_BUFFER_LIST* current
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Hit a Null list while getting next buffer\r\n");
 			*newLen = 0;
 			*newBuffer = NULL;
-			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited nextNetBuffer\r\n");
 			return STATUS_NOT_FOUND;
 		} else {
 			// found a new list
@@ -405,7 +364,6 @@ NTSTATUS nextNetBuffer(IN NET_BUFFER* currentBuffer, IN NET_BUFFER_LIST* current
 				// reached end anyways
 				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Hit a Null buffer while getting next buffer\r\n");
 				*newLen = 0;
-				//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited nextNetBuffer\r\n");
 				return STATUS_NOT_FOUND;
 			} else {
 				// this buffer is good
@@ -415,7 +373,6 @@ NTSTATUS nextNetBuffer(IN NET_BUFFER* currentBuffer, IN NET_BUFFER_LIST* current
 	} else {
 		*newLen = (*newBuffer)->DataLength;
 	}
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited nextNetBuffer\r\n");
 	return status;
 }
 
@@ -460,6 +417,5 @@ void NTAPI printData(FWPS_STREAM_DATA *dataStream) {
 		currentList = NET_BUFFER_LIST_NEXT_NBL(currentList);
 		listcount++;
 	}
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited printData\r\n");
 	return;	
 }

@@ -24,7 +24,7 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 		return true;
 	}
 	else{
-		tblog() << "about to respond with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << " for handle" <<flowHandle;
+		tblog() << "about to respond with " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << " for handle " << flowHandle;
 		//Using Overlapped to allow async read/write. We only allow upto a single read and single write at the same time. 
 		//This allows the ReadFile call to block on its own  thread, without also blocking the WriteFile function. 
 		OVERLAPPED overlappedWrite = { 0 };
@@ -37,6 +37,7 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 			return false;
 		}
 		overlappedWrite.Offset = 0;
+
 		/*
 		std::time_t t = std::time(0);
 		bool writeFileSuccessful = WriteFile(file, response_buf, 0x10, NULL, NULL);
@@ -44,14 +45,9 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 		tblog() << "Current Time after write " << e-t;
 		*/
 
-		std::time_t t = std::time(0);
 		bool writeFileSuccessful = WriteFile(file, response_buf, 0x10, NULL, &overlappedWrite);
-		std::time_t e = std::time(0);
-		tblog() << "Current Time after write " << e - t;
 
-		
 		DWORD dwWaitRes = WaitForSingleObject(overlappedWrite.hEvent, INFINITE); //Could wait forever
-		//DWORD dwWaitRes = WaitForSingleObject(overlappedWrite.hEvent, 5000);
 		if (dwWaitRes == WAIT_FAILED){
 			//bad
 			tblog() << "WAIT_FAILED";
@@ -457,7 +453,7 @@ bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) 
 		return true;
 	}
 
-	// this is the old way to open it with OVERLAPPED
+	//So far it only works using Overlapped I/O
 	file = CreateFileW(TRUSTBASEKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
 	//file = CreateFileW(TRUSTBASEKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (file == NULL ||  file == INVALID_HANDLE_VALUE) {
