@@ -31,7 +31,7 @@ NTSTATUS TbMakeMessage(OUT TBMessage** msg, IN UINT64 flowHandle, IN UINT64 proc
 NTSTATUS TbAddMessage(IN TBMessageQueue* queue, IN TBMessage* msg) {
 	KIRQL irql;
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Before adding message, list is %sempty\r\n", ((IsListEmpty(&(queue->ListHead))) ? "" : "not "));
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Before adding message, list is %sempty\r\n", ((IsListEmpty(&(queue->ListHead))) ? "" : "not "));
 
 	// add it to our thing
 	KeAcquireSpinLock(&(queue->lock), &irql);
@@ -124,7 +124,7 @@ NTSTATUS TbRemMessage(IN TBMessageQueue* queue) {
 	PLIST_ENTRY mentry = RemoveHeadList(&(queue->ListHead));
 	KeReleaseSpinLock(&(queue->lock), irql);
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "After removing message, list is %sempty\r\n", ((IsListEmpty(&(queue->ListHead))) ? "" : "not "));
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "After removing message, list is %sempty\r\n", ((IsListEmpty(&(queue->ListHead))) ? "" : "not "));
 
 	if (mentry == NULL) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not pop message\r\n");
@@ -170,7 +170,7 @@ NTSTATUS TbCopyMessage(IN UINT8* buffer, size_t bufsize, TBMessage* message, siz
 
 	TbSizeMessage(message, &len);
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Copying message:\r\n");
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Copying message:\r\n");
 	
 	cursor = buffer;
 	bufend = buffer + bufsize;
@@ -298,7 +298,7 @@ NTSTATUS TbCopyMessage(IN UINT8* buffer, size_t bufsize, TBMessage* message, siz
 			RtlCopyMemory(cursor, message->data + offset, len);	//Has failed here in the past								 
 																								
 			cursor += len;
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished sending Certificate\r\n");
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished sending Certificate\r\n");
 		}
 
 
@@ -330,7 +330,7 @@ NTSTATUS TbCopyMessage(IN UINT8* buffer, size_t bufsize, TBMessage* message, siz
 	message->bytesWritten += (cursor - buffer);
 	// set the amount written this call
 	*bytesWritten = cursor - buffer;
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Bytes written this call %d, total %d\r\n", cursor - buffer, message->bytesWritten);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Bytes written this call %d, total %d\r\n", cursor - buffer, message->bytesWritten);
 	return status;
 }
 
@@ -380,7 +380,7 @@ NTSTATUS TbAddResponse(IN TBResponseTable* table, IN UINT64 flowHandle, IN UINT1
 	if (!success) {
 		status = STATUS_UNSUCCESSFUL;
 	} else {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added to Response List, len now %d\r\n", RtlNumberGenericTableElementsAvl(table));
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added to Response List, len now %d\r\n", RtlNumberGenericTableElementsAvl(table));
 	}
 	return status;
 }
@@ -400,7 +400,7 @@ NTSTATUS TbHandleResponse(IN TBResponseTable* table, IN UINT64 flowHandle, IN TB
 
 	response->response = answer; //Write the answer to the GenericTableAvl
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added %d as a response\r\n", response->response);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added %d as a response\r\n", response->response);
 
 	
 	status = FwpsStreamContinue(flowHandle, TrustBase_callout_stream_id, response->layerId, response->streamFlags);
@@ -408,7 +408,7 @@ NTSTATUS TbHandleResponse(IN TBResponseTable* table, IN UINT64 flowHandle, IN TB
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "NOT SUCCESSFUL - Continuing stream was NOT SUCCESSFUL for flow handle %x\r\n", flowHandle);
 		return status;
 	}
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Continuing stream for flow handle %d\r\n", flowHandle);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Continuing stream for flow handle %d\r\n", flowHandle);
 	return status;
 }
 
@@ -424,7 +424,7 @@ NTSTATUS TbPopResponse(IN TBResponseTable* table, IN UINT64 flowHandle, OUT TBRe
 		return STATUS_NOT_FOUND;
 	}
 	if (response->response != WAITING_ON_RESPONSE) {
-		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Popping response = %d for flow handle: %d\r\n", response->response, flowHandle);
+		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Popping response = %d for flow handle: %d\r\n", response->response, flowHandle);
 	}
 
 

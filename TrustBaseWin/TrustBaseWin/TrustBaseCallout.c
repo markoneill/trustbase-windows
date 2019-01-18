@@ -23,7 +23,7 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 	UNREFERENCED_PARAMETER(classifyContext);
 	UNREFERENCED_PARAMETER(filter);
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "______Classify Called______\r\n");
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "______Classify Called______\r\n");
 	//queueStats(TBWriteQueue);
 
 
@@ -36,7 +36,7 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 		classifyOut->actionType = FWP_ACTION_PERMIT;
 		return;
 	}
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow Handle = %d\r\n", inMetaValues->flowHandle);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow Handle = %d\r\n", inMetaValues->flowHandle);
 
 	// We shouldnt have to check if there is a context or not, because we have the FWP_CALLOUT_FLAG_CONDITIONAL_ON_FLOW;
 	context = (ConnectionFlowContext*)flowContext;
@@ -211,7 +211,7 @@ void NTAPI trustbaseALECalloutClassify(const FWPS_INCOMING_VALUES * inFixedValue
 	UNREFERENCED_PARAMETER(layerData);
 	ConnectionFlowContext *context;
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "______ALE Classify Called______\r\n");
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "______ALE Classify Called______\r\n");
 	//queueStats(TBWriteQueue);
 
 	// Find what metadata we have access to
@@ -230,7 +230,7 @@ void NTAPI trustbaseALECalloutClassify(const FWPS_INCOMING_VALUES * inFixedValue
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "No Process ID in metadata\r\n");
 	}
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow Handle = %d\r\n", inMetaValues->flowHandle);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow Handle = %d\r\n", inMetaValues->flowHandle);
 
 
 	// Get the data fields from inFixedValues
@@ -270,7 +270,7 @@ NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowConte
 	NTSTATUS status;
 	status = STATUS_SUCCESS;
 
-	TbPrintMessage(context->message);
+	//TbPrintMessage(context->message);
 
 	// create a new TBResponse for this
 	TbAddResponse(&TBResponses, flowHandle, layerId, dataStream->flags);

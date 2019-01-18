@@ -103,7 +103,7 @@ VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	size_t len = MAX_PATH; // they should at least fit the biggest process path, but should actually be much bigger
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered IoRead Time=%llu\r\n", getTime());
 	
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Print read Queue\r\n");
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Print read Queue\r\n");
 	//queueStats(TBReadQueue);
 
 
@@ -137,12 +137,13 @@ VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished with this message\r\n");
 		TbRemMessage(&TBOutputQueue);
 		// stop if we have responded to all current to be reads
-		if (IsListEmpty(&((&TBOutputQueue)->ListHead))) {
-			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished with outward message queue\r\n");
+		if (IsListEmpty(&((&TBOutputQueue)->ListHead))) {             //Need protection?
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished with outward message queue\r\n");
 			WdfIoQueueStop(TBReadQueue, NULL, NULL);
 		}
 	}
 	WdfRequestCompleteWithInformation(Request, status, len);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited IoRead Time=%llu\r\n", getTime());
 	return;
 }
 
@@ -160,7 +161,9 @@ VOID TbIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	UINT8* cursor;
 	UINT64 flowhandle;
 	TBResponseType response;
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered IoWrite Time=%llu\r\n", getTime());
 	//queueStats(TBWriteQueue);
+
 
 	status = WdfRequestRetrieveInputBuffer(Request, TBRESPONSE_MESSAGE_SIZE, &buffer, &bufsize);
 	if (!NT_SUCCESS(status)) {
@@ -176,11 +179,12 @@ VOID TbIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 
 	response = (TBResponseType)(((UINT8*)cursor)[0]);
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got response %x for handle %d\r\n", response, flowhandle);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got response %x for handle %d\r\n", response, flowhandle);
 
 	TbHandleResponse(&TBResponses, flowhandle, response);
 
 	WdfRequestComplete(Request, status);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Exited IoWrite Time=%llu\r\n", getTime());
 	return;
 	
 }

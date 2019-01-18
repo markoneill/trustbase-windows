@@ -20,11 +20,11 @@ WDFQUEUE TBReadQueue;
 WDFQUEUE TBWriteQueue;
 
 // global workitems
-WDFWORKITEM  TBReadyReadItem;
+WDFWORKITEM  TBReadyReadItem; //Only used in one place, the value isn't changed
 
-//global message queues
-TBMessageQueue TBOutputQueue;
-TBResponseTable TBResponses;
+//global message queues - the queues are set up using WdfIoQueueDispatchSequential. Thus I/o requests only get taken care of 1 at a time.
+TBMessageQueue TBOutputQueue; 
+TBResponseTable TBResponses;  
 
 NTSTATUS TbInitQueues(IN WDFDEVICE device);
 NTSTATUS TbInitWorkItems(IN WDFDEVICE device);

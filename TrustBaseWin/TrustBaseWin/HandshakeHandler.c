@@ -28,7 +28,7 @@ REQUESTED_ACTION NTAPI updateState(IN FWPS_STREAM_DATA *dataStream, IN Connectio
 	REQUESTED_ACTION ra;
 	ra = RA_NEED_MORE;
 
-	printData(dataStream);
+	//printData(dataStream);
 
 	while (stateCanTransition(dataStream, context)) {
 		switch (context->currentState) {

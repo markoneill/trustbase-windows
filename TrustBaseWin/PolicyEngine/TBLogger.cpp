@@ -24,10 +24,14 @@ tblog::~tblog() {
 			switch (level) {
 			case LOG_DEBUG:
 				level_indicator =" :DBG: ";
-				break;
+				tblog::mtx.unlock();
+				return;
+				//break;
 			case LOG_INFO:
 				level_indicator = " :INF: ";
-				break;
+				tblog::mtx.unlock();
+				return;
+				//break;
 			case LOG_WARNING:
 				level_indicator = " :WRN: ";
 				break;

@@ -64,7 +64,7 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 				return false;
 			}
 			else {
-				writeFileSuccessful = (bool)GetOverlappedResult(file, &overlappedWrite, &dwBytesWritten, true); //Doesn't get the overlapped result when run in the VM
+				writeFileSuccessful = (bool)GetOverlappedResult(file, &overlappedWrite, &dwBytesWritten, true); 
 			}
 		}
 
