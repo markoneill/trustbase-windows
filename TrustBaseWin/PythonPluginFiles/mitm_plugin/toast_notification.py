@@ -80,7 +80,7 @@ class ToastNotifier(object):
         self.msgQ.put(ToastMessage)
         
     def endProcess(self):
-       self.msgQ.put("kys") 
+        self.msgQ.put("kys") 
     
 class Mbox(object):
     def __init__(self):
@@ -104,12 +104,12 @@ class NotificationSubprocess(object):
         """Initialize."""
         self.visible = 0
         self.log = []
-		self._thread = None
+        self._thread = None
         self.msg_q = msg_q
         self.message_box = Mbox()
         message_map = {
             WM_DESTROY: self.onDestroy,
-			WM_USER+20 : self.onTaskbarNotify,
+            WM_USER+20 : self.onTaskbarNotify,
         }
         wc = WNDCLASS()
         hinst = wc.hInstance = GetModuleHandle(None)
@@ -161,15 +161,15 @@ class NotificationSubprocess(object):
                 self.show_toast(host)
             except Empty:
                 pass
-            PumpWaitingMessages()
+            #PumpWaitingMessages()
             
-    def show_toast(self, host= "this website"):
+    def show_toast(self, host= "this website"):  #this function now only logs the websites for the user to see
         self.log.insert(0,host)
         if len(self.log) > 20:
             del self.log[20:]
-        flags = NIF_ICON | NIF_MESSAGE | NIF_INFO
-        nid = (self.hwnd,0, flags, WM_USER+20, self.hicon, "tool tip", "Your traffic to {} is being monitored by your employer\nClick on the system tray icon to see a complete list".format(host), 9, "TrustBase", NIIF_ICON_MASK)
-        self.show(nid)
+        #flags = NIF_ICON | NIF_MESSAGE | NIF_INFO
+        #nid = (self.hwnd,0, flags, WM_USER+20, self.hicon, "tool tip", "Your traffic to {} is being monitored by your employer\nClick on the system tray icon to see a complete list".format(host), 9, "TrustBase", NIIF_ICON_MASK)
+        #self.show(nid)
         
     def onDestroy(self):
         self.message_box.destroy()
@@ -182,14 +182,14 @@ class NotificationSubprocess(object):
         return 1
 		
     def show_history(self):
-		if self._thread != None and self._thread.is_alive():
-			pass # learn how to close the active message box
-		if len(self.log) == 0:
-			self._thread = threading.Thread(target =self.message_box.show, args=("TrustBase Log", 'No traffic has been monitored by your employer this session', 0))
-		else:
-			reverse = self.log[::-1]
-			self._thread = threading.Thread(target =self.message_box.show, args=("TrustBase Log", 'Your traffic to the following sites has been monitored by your employer:\n- '+'\n- '.join(reverse), 0))
-		self._thread.start()
+        if self._thread != None and self._thread.is_alive():
+            pass # learn how to close the active message box
+        if len(self.log) == 0:
+            self._thread = threading.Thread(target =self.message_box.show, args=("TrustBase Log", 'No traffic has been monitored by your employer this session', 0))
+        else:
+            reverse = self.log[::-1]
+            self._thread = threading.Thread(target =self.message_box.show, args=("TrustBase Log", 'Your traffic to the following sites has been monitored by your employer:\n- '+'\n- '.join(reverse), 0))
+        self._thread.start()
 '''        
 def main():
     n = ToastNotifier("TrustBaseIcon.ico")
