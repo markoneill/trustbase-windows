@@ -21,6 +21,7 @@ import hashlib
 import time
 import random
 from toast_notification import ToastNotifier
+from win10toast import ToastNotifier as tn
 import threading
 
 logging.basicConfig(filename=os.path.join(sys.path[0],'MITM.log'),level=logging.DEBUG)
@@ -57,6 +58,12 @@ class mitmPlugin(TrustHubPlugin):
                 logging.info(str(host) + ' is being MITM by loaded cert')
                 if host not in self.visited_sites or self.visited_sites[host] <= time.time():
                     self.visited_sites[host] = time.time()+(8*60*60) # 8 hours
+                    notify = tn()
+                    notify.show_toast("TrustBase",
+                                      "Your traffic to {} is being monitored by your employer\n Click on the system tray icon to see a complete list".format(host), 
+                                      icon_path = os.path.join(sys.path[0],self.notification_icon),
+                                      duration = 10,
+                                      threaded = True)
                     self.toaster.show_toast(host)
                 return RESPONSE_VALID
         return RESPONSE_ABSTAIN
