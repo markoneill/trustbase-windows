@@ -14,17 +14,33 @@
 #include "TestUnbreakableCrypto.h"
 #include "TBEventLogger.h"
 
+
+
 #define CONFIG_LOCATION		"./trustbase.cfg"
 // Things that need to go in the config
 #define TIMEOUT_TIME		15000
 
 bool decider_loop(QueryQueue* qq, PolicyContext* context);
+//int imdone;
+
+BOOL WINAPI consoleHandler(DWORD signal) {
+
+	if (signal == CTRL_C_EVENT)
+		tblog() << "Ctrl-C handled"; // do cleanup
+		//imdone = 1;
+		Communications::keep_running = false;
+		return TRUE;
+	tblog() << "	uhhhhhhhhhhhhhhhhhhhhhhh??????";
+	exit(1);
+}
 
 int main(){
 	//Store certificates in root store removal
 	UnbreakableCrypto UBC = UnbreakableCrypto();
 	UBC.configure();
 	UBC.removeAllStoredCertsFromRootStore();
+	//imdone = 0;
+
 
 	//Uncomment below to test UnbreakableCrypto
 
@@ -36,6 +52,8 @@ int main(){
 
 	tblog::setFile("./policy_engine.log", true);
 	tblog(LOG_INFO) << "Starting Policy Engine";
+
+
 
 	// load configuration
 	PolicyContext context;
@@ -99,16 +117,24 @@ int main(){
 
 	//DEBUGGING (TURNED OFF NATIVE API)
 	//	native_api_loop.join();
+	tblog(LOG_INFO) << "HEre I am...\n";
 
+
+	//DWORD dwExitCode;
 	// wait on all threads to finish
 	for (int i = 0; i <= context.plugin_count; i++) {
 		plugin_threads[i].join();
+		//plugin_threads[i].~thread();
 	}
-	
+
+	tblog(LOG_INFO) << "Done waitng on threads...\n";
+
+
 	delete[] plugin_threads;
 
 	// cleanup communication
 	Communications::cleanup();
+	tblog(LOG_INFO) << "did that cleanup thing...\n";
 
 	for (int i = 0; i < context.addon_count; i++) {
 		context.addons[i].cleanup();
@@ -117,7 +143,7 @@ int main(){
 
 	tblog(LOG_INFO) << "Finished, exiting...\n";
 
-	std::system("PAUSE");
+	//std::system("PAUSE");
     return 0;
 }
 
@@ -129,8 +155,18 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context) {
 	UnbreakableCrypto_RESPONSE system_response;
 	UBC.configure();
 
+	if (!SetConsoleCtrlHandler(consoleHandler, TRUE)) {
+		tblog() << "Error setting up ctrl handler. Exiting";
+		exit(1);
+	}
+
 	while (Communications::keep_running) {
 		// dequeue a query
+		//if (imdone == 1) {
+		//	tblog() << "tearin down this decider loop";
+		//	return true;
+		//}
+
 		Query* query = qq->dequeue((int)context->plugin_count);
 		if (query == nullptr) {
 			// Done to wake from lock

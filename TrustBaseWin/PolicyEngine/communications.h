@@ -1,4 +1,6 @@
+
 #pragma once
+
 #include <Windows.h>
 #include <atomic>
 #include <exception>
@@ -11,6 +13,8 @@
 
 #define COMMUNICATIONS_DEBUG_MODE	false
 #define COMMUNICATIONS_DEBUG_QUERY	"./example_query.bin"
+
+//extern int imdone;
 
 namespace Communications {
 
@@ -26,3 +30,4 @@ namespace Communications {
 
 	extern std::atomic<bool> keep_running;
 }
+

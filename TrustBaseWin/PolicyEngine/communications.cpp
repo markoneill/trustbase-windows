@@ -1,10 +1,12 @@
 #include "stdafx.h"
 #include "communications.h"
 #include <ctime>
+#include "..\TrustBaseWin\Public.h"
 
 
 namespace Communications {
 	HANDLE file;
+	HANDLE device;
 	UINT8* buf;
 	DWORD bufsize;
 	UINT8* response_buf;
@@ -18,6 +20,11 @@ namespace Communications {
 bool Communications::send_response(int result, UINT64 flowHandle) {
 	((UINT64*)response_buf)[0] = flowHandle;
 	((UINT8*)response_buf)[sizeof(UINT64)] = (UINT8)result;
+
+	//if (imdone == 1) {
+	//	tblog() << "Dont send this response, cause I dun";
+	//	return true;
+	//}
 
 	if (COMMUNICATIONS_DEBUG_MODE) {
 		tblog() << "Would have responded " << ((result == PLUGIN_RESPONSE_VALID) ? "valid" : "invalid") << flowHandle;
@@ -45,9 +52,17 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 		tblog() << "Current Time after write " << e-t;
 		*/
 
-		bool writeFileSuccessful = WriteFile(file, response_buf, 0x10, NULL, &overlappedWrite);
+		//TODOTODO
+		DWORD dwRet;
+		BOOL ret = DeviceIoControl(file, IOCTL_GET_DECISION, response_buf, 0x10, NULL, 0, &dwRet, &overlappedWrite);
+		
+		//bool writeFileSuccessful = WriteFile(file, response_buf, 0x10, NULL, &overlappedWrite);
+		tblog() << "Sent the Write IOCTL";
+		std::time_t t = std::time(0);
+		DWORD dwWaitRes = WaitForSingleObjectEx(overlappedWrite.hEvent, INFINITE, TRUE); //Could wait forever
+		std::time_t e = std::time(0);
+		tblog() << "Current Time after write " << e - t;
 
-		DWORD dwWaitRes = WaitForSingleObject(overlappedWrite.hEvent, INFINITE); //Could wait forever
 		if (dwWaitRes == WAIT_FAILED){
 			//bad
 			tblog() << "WAIT_FAILED";
@@ -55,8 +70,9 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 			return false;
 		}
 		
+		
 		//is write done? if not, we need to wait for overlapped async write
-		if (!writeFileSuccessful) {
+		if (!ret) {
 			if (GetLastError() != ERROR_IO_PENDING) {
 				tblog() << "Unsuccessfully ";
 				tblog() << "NOT ERROR_IOPENDING ";
@@ -64,19 +80,19 @@ bool Communications::send_response(int result, UINT64 flowHandle) {
 				return false;
 			}
 			else {
-				writeFileSuccessful = (bool)GetOverlappedResult(file, &overlappedWrite, &dwBytesWritten, true); 
+				ret = (bool)GetOverlappedResult(file, &overlappedWrite, &dwBytesWritten, true); 
 			}
 		}
 
 		//async write is over
-		if (writeFileSuccessful) {
+		if (ret) {
 			tblog() << "Successfully ";
 		}
 		else{
 			tblog() << "Unsuccessfully ";
 		}
 
-		if (!writeFileSuccessful) {
+		if (!ret) {
 			if (GetLastError() != ERROR_IO_PENDING) {
 				tblog() << "Unsuccessfully ";
 				tblog() << "NOT ERROR_IOPENDING ";
@@ -144,6 +160,10 @@ bool Communications::recv_query() {
 	
 	while (true) {
 		// read until we have read a whole query
+		//if (imdone == 1) {
+		//	tblog() << "Gettin out of this darn reciev query function";
+		//	return false;
+		//}
 
 		//Using Overlapped to allow async read/write. We only allow upto a single read and single write at the same time. 
 		//This allows the ReadFile call to block on its own  thread, without also blocking the WriteFile function. 
@@ -156,19 +176,34 @@ bool Communications::recv_query() {
 		}
 		overlappedRead.Offset = 0;
 
+		//TODOTODO
+		DWORD dwRet;
+		BOOL ret = DeviceIoControl(file, IOCTL_SEND_CERTIFICATE, NULL, 0, bufcur, (DWORD)((bufsize - 1) - (bufcur - buf)), &dwRet, &overlappedRead);
 
-		bool readFileSuccessful = ReadFile(file, bufcur, (DWORD)((bufsize - 1) - (bufcur - buf)), NULL, &overlappedRead);
-		DWORD dwWaitRes = WaitForSingleObject(overlappedRead.hEvent, INFINITE);
+		//bool readFileSuccessful = ReadFile(file, bufcur, (DWORD)((bufsize - 1) - (bufcur - buf)), NULL, &overlappedRead);
+		tblog() << "Sent the read IOCTL";
+		std::time_t t = std::time(0);
+		DWORD dwWaitRes = WaitForSingleObjectEx(overlappedRead.hEvent, INFINITE, TRUE);
+		std::time_t e = std::time(0);
+		tblog() << "Current Time after read " << e - t;
+
+
 		if (dwWaitRes == WAIT_FAILED){
-			//bad
+			//bad		
+			tblog() << "Wait failed";
+
 			if (overlappedRead.hEvent){
 				CloseHandle(overlappedRead.hEvent);
 			}
 			return false;
 		}
 		//is read done? if not, we need to wait for overlapped async read
-		if (readFileSuccessful){
+		tblog() << "Did this";
+
+		if (ret){
 			//no action needed
+			tblog() << "No action needed";
+
 		}
 		else{
 			if (GetLastError() != ERROR_IO_PENDING){
@@ -178,11 +213,16 @@ bool Communications::recv_query() {
 				tblog(LOG_WARNING) << "Couldn't read query!";
 				return false;
 			}
-			readFileSuccessful = GetOverlappedResult(file, &overlappedRead, &dwBytesRead, true);
+			ret = GetOverlappedResult(file, &overlappedRead, &dwBytesRead, false);
+			//ret = GetOverlappedResult(file, &overlappedRead, &dwBytesRead, true);
+			tblog() << "Overlapped result = " << ret;
+
 		}
 
 		//async read is over
-		if(readFileSuccessful){
+		if(ret){
+			tblog() << "Async read is over";
+
 			if (toRead == 0){
 				toRead = ((UINT64*)buf)[0];
 				flowHandle = ((UINT64*)buf)[1];
@@ -199,12 +239,16 @@ bool Communications::recv_query() {
 		}
 
 		if (Read >= toRead) {
+			tblog() << "This read thing";
+
 			buf = bufcur;
 			if (overlappedRead.hEvent){
 				CloseHandle(overlappedRead.hEvent);
 			}
 			break;
 		} else if (2 * Read < bufsize) {
+			tblog() << "That read thing";
+
 			// we need to double our buffer, copy our buf, drop it, and point bufcur to the end of the data
 			tblog() << "Doubling the buffer size from " << bufsize << " to " << bufsize * 2 << " for queries";
 			bufsize = bufsize * 2;
@@ -339,10 +383,10 @@ Query* Communications::parse_query(UINT8* buffer, UINT64 buflen) {
 		cursor += sizeof(UINT32);
 		if ((UINT64)(cursor + processPathSize - buffer) > buflen) {
 			tblog(LOG_ERROR) << "Parsing path: buflen=" << buflen << ", cursor=" << (UINT64)(cursor - buffer);
-			tblog() << "Len  :" << std::hex << length;
-			tblog() << "Flow :" << std::hex << flowHandle;
-			tblog() << "Pid  :" << std::hex << processId;
-			tblog() << "ERR Path Size :" << std::hex << processPathSize;
+			tblog(LOG_ERROR) << "Len  :" << std::hex << length;
+			tblog(LOG_ERROR) << "Flow :" << std::hex << flowHandle;
+			tblog(LOG_ERROR) << "Pid  :" << std::hex << processId;
+			tblog(LOG_ERROR) << "ERR Path Size :" << std::hex << processPathSize;
 			hex_dump(buffer, buflen);
 			throw std::runtime_error("");
 		}
@@ -453,14 +497,17 @@ bool Communications::init_communication(QueryQueue* in_qq, int in_plugin_count) 
 		return true;
 	}
 
-	//So far it only works using Overlapped I/O
+	//TODOTODO
+	//device = CreateFileW(TRUSTBASEKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+
+	//So far it only works using Overlapped I/O --- Not opening the file. Perhaps something in the Kernel went wrong in creation so it isn't there. Look at the bug check  STANDARD_RIGHTS_ALL
+	//file = CreateFileW(TRUSTBASEKERN, STANDARD_RIGHTS_ALL, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
 	file = CreateFileW(TRUSTBASEKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
-	//file = CreateFileW(TRUSTBASEKERN, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (file == NULL ||  file == INVALID_HANDLE_VALUE) {
 		tblog(LOG_ERROR) << "Couldn't open trustbase kernel file.";
-		tblog(LOG_ERROR) << GetLastError();
 		delete[] buf;
 		delete[] response_buf;
+		tblog(LOG_ERROR) << GetLastError();
 		return false;
 	}
 	return true;
@@ -475,6 +522,10 @@ bool Communications::listen_for_queries() {
 
 	while (keep_running) {
 		if (!recv_query()) {
+			//if (imdone == 1) {
+			//	tblog(LOG_INFO) << "PEACE";
+			//	break;
+			//}
 			tblog(LOG_WARNING) << "Could not handle query";
 			
 			//WARNING
@@ -485,6 +536,22 @@ bool Communications::listen_for_queries() {
 			
 		}
 	}
+
+	//Take care of any outstanding IRPS
+
+	OVERLAPPED overlappedShutDown = { 0 };
+	overlappedShutDown.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	DWORD dwBytesWritten = 0;
+
+	if (!overlappedShutDown.hEvent) {
+		//bad
+		tblog() << "CreateEvent failed";
+		return false;
+	}
+	overlappedShutDown.Offset = 0;
+
+	DWORD dwRet;
+	BOOL ret = DeviceIoControl(file, IOCTL_SHUTDOWN, NULL, 0, NULL, 0, NULL, &overlappedShutDown);
 
 	// unlock the plugins so they can close
 	qq->enqueue(nullptr);

@@ -218,12 +218,14 @@ REQUESTED_ACTION NTAPI handleStateHandshakeLayer(IN FWPS_STREAM_DATA *dataStream
 			// get the certificates size
 			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Found the Certificate\r\n");
 			handshake_message_length = nextUint24(dataStream, context);
+
 			context->bytesRead -= 3;
 			context->bytesToRead = handshake_message_length + 3;
 			context->currentState = PS_CERTIFICATE;
 
 			context->message->dataSize = handshake_message_length + 3;
 			copy_len = handshake_message_length + 3;
+			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Certificate size %d\r\n", context->message->dataSize);
 			status = copyData(dataStream, context, copy_len, &(context->message->data));
 			if (status == STATUS_NOT_FOUND) {
 				return RA_ERROR;

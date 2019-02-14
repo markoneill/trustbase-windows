@@ -1,9 +1,11 @@
 #include "TrustBaseCommunication.h"
 
 NTSTATUS TbInitQueues(IN WDFDEVICE device) {
+	UNREFERENCED_PARAMETER(device);
+	NTSTATUS status = STATUS_SUCCESS;
+/*
 	WDF_IO_QUEUE_CONFIG readIoQueueConfig;
 	WDF_IO_QUEUE_CONFIG writeIoQueueConfig;
-	NTSTATUS status = STATUS_SUCCESS;
 
 
 	// configure the queues with callbacks
@@ -29,6 +31,8 @@ NTSTATUS TbInitQueues(IN WDFDEVICE device) {
 
 	// Stop the read queue, so we only get the callback if we are ready
 	WdfIoQueueStop(TBReadQueue, NULL, NULL);
+	WdfIoQueueStop(TBWriteQueue, NULL, NULL);
+
 
 	// Configure the dispatching
 	status = WdfDeviceConfigureRequestDispatching(device, TBReadQueue, WdfRequestTypeRead);  //Tell this queue to recieve IRP_READ
@@ -41,7 +45,7 @@ NTSTATUS TbInitQueues(IN WDFDEVICE device) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Couldn't configure the device to use our write queue\r\n");
 		return status;
 	}
-
+*/
 	// initialize message queues
 	status = TbInitMessageQueue(&TBOutputQueue);
 	if (!NT_SUCCESS(status)) {
@@ -52,7 +56,8 @@ NTSTATUS TbInitQueues(IN WDFDEVICE device) {
 
 	return status;
 }
-
+ 
+/*
 NTSTATUS TbInitWorkItems(IN WDFDEVICE device) {
 	WDF_OBJECT_ATTRIBUTES  workitemAttributes;
 	WDF_WORKITEM_CONFIG  workitemConfig;
@@ -86,7 +91,9 @@ NTSTATUS TbInitWorkItems(IN WDFDEVICE device) {
 
 	return status;
 }
+*/
 
+/*
 // Called when the framework receives IRP_MJ_READ requests
 VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	UNREFERENCED_PARAMETER(Queue);
@@ -101,7 +108,7 @@ VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	TBMessage* message;
 	void* buffer;
 	size_t len = MAX_PATH; // they should at least fit the biggest process path, but should actually be much bigger
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered IoRead Time=%llu\r\n", getTime());
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered IoRead Time=%llu\r\n", getTime());
 	
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Print read Queue\r\n");
 	//queueStats(TBReadQueue);
@@ -147,6 +154,7 @@ VOID TbIoRead(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	return;
 }
 
+
 // Called when the framework receives IRP_MJ_WRITE
 VOID TbIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 
@@ -161,7 +169,7 @@ VOID TbIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	UINT8* cursor;
 	UINT64 flowhandle;
 	TBResponseType response;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered IoWrite Time=%llu\r\n", getTime());
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered IoWrite Time=%llu\r\n", getTime());
 	//queueStats(TBWriteQueue);
 
 
@@ -189,11 +197,13 @@ VOID TbIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length) {
 	
 }
 
+
 VOID TBReadyRead(IN WDFWORKITEM WorkItem) {
 	UNREFERENCED_PARAMETER(WorkItem);
 	WdfIoQueueStart(TBReadQueue);
 	// We reuse this workitem, so we don't have to delete it
 }
+*/
 
 ULONG64 getTime() {
 	LARGE_INTEGER frequency;

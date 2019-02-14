@@ -18,6 +18,8 @@
 // global IO queues
 WDFQUEUE TBReadQueue;
 WDFQUEUE TBWriteQueue;
+PIRP outstanding_irp;
+PDEVICE_OBJECT myDevice;
 
 // global workitems
 WDFWORKITEM  TBReadyReadItem; //Only used in one place, the value isn't changed
@@ -37,3 +39,5 @@ VOID TbIoWrite(IN WDFQUEUE Queue, IN WDFREQUEST Request, IN size_t Length);
 
 // Called when we have recieved a certificate, and can enable the read queue
 VOID TBReadyRead(IN WDFWORKITEM WorkItem);
+
+NTSTATUS MyDriverDispatch(PDEVICE_OBJECT DeviceObject, PIRP Irp);

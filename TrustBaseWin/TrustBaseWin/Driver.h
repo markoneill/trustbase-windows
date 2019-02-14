@@ -38,9 +38,22 @@ Environment:
 #include "TrustBaseCallout.h" 
 #include "TrustBaseCommunication.h"
 #include "ConnectionContext.h"
+#include "Public.h"
 
 #define INITGUID
 #include <guiddef.h>
+
+
+/*
+#define IOCTL_GREETINGS_FROM_USER\
+   CTL_CODE(LAB_DEVICE_TYPE, 0, METHOD_BUFFERED,\
+         FILE_READ_DATA | FILE_WRITE_DATA)
+#define IOCTL_PRINT_DRIVER_VERSION\
+   CTL_CODE(LAB_DEVICE_TYPE, 1, METHOD_BUFFERED,\
+         FILE_READ_DATA | FILE_WRITE_DATA)   
+*/
+
+
 
 EXTERN_C_START
 

@@ -1,4 +1,5 @@
 #include "TrustBaseMessage.h"
+#include "TrustBaseCommunication.h"
 
 NTSTATUS TbInitMessageQueue(OUT TBMessageQueue* queue) {
 	NTSTATUS status = STATUS_SUCCESS;
@@ -330,7 +331,7 @@ NTSTATUS TbCopyMessage(IN UINT8* buffer, size_t bufsize, TBMessage* message, siz
 	message->bytesWritten += (cursor - buffer);
 	// set the amount written this call
 	*bytesWritten = cursor - buffer;
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Bytes written this call %d, total %d\r\n", cursor - buffer, message->bytesWritten);
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Bytes written this call %d, total %d\r\n", cursor - buffer, message->bytesWritten);
 	return status;
 }
 
@@ -416,7 +417,9 @@ NTSTATUS TbPopResponse(IN TBResponseTable* table, IN UINT64 flowHandle, OUT TBRe
 	NTSTATUS status = STATUS_SUCCESS;
 	TBResponse* response;
 	TBResponse lookup_response;
-	
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Entered TbPopResponse\r\n");
+
+
 	lookup_response.flowHandle = flowHandle;
 	response = (TBResponse*)RtlLookupElementGenericTableAvl(table, (PVOID)&lookup_response);
 	if (response == NULL) {
@@ -424,7 +427,7 @@ NTSTATUS TbPopResponse(IN TBResponseTable* table, IN UINT64 flowHandle, OUT TBRe
 		return STATUS_NOT_FOUND;
 	}
 	if (response->response != WAITING_ON_RESPONSE) {
-		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Popping response = %d for flow handle: %d\r\n", response->response, flowHandle);
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Popping response = %d for flow handle: %d\r\n", response->response, flowHandle);
 	}
 
 
@@ -439,7 +442,7 @@ NTSTATUS TbPopResponse(IN TBResponseTable* table, IN UINT64 flowHandle, OUT TBRe
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Error! Could not find response in table");
 		return STATUS_NOT_FOUND;
 	}
-	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Removed from Response List, len now %d\r\n", RtlNumberGenericTableElementsAvl(table));
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Removed from Response List, len now %d\r\n", RtlNumberGenericTableElementsAvl(table));
 
 	return status;
 }

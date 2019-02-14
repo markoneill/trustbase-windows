@@ -15,6 +15,7 @@ Environment:
 --*/
 
 #include "driver.h"
+#include "TrustBaseCommunication.h"
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (INIT, DriverEntry)
@@ -27,6 +28,43 @@ NTSTATUS TBRegisterStreamCallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engine
 NTSTATUS TBRegisterALECallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engineHandle);
 NTSTATUS unregister_trustbase_callouts();
 void tbdriver_evt_unload(IN WDFDRIVER Driver);
+
+//NTSTATUS MyDriverDispatch(
+//	PDEVICE_OBJECT DeviceObject,
+//	PIRP Irp
+//);
+
+CHAR irpNames[][40] = {
+	"IRP_MJ_CREATE",
+	"IRP_MJ_CREATE_NAMED_PIPE",
+	"IRP_MJ_CLOSE",
+	"IRP_MJ_READ",
+	"IRP_MJ_WRITE",
+	"IRP_MJ_QUERY_INFORMATION",
+	"IRP_MJ_SET_INFORMATION",
+	"IRP_MJ_QUERY_EA",
+	"IRP_MJ_SET_EA",
+	"IRP_MJ_FLUSH_BUFFERS",
+	"IRP_MJ_QUERY_VOLUME_INFORMATION",
+	"IRP_MJ_SET_VOLUME_INFORMATION",
+	"IRP_MJ_DIRECTORY_CONTROL",
+	"IRP_MJ_FILE_SYSTEM_CONTROL",
+	"IRP_MJ_DEVICE_CONTROL",			//irpName[14]?
+	"IRP_MJ_INTERNAL_DEVICE_CONTROL",
+	"IRP_MJ_SHUTDOWN",
+	"IRP_MJ_LOCK_CONTROL",
+	"IRP_MJ_CLEANUP",
+	"IRP_MJ_CREATE_MAILSLOT",
+	"IRP_MJ_QUERY_SECURITY",
+	"IRP_MJ_SET_SECURITY",
+	"IRP_MJ_POWER",
+	"IRP_MJ_SYSTEM_CONTROL",
+	"IRP_MJ_DEVICE_CHANGE",
+	"IRP_MJ_QUERY_QUOTA",
+	"IRP_MJ_SET_QUOTA",
+	"IRP_MJ_PNP",
+	"IRP_MJ_PNP_POWER",
+};
 
 // Initializes required WDFDriver and WDFDevice objects
 NTSTATUS TBInitDriverAndDevice(IN DRIVER_OBJECT * driver_obj, IN UNICODE_STRING * registry_path) {
@@ -52,6 +90,7 @@ NTSTATUS TBInitDriverAndDevice(IN DRIVER_OBJECT * driver_obj, IN UNICODE_STRING 
 
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Created WDF Driver\r\n");
 
+	//device_init = WdfControlDeviceInitAllocate(driver, &SDDL_DEVOBJ_SYS_ALL_ADM_RWX_WORLD_RW_RES_R); // SDDL_DEVOBJ_ALL_ADM_ALL allows kernel, system, and admin
 	device_init = WdfControlDeviceInitAllocate(driver, &SDDL_DEVOBJ_SYS_ALL_ADM_ALL); // SDDL_DEVOBJ_ALL_ADM_ALL allows kernel, system, and admin
 	if (device_init == NULL) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not init WDF Driver, insufficient resources\r\n");
@@ -116,6 +155,7 @@ NTSTATUS TBInitDriverAndDevice(IN DRIVER_OBJECT * driver_obj, IN UNICODE_STRING 
 	}
 
 	// Set up any work items
+	/*
 	status = TbInitWorkItems(device);
 	if (!NT_SUCCESS(status)) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not create the work items\r\n");
@@ -124,11 +164,13 @@ NTSTATUS TBInitDriverAndDevice(IN DRIVER_OBJECT * driver_obj, IN UNICODE_STRING 
 		}
 		return status;
 	}
+	*/
 
 	WdfControlFinishInitializing(device);
 
 	wdm_device = WdfDeviceWdmGetDeviceObject(device);
-	g_wdm_device = device; //use device instead of wdm_device - keep track of the device to clean it up later
+	myDevice = wdm_device; //Save a global to the device for use in the stream callout (used when we have outstanding irps due to an empty message queue)
+	g_wdm_device = device; //Save the a pointer to the device for cleanup
 
 	// Register callouts
 	status = TBRegisterCallouts(wdm_device);
@@ -398,7 +440,8 @@ NTSTATUS unregister_trustbase_callouts() {
 Routine Description:
 DriverEntry initializes the driver and is the first routine called by the  
 system after the driver is loaded. DriverEntry specifies the other entry
-points in the function driver, such as EvtDevice and tbdriver_evt_unload.
+points in the function driver, such as Evt
+and tbdriver_evt_unload.
 
 Parameters Description:
 
@@ -421,15 +464,13 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT  DriverObject, IN PUNICODE_STRING Registr
 
     NTSTATUS status;
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "DriverEntry In\r\n");
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Registry Path %ws\r\n", RegistryPath);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Registry Path %ws\r\n", RegistryPath);
 
 	//Initialize an array to keep track of flow contexts so we may clean up properly afterward
 	int i = 0;
 	for (i = 0; i < MAX_C; i++) {
 		contextArray[i] = 0;
 	}
-	
-	cleanup = 0; //cleanup false
 
 	//create the driver and device object
 	status = TBInitDriverAndDevice(DriverObject, RegistryPath);
@@ -438,12 +479,108 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT  DriverObject, IN PUNICODE_STRING Registr
         return status;
     }
 
-	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "DriverEntry Out\r\n");
+	DriverObject->MajorFunction[0x0e] = MyDriverDispatch; //Overwrite the Driver's IRP_MJ_DEVICE_CONTROL pointer in the major function table with a pointer to our function
 
+	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "DriverEntry Out\r\n");
     return status;
 }
 
 
+
+NTSTATUS MyDriverDispatch(PDEVICE_OBJECT DeviceObject, PIRP Irp)
+{
+	UNREFERENCED_PARAMETER(DeviceObject);
+	NTSTATUS status = STATUS_SUCCESS;
+	PIO_STACK_LOCATION pios = 0;
+	TBMessage* message;
+	size_t len = MAX_PATH; 
+	pios = IoGetCurrentIrpStackLocation(Irp);
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "In My Driver Dispatch\r\n");
+
+	switch (pios->MajorFunction) {
+	case IRP_MJ_DEVICE_CONTROL:
+		switch (pios->Parameters.DeviceIoControl.IoControlCode) {
+		case IOCTL_SEND_CERTIFICATE: {
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got an IOCTL_SEND_CERTIFICATE -- Output buffer length == %d\r\n", pios->Parameters.DeviceIoControl.OutputBufferLength);
+
+			//If the Message queue has a certificate, copy it to the system buffer to send it off
+			status = TbGetMessage(&TBOutputQueue, &message);
+			if (!NT_SUCCESS(status) || message == NULL) {
+				//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not retrieve message on read request -- read queue probably empty\r\n");
+				outstanding_irp = Irp;
+				return STATUS_PENDING;
+				//break;
+			}
+
+			if (pios->Parameters.DeviceIoControl.OutputBufferLength<sizeof(message)) {
+				DbgPrint("System buffer size too small\r\n");
+				status = STATUS_BUFFER_OVERFLOW;
+				break;
+			}
+			else {
+				// copy what we can into the buffer  -- careful with any off by 1 errors
+				status = TbCopyMessage(Irp->AssociatedIrp.SystemBuffer, pios->Parameters.DeviceIoControl.OutputBufferLength, message, &len);
+				if (!NT_SUCCESS(status)) {
+					DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Could not copy message to output buffer -- is this the problem?\r\n");
+					break;
+				}
+				Irp->IoStatus.Information = len;
+				status = STATUS_SUCCESS;
+			}
+			// remove the message if we have read it all out
+			if (NT_SUCCESS(TbFinishedMessage(message))) {
+				TbRemMessage(&TBOutputQueue);
+			}
+			break;
+		}
+		case IOCTL_GET_DECISION:
+		{
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Got an IOCTL_GET_DECISION");
+			UINT8* cursor;
+			UINT64 flowhandle;
+			TBResponseType response;
+			UINT8* buffer[32];											
+
+			//Get the answer out of the buffer and store it in the GenericAVL table
+			//DbgPrint("GOT AN IOCTL_GET_DECISION %s\n", Irp->AssociatedIrp.SystemBuffer);
+
+			RtlCopyMemory((void*)buffer, Irp->AssociatedIrp.SystemBuffer, pios->Parameters.DeviceIoControl.InputBufferLength);
+			Irp->IoStatus.Information = sizeof(Irp->AssociatedIrp.SystemBuffer);
+
+			cursor = (UINT8*)buffer;
+			flowhandle = ((UINT64*)cursor)[0];
+			cursor += sizeof(UINT64);
+			response = (TBResponseType)(((UINT8*)cursor)[0]);
+			//DbgPrint("Response == %d\r\n", response);
+			status = TbHandleResponse(&TBResponses, flowhandle, response);
+			break;
+		}
+		case IOCTL_SHUTDOWN: {
+				if (outstanding_irp != NULL){
+					IoCompleteRequest(outstanding_irp, 0);
+					outstanding_irp = NULL;
+				}
+				break;
+		}
+
+		default:
+			status = STATUS_NOT_SUPPORTED;
+			DbgPrint("Not sure what I am doing here\r\n");
+			break;
+		} // end of IoControlCode switch statement
+		break;
+	default:
+		DbgPrint("Not sure what I am doing here either\r\n");
+		status = STATUS_NOT_SUPPORTED;
+	} // end of MajorFunction switch statement
+
+	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Completing irp %d\r\n", Irp->Type);
+	Irp->IoStatus.Status = status;
+	IoCompleteRequest(Irp, 0);
+	return status;
+}
+
+//Not needed without windows I/O queues
 VOID TBCleanUp() {
 	WdfIoQueuePurgeSynchronously(TBReadQueue);
 	WdfIoQueuePurgeSynchronously(TBWriteQueue);
@@ -455,10 +592,15 @@ void tbdriver_evt_unload(IN WDFDRIVER Driver) {
 	UNREFERENCED_PARAMETER(Driver);
 	UNICODE_STRING symlink = { 0 };
 	NTSTATUS status;
-	cleanup = 1;
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- TrustBaseWin unload event ---\r\n");
+
+	if (outstanding_irp) {
+		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finishing outstanding Irp\r\n");
+		IoCompleteRequest(outstanding_irp, 0);
+		outstanding_irp = NULL;
+	}
 	
-	TBCleanUp();
+	//TBCleanUp();
 	status = unregister_trustbase_callouts();	
 	if (status != 0) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- Couldn't unregister all callouts! ---\r\n");
