@@ -13,11 +13,14 @@
 #include "UnbreakableCrypto.h"
 #include "TestUnbreakableCrypto.h"
 #include "TBEventLogger.h"
+#include <windows.h>
+#include <Lmcons.h>
 
 
-
-#define CONFIG_LOCATION		"./trustbase.cfg"
-// Things that need to go in the config
+std::string CONFIG_LOCATION;		
+//#define CONFIG_LOCATION		"./trustbase.cfg"
+//#define CONFIG_LOCATION		"C:\\Users\\ken\\AppData\\Local\\Packages\\TrustBasePluginManager_9yd7xsdvvsy3g\\LocalState\\trustbase.cfg"
+// Things that need to go in the config   
 #define TIMEOUT_TIME		15000
 
 bool decider_loop(QueryQueue* qq, PolicyContext* context);
@@ -25,13 +28,16 @@ bool decider_loop(QueryQueue* qq, PolicyContext* context);
 
 BOOL WINAPI consoleHandler(DWORD signal) {
 
+	Communications::keep_running = false;
+	return TRUE;
+
+	//Need see what happens when I send a shutdown command from the command line
 	if (signal == CTRL_C_EVENT)
 		tblog() << "Ctrl-C handled"; // do cleanup
 		//imdone = 1;
 		Communications::keep_running = false;
 		return TRUE;
 	tblog() << "	uhhhhhhhhhhhhhhhhhhhhhhh??????";
-	exit(1);
 }
 
 int main(){
@@ -41,6 +47,14 @@ int main(){
 	UBC.removeAllStoredCertsFromRootStore();
 	//imdone = 0;
 
+	CHAR name[UNLEN + 1];
+	DWORD size = UNLEN + 1;
+	GetUserNameA((LPSTR)name, &size);
+	std::stringstream ss;
+	ss << "C:\\Users\\";
+	ss << name;
+	ss << "\\AppData\\Local\\Packages\\TrustBasePluginManager_9yd7xsdvvsy3g\\LocalState\\trustbase.cfg";
+	CONFIG_LOCATION = ss.str();
 
 	//Uncomment below to test UnbreakableCrypto
 
@@ -52,13 +66,15 @@ int main(){
 
 	tblog::setFile("./policy_engine.log", true);
 	tblog(LOG_INFO) << "Starting Policy Engine";
-
+	
+	//tblog(LOG_INFO) << "YO dawg dis is my nam";
+	//tblog(LOG_INFO) << username;
 
 
 	// load configuration
 	PolicyContext context;
 
-	if (!context.loadConfig(CONFIG_LOCATION)) {
+ 	if (!context.loadConfig(CONFIG_LOCATION.c_str())) {
 		tblog(LOG_ERROR) << "Failed to load configuration file";
 		return -1;
 	}

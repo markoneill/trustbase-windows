@@ -44,6 +44,9 @@ bool Addon::init(size_t plugin_count, int(*callback)(int, int, int)) {
 
 	std::wstring wpath = std::wstring(path.begin(), path.end());
 	hDLL = LoadLibraryEx(wpath.c_str(), NULL, NULL);
+	tblog(LOG_WARNING) << "Tried to load " << path << " as dynamic library";
+	tblog(LOG_WARNING) << "hDLL ==  " << hDLL;
+	tblog(LOG_WARNING) << "Get Last error ==  " << GetLastError();
 
 	// Load shared object
 	if (!hDLL) {

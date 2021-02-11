@@ -161,7 +161,7 @@ void NTAPI trustbaseCalloutClassify(const FWPS_INCOMING_VALUES * inFixedValues, 
 	if (requestedAction == RA_BLOCK) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Blocking this stream\r\n");
 		ioPacket->streamAction = FWPS_STREAM_ACTION_DROP_CONNECTION;
-		classifyOut->actionType = FWP_ACTION_NONE; // need this to drop
+		classifyOut->actionType = FWP_ACTION_NONE; // need this to drop  FWP_ACTION_BLOCK;///
 		//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finished classify with RA_BLOCK\r\n");
 		return;
 	}
@@ -203,11 +203,17 @@ void NTAPI trustbaseCalloutFlowDelete(UINT16 layerId, UINT32 calloutId, UINT64 f
 	ConnectionFlowContext* context;
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow Delete Called\r\n");
 	context = (ConnectionFlowContext*)flowContext;
-	//Remove the flow context from the array. The context->message is null lots of times. Take a look at refactoring this  -vvvvv-
+
 	if (context->message != NULL) {
 		if (context->message->flowHandle != 0) {
-			contextArray[context->message->flowHandle % MAX_C] = 0;
-			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Handle in flow delete %d\r\n", context->message->flowHandle);
+			int i;
+			for (i=0; i < MAX_DEP; i++) {
+				if (contextArray[context->message->flowHandle % MAX_C][i] == context->message->flowHandle) {
+					contextArray[context->message->flowHandle % MAX_C][i] = 0;
+					//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Flow Delete set handle %d to 0\r\n", context->message->flowHandle);
+					break;
+				}
+			}
 		}
 	}
 	else {
@@ -308,7 +314,6 @@ NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowConte
 		outstanding_irp = NULL;
 	}
 
-
 	context->message = NULL;
 
 	// Use our workitem to open our read queue
@@ -317,6 +322,7 @@ NTSTATUS sendCertificate(IN FWPS_STREAM_DATA *dataStream, IN ConnectionFlowConte
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Left send certificate\r\n");
 	return status;
 }
+
 
 
 void NTAPI debugReadStreamFlags(FWPS_STREAM_DATA *dataStream, FWPS_CLASSIFY_OUT *classifyOut) {

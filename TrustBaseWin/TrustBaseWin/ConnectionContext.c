@@ -104,11 +104,25 @@ ConnectionFlowContext* createConnectionFlowContext (
 	}
 
 	if (flowContext) {					//Associate contexts with the TrustBase_callout_stream_id since it will be the one doing things with the context
+		if (cleanup == 1) {
+			return NULL;		//Don't associate anymore contexts so we can cleanup
+		}
 		NTSTATUS addStatus = FwpsFlowAssociateContext(inMetaValues->flowHandle, FWPS_LAYER_STREAM_V4, TrustBase_callout_stream_id, (UINT64)flowContext);
 		if (NT_SUCCESS(addStatus)) {
 			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Added a flow context to flow %x\r\n", inMetaValues->flowHandle);
-			contextArray[inMetaValues->flowHandle % MAX_C] = inMetaValues->flowHandle;
-
+			int i;
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "LETS SAVE THAT CONTEXT HUH?. %d\r\n", inMetaValues->flowHandle);
+			for(i=0; i < MAX_DEP; i++){
+				if(contextArray[inMetaValues->flowHandle % MAX_C][i]==0){ 
+					//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Saved flow handle in create context. %d\r\n", inMetaValues->flowHandle);
+					contextArray[inMetaValues->flowHandle % MAX_C][i] = inMetaValues->flowHandle;
+					break;
+				}
+			}
+			if (i == MAX_DEP) {
+				//TODO: Problematic. Clean out array? Make the array bigger?
+				DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "One of the context bins is full. Couldn't save context. Will not be able to unload driver\r\n");
+			}
 		} else {
 			DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Unable to add a flow context to flow %x\r\n", inMetaValues->flowHandle);
 		}

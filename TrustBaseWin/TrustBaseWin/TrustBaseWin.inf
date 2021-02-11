@@ -6,6 +6,7 @@
     Provider    = %ProviderString%
     CatalogFile = TrustBaseWin.cat
     DriverVer   = 11/2/2016
+	DriverPackageType = ClassFilter 
 
 [SourceDisksNames]
    1 = %TrustBaseWinDisk%,,,""

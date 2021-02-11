@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.2020
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrustBase Manager", "TrustBase Manager\TrustBase Manager\TrustBase Manager.csproj", "{22B1B127-04C3-412A-B589-450885104010}"
 EndProject
@@ -42,6 +42,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TrustBaseNativeClient", "TrustBaseNativeClient\TrustBaseNativeClient.vcxproj", "{D62E487B-7660-403A-8D35-567514301664}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NativeTester", "NativeTester\NativeTester.vcxproj", "{7E068D2F-0DC7-4AE3-8616-DA7A09C8BAF8}"
+EndProject
+Project("{930C7802-8A8C-48F9-8165-68863BCCD9DD}") = "TrustBaseInstaller", "Bootstrapper1\TrustBaseInstaller.wixproj", "{1C313020-8388-4E26-9205-07A85BDF8132}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProcessStarter", "Project1\Project1.vcxproj", "{332A7BB4-8AA0-4591-9603-07736B60D734}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -314,6 +318,32 @@ Global
 		{7E068D2F-0DC7-4AE3-8616-DA7A09C8BAF8}.Release|x64.ActiveCfg = Debug|x64
 		{7E068D2F-0DC7-4AE3-8616-DA7A09C8BAF8}.Release|x86.ActiveCfg = Release|Win32
 		{7E068D2F-0DC7-4AE3-8616-DA7A09C8BAF8}.Release|x86.Build.0 = Release|Win32
+		{1C313020-8388-4E26-9205-07A85BDF8132}.Debug|Any CPU.ActiveCfg = Debug|x86
+		{1C313020-8388-4E26-9205-07A85BDF8132}.Debug|ARM.ActiveCfg = Debug|x86
+		{1C313020-8388-4E26-9205-07A85BDF8132}.Debug|ARM64.ActiveCfg = Debug|x86
+		{1C313020-8388-4E26-9205-07A85BDF8132}.Debug|x64.ActiveCfg = Debug|x86
+		{1C313020-8388-4E26-9205-07A85BDF8132}.Debug|x86.ActiveCfg = Debug|x86
+		{1C313020-8388-4E26-9205-07A85BDF8132}.Debug|x86.Build.0 = Debug|x86
+		{1C313020-8388-4E26-9205-07A85BDF8132}.Release|Any CPU.ActiveCfg = Release|x86
+		{1C313020-8388-4E26-9205-07A85BDF8132}.Release|ARM.ActiveCfg = Release|x86
+		{1C313020-8388-4E26-9205-07A85BDF8132}.Release|ARM64.ActiveCfg = Release|x86
+		{1C313020-8388-4E26-9205-07A85BDF8132}.Release|x64.ActiveCfg = Release|x86
+		{1C313020-8388-4E26-9205-07A85BDF8132}.Release|x86.ActiveCfg = Release|x86
+		{1C313020-8388-4E26-9205-07A85BDF8132}.Release|x86.Build.0 = Release|x86
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Debug|ARM.ActiveCfg = Debug|Win32
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Debug|x64.ActiveCfg = Debug|x64
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Debug|x64.Build.0 = Debug|x64
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Debug|x86.ActiveCfg = Debug|Win32
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Debug|x86.Build.0 = Debug|Win32
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Release|Any CPU.ActiveCfg = Release|Win32
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Release|ARM.ActiveCfg = Release|Win32
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Release|ARM64.ActiveCfg = Release|Win32
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Release|x64.ActiveCfg = Release|x64
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Release|x64.Build.0 = Release|x64
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Release|x86.ActiveCfg = Release|Win32
+		{332A7BB4-8AA0-4591-9603-07736B60D734}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -338,6 +338,7 @@ NTSTATUS TBRegisterStreamCallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engine
 	FWPM_FILTER_CONDITION filterConditions[1];
 
 
+
 	// Register a new Callout with the Filter Engine using the provided callout functions
 	sCallout.calloutKey = TRUSTBASE_STREAM_CALLOUT_V4;
 	sCallout.classifyFn = trustbaseCalloutClassify;
@@ -403,19 +404,28 @@ NTSTATUS TBRegisterStreamCallout(IN DEVICE_OBJECT * wdm_device, IN HANDLE engine
 NTSTATUS unregister_trustbase_callouts() {
 	NTSTATUS status1;
 	NTSTATUS status2;
+	int counter = 0;
 
 	//Call remove context on all of the active flows
 	int i;
-	for (i = 0; i < MAX_C; i++) {
-		if (contextArray[i] != 0) {
-			FwpsFlowRemoveContext(contextArray[i], FWPS_LAYER_STREAM_V4, TrustBase_callout_stream_id);
-		}
+	int j;
+	for (i=0; i < MAX_C; i++) {
+		for (j=0; j < MAX_DEP; j++) {
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "i = %d, j = %d\r\n", i, j);
+			//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "this is what is there %d\r\n", contextArray[i][j]);
+			UINT64 val = contextArray[i][j];
+			if (val != 0) {
+				FwpsFlowRemoveContext(val, FWPS_LAYER_STREAM_V4, TrustBase_callout_stream_id);
+				//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Tried to remove %d\r\n", val);
+			}
+		}	
 	}
 
 	//Unregister the Stream callout
 	do {
 		status2 = FwpsCalloutUnregisterById(TrustBase_callout_stream_id);
-	} while (status2 == STATUS_DEVICE_BUSY);
+		counter++;
+	} while (status2 == STATUS_DEVICE_BUSY); //&& counter != 50000);
 
 	if (status2) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Stream callout could not be unregistered, last error = %d\r\n", status2);
@@ -465,11 +475,15 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT  DriverObject, IN PUNICODE_STRING Registr
     NTSTATUS status;
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "DriverEntry In\r\n");
 	//DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Registry Path %ws\r\n", RegistryPath);
+	cleanup = 0;
 
 	//Initialize an array to keep track of flow contexts so we may clean up properly afterward
-	int i = 0;
-	for (i = 0; i < MAX_C; i++) {
-		contextArray[i] = 0;
+	int i;
+	int j;
+	for (i=0; i < MAX_C; i++) {
+		for (j=0; j < MAX_DEP; j++) {
+			contextArray[i][j] = 0;
+		}
 	}
 
 	//create the driver and device object
@@ -593,6 +607,7 @@ void tbdriver_evt_unload(IN WDFDRIVER Driver) {
 	UNICODE_STRING symlink = { 0 };
 	NTSTATUS status;
 	DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "--- TrustBaseWin unload event ---\r\n");
+	cleanup = 1;
 
 	if (outstanding_irp) {
 		DbgPrintEx(DPFLTR_IHVNETWORK_ID, DPFLTR_ERROR_LEVEL, "Finishing outstanding Irp\r\n");

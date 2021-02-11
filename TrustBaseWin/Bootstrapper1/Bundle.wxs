@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <Bundle Name="TrustBaseInstaller" Version="1.0.0.0" Manufacturer="ILAB" UpgradeCode="1c313020-8388-4e26-9205-07a85bdf8132">
+    <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.RtfLicense" ></BootstrapperApplicationRef>
+
+    <util:RegistrySearch Id="PreInstall"
+			Variable="PreInstallExists"
+			Root="HKCU"
+			Key="Software\Microsoft\TrustBase"
+			Result="exists"
+			/>
+
+    <util:RegistrySearch Id="redist"
+			Variable="redistExists"
+			Root="HKLM"
+			Key="SOFTWARE\Classes\Installer\Dependencies\Microsoft.VS.VC_RuntimeAdditionalVSU_amd64,v14\"
+			Result="exists"
+			/>
+
+    <!--     
+			/> -->
+
+    <!-- Not sure what the registry key will reside yet so it will try to install this every time for now-->
+    <util:RegistrySearch Id="vc"
+			Variable="visualCExists"
+			Root="HKCU"
+			Key="Software\Microsoft\Installer\Products\8A4152964845CF540BEAEBD27F7A8519"
+			Result="exists"
+			/>
+
+    <util:RegistrySearch Id="python"
+			Variable="pythonExists"
+			Root="HKCU"
+			Key="SOFTWARE\Python\PythonCore\2.7\"
+			Result="exists"
+			/>
+    <util:RegistrySearch Id="python1"
+			Variable="python_yes"
+			Root="HKLM"
+			Key="SOFTWARE\Python\PythonCore\2.7\"
+			Result="exists"
+			/>
+    <util:RegistrySearch Id="python2"
+			Variable="python_is_there"
+			Root="HKLM"
+			Key="SOFTWARE\Wow6432Node\Python\PythonCore\2.7\"
+			Result="exists"
+			/>
+
+    <Chain>
+      <!--
+ 
+       <PackageGroupRef Id="packages"/>
+  </Bundle>
+
+
+  <Fragment>
+    <PackageGroup Id="packages">
+ -->
+
+      <MsiPackage Id="MainPackage"
+       SourceFile="TrustBase.msi"/>
+
+      <ExePackage
+       SourceFile="Dependencies/vc_redist.x64.exe"
+       Vital="yes"
+       InstallCondition="NOT redistExists"
+       DetectCondition="ExeDetectedVariable"
+       InstallCommand="/q ACTION=Install"
+       RepairCommand="/q ACTION=Repair /hideconsole"
+       UninstallCommand="/q ACTION=Uninstall /hideconsole"
+				    />
+
+      <MsiPackage Id="VisualC"
+         SourceFile="Dependencies/VCForPython27.msi"
+         Vital="yes"
+         InstallCondition="NOT visualCExists">
+      </MsiPackage>
+
+      <!--	
+      
+       <MsiPackage Id="PythonPackage"
+          SourceFile="Dependencies/python-2.7.13.amd64.msi"
+          Vital="yes"
+          InstallCondition="NOT pythonExists AND NOT python_yes AND NOT python_is_there">
+      </MsiPackage>
+      
+      DetectCondition="ExeDetectedVariable
+          InstallCommand="/q ACTION=Install"
+				RepairCommand="/q ACTION=Repair /hideconsole"
+				UninstallCommand="/q ACTION=Uninstall /hideconsole"
+        
+          
+          <MsiPackage Id="MainPackage" 
+			      	SourceFile="Dependencies/python-2.7.13.amd64.msi" 
+				      Vital="yes" 
+			      	InstallCondition="NOT pythonExists AND NOT python_yes AND NOT python_is_there">
+             <MsiProperty Name="MYARGS" Value="ALLUSERS=1"/>
+            </MsiPackage>
+      
+      <MsiPackage Id="VisualC" 
+				SourceFile="Dependencies/VCForPython27.msi" 
+				Vital="yes" 
+				InstallCondition="NOT visualCExists">
+      <MsiProperty Name="ARGS" Value="ALLUSERS=1"/>
+			</MsiPackage>
+      
+      
+        <ExePackage SourceFile="snapshot\release\preinstall.exe"
+                 DetectCondition="PreInstallExists"/>
+                  </PackageGroup>
+                    </Fragment>
+
+      -->
+    </Chain>
+  </Bundle>
+</Wix>

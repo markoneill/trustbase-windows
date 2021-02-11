@@ -12,7 +12,7 @@
 #pragma warning(pop)
 
 #define MAX_C 2000   //Max size for arrays keeping track of flow handles
-
+#define MAX_DEP 25	 //Leaving it on for a day with quite of few tabs open only left me with about 3-4 max in each bin - 25 should be sufficient but could be increased if needed
 
 typedef struct ConnectionFlowContext {
 	UINT64 processId;
@@ -32,5 +32,6 @@ ConnectionFlowContext* createConnectionFlowContext(
 	IN const FWPS_INCOMING_METADATA_VALUES* inMetaValues);
 
  //If it is global I probably need synconization?
- UINT64 contextArray[MAX_C];
+ UINT64 contextArray[MAX_C][MAX_DEP];
+ int cleanup;
  //int numContexts;
